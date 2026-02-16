@@ -1,11 +1,11 @@
 use shakmaty::{Chess, Color, Position, Role};
 use shakmaty::attacks::{bishop_attacks, knight_attacks, rook_attacks};
 use crate::engine::params::Params;
-
-
+use crate::nnue::network::{evaluate_position, Network};
 
 #[inline(always)]
 pub fn evaluate(pos: &Chess, params: &Params) -> f32 {
+
     let board = pos.board();
     let mut score = 0.0;
 
@@ -28,10 +28,19 @@ pub fn evaluate(pos: &Chess, params: &Params) -> f32 {
     }
     // === MOBILITY ===
     let white_mob = mobility_score(pos, params, Color::White);
-    let black_mob = mobility_score(pos, params,Color::Black);
+    let black_mob = mobility_score(pos, params, Color::Black);
     score += (white_mob - black_mob) as f32 ;
     score +=  add_tempo_bonus(pos, params);
 
+
+    if pos.turn() == Color::White {
+        score
+    } else {
+        -score
+    }
+}
+pub fn evaluate_nnue(pos: &Chess, net: &Network) -> f32 {
+    let score= evaluate_position(pos, &net) as f32;
     if pos.turn() == Color::White {
         score
     } else {

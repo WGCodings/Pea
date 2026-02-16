@@ -1,13 +1,15 @@
 mod engine;
 mod uci;
+mod nnue;
+mod databuilder;
 
 use std::cmp;
 use std::io::{self, BufRead};
-use std::sync::atomic::Ordering;
-use std::time::Duration;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{Duration, Instant};
 
-use shakmaty::{perft, Chess, Color, EnPassantMode, Position};
-use shakmaty::zobrist::Zobrist64;
+use shakmaty::{perft, Chess, Color, Position};
+
 use crate::uci::{parser::*, state::*};
 use crate::engine::search::search::{search, SearchStats};
 use crate::engine::params::Params;
@@ -17,12 +19,13 @@ use crate::engine::search::pv::{MultiPv, PvTable};
 use crate::engine::time_manager::compute_time_limit;
 use crate::engine::state::*;
 use crate::engine::utility::read_position_from_fen;
+use crate::nnue::network::{evaluate_position, Network};
 
 fn main() {
     let debug = false;
 
     if debug {
-        let fen = "2k4r/1r1q2pp/QBp2p2/1p6/8/8/P4PPP/2R3K1 w - - 1 0";
+        let fen = "r3k3/1pb1q3/2n1Q1pr/p1P4p/3P1p2/P6R/1P2BPP1/R1B1K3 w Qq - 9 25";
         let pos = read_position_from_fen(fen).unwrap();
 
         let params = Params::default();
@@ -33,14 +36,13 @@ fn main() {
         let ordering = MoveOrdering::new(&params.piece_values);
 
         let engine_state = EngineState::new(128);
-        let hash = pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
+
         let mut tt = engine_state.tt;
 
-        let mut ctx = SearchContext::new(&params, &ordering,multipv,&mut tt,hash);
+        let mut ctx = SearchContext::new(&params, &ordering,multipv,&mut tt);
 
-        let score = search(&pos, &mut ctx, max_depth, Some(time_remaining));
+        let (score,best_move) = search(&pos, &mut ctx, max_depth, Some(time_remaining));
 
-        let best_move = ctx.pv.best_move().unwrap();
         let stats = ctx.stats;
         let multipv_lines = ctx.multipv;
         let tt_occupancy = ctx.tt.tt_occupancy();
@@ -147,29 +149,35 @@ fn main() {
 
                     let ordering = MoveOrdering::new(&params.piece_values);
                     let repetition_stack = &engine_state.repetition_stack;
-                    let hash = engine_state.position.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
+
+
 
                     let mut ctx = SearchContext {
+                        start_time: Instant::now(),
+                        time_limit : time_limit.unwrap_or(Duration::from_millis(100)),
+                        stop: AtomicBool::new(false),
                         params: &params,
                         ordering: &ordering,
                         pv: PvTable::new(64),
                         stats: SearchStats::default(),
                         multipv: MultiPv::new(uci_state.multipv),
                         repetition_stack: repetition_stack.to_vec(),
-                        tt: &mut engine_state.tt,
-                        hash
+                        tt: &mut engine_state.tt
                     };
 
-                    let _score = search(
+
+
+                    let (_score,best_move) = search(
                         &engine_state.position,
                         &mut ctx,
                         max_depth,
                         time_limit,
                     );
 
+
+
                     let stats = ctx.stats;
                     let multipv_lines = ctx.multipv;
-                    let best_move = ctx.pv.best_move().unwrap();
                     let tt_occupancy = ctx.tt.tt_occupancy();
 
 

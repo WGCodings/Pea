@@ -1,3 +1,6 @@
+use std::cmp::Ordering;
+use std::sync::atomic::AtomicBool;
+use std::time::{Duration, Instant};
 use shakmaty::{Chess, Position};
 
 
@@ -7,7 +10,11 @@ use crate::engine::search::pv::{MultiPv, PvTable};
 use crate::engine::search::search::SearchStats;
 use crate::engine::tt::TranspositionTable;
 
+
 pub struct SearchContext<'a> {
+    pub start_time: Instant,
+    pub time_limit: Duration,
+    pub stop: AtomicBool,
     pub params: &'a Params,
     pub ordering: &'a MoveOrdering,
     pub pv: PvTable,
@@ -15,7 +22,6 @@ pub struct SearchContext<'a> {
     pub multipv: MultiPv,
     pub repetition_stack: Vec<u64>,
     pub tt: &'a mut TranspositionTable,
-    pub hash : u64,
 }
 
 impl<'a> SearchContext<'a> {
@@ -23,10 +29,12 @@ impl<'a> SearchContext<'a> {
         params: &'a Params,
         ordering: &'a MoveOrdering,
         multipv_count: usize,
-        tt: &'a mut TranspositionTable,
-        hash : u64
+        tt: &'a mut TranspositionTable
     ) -> Self {
         Self {
+            start_time: Instant::now(),
+            time_limit: Duration::ZERO,
+            stop: AtomicBool::new(false),
             params,
             ordering,
             pv: PvTable::new(64),
@@ -34,7 +42,6 @@ impl<'a> SearchContext<'a> {
             multipv: MultiPv::new(multipv_count),
             repetition_stack: Vec::with_capacity(256),
             tt ,
-            hash,
         }
     }
     #[inline(always)]
