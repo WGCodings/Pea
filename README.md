@@ -1,6 +1,6 @@
 # ♟️ Fast Pea Pea
 
-Warning this document is written by AI.
+Warning this README is written by AI, expect spectacular writing.
 
 A fast, UCI-compatible chess engine written in **Rust**, focused on clean architecture, high performance, and incremental strength improvements.
 
