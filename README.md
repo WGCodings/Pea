@@ -5,6 +5,7 @@ Warning this README is written by AI, expect spectacular writing.
 A UCI-compatible chess engine written in **Rust**.
 
 This engine is built as a performance-driven learning project. Currently using an NNUE trained on existing data found on the net. However when search is optimized I will start from scratch and train a NNUE purely from self play.  
+You can challenge me on Lichess here: https://lichess.org/@/MCPeaSearch.
 
 ---
 
