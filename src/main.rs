@@ -23,9 +23,10 @@ use crate::nnue::network::{evaluate_position, Network};
 
 fn main() {
     let debug = false;
-
+    //static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/simple512/1_simple-40/quantised.bin")) };
+    static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/huge1536-0.2wdl/2_output_buckets-160/quantised.bin")) };
     if debug {
-        let fen = "r3k3/1pb1q3/2n1Q1pr/p1P4p/3P1p2/P6R/1P2BPP1/R1B1K3 w Qq - 9 25";
+        let fen = "rnbqkb1r/p1pp1ppp/5n2/4p3/1pB1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 0 5";
         let pos = read_position_from_fen(fen).unwrap();
 
         let params = Params::default();
@@ -35,11 +36,32 @@ fn main() {
 
         let ordering = MoveOrdering::new(&params.piece_values);
 
-        let engine_state = EngineState::new(128);
+        let mut engine_state = EngineState::new(128);
 
-        let mut tt = engine_state.tt;
+        engine_state.position = pos.clone();
 
-        let mut ctx = SearchContext::new(&params, &ordering,multipv,&mut tt);
+        let tt = &mut engine_state.tt;
+
+        let nnue_state = NNUEState::new(&engine_state.position, &NNUE);
+
+        let mut ctx = SearchContext {
+            start_time: Instant::now(),
+            time_limit : time_remaining,
+            stop: AtomicBool::new(false),
+            params: &params,
+            ordering: &ordering,
+            pv: PvTable::new(64),
+            stats: SearchStats::default(),
+            multipv: MultiPv::new(multipv),
+            repetition_stack: Vec::with_capacity(256),
+            tt,
+            nnue: nnue_state,
+            network: &NNUE,
+            killers: [[None; 3]; 128],
+            history: [[[0; 64]; 64]; 2],
+            counter_moves: [[[None; 64]; 6];2],
+
+        };
 
         let (score,best_move) = search(&pos, &mut ctx, max_depth, Some(time_remaining));
 
@@ -102,6 +124,7 @@ fn main() {
 
                     for mv in moves {
                         let m = uci_to_move(&engine_state.position, &mv);
+
                         engine_state.position.play_unchecked(m);
                         engine_state.increase_history();
                     }
@@ -116,6 +139,7 @@ fn main() {
                     depth,
                 } => {
                     uci_state.stop.store(false, Ordering::Relaxed);
+
 
                     let max_depth = if let Some(d) = depth {
                         d as usize
@@ -150,7 +174,7 @@ fn main() {
                     let ordering = MoveOrdering::new(&params.piece_values);
                     let repetition_stack = &engine_state.repetition_stack;
 
-
+                    let nnue_state = NNUEState::new(&engine_state.position, &NNUE);
 
                     let mut ctx = SearchContext {
                         start_time: Instant::now(),
@@ -162,7 +186,12 @@ fn main() {
                         stats: SearchStats::default(),
                         multipv: MultiPv::new(uci_state.multipv),
                         repetition_stack: repetition_stack.to_vec(),
-                        tt: &mut engine_state.tt
+                        tt: &mut engine_state.tt,
+                        nnue: nnue_state,
+                        network: &NNUE,
+                        killers: [[None; 3]; 128],
+                        history: [[[0; 64]; 64]; 2],
+                        counter_moves: [[[None; 64]; 6];2],
                     };
 
 

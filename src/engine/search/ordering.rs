@@ -1,4 +1,5 @@
 use shakmaty::{Chess, Move, MoveList, Position, Role};
+use crate::engine::search::context::SearchContext;
 
 #[derive(Clone)]
 pub struct MoveOrdering {
@@ -25,35 +26,85 @@ impl MoveOrdering {
     pub fn order_moves(
         &self,
         pos: &Chess,
+        ctx : &SearchContext,
         pv_move: Option<&Move>,
         tt_move: Option<&Move>,
+        killers: &[Option<Move>; 3],
+        previous_move: Option<&Move>,
         moves: &mut MoveList,
     ) {
-        // 1. PV move first
-        if let Some(pv) = pv_move {
-            if let Some(idx) = moves.iter().position(|m| m == pv) {
-                moves.swap(0, idx);
-            }
+        let mut scored: Vec<(i32, Move)> = Vec::with_capacity(moves.len());
+
+        for mv in moves.drain(..) {
+            let score = self.score_move(pos, ctx, &mv, pv_move, tt_move, killers,previous_move);
+            scored.push((score, mv));
         }
 
-        // 2. TT move second (if not same as PV)
-        if let Some(tt) = tt_move {
-            if Some(tt) != pv_move {
-                if let Some(idx) = moves.iter().position(|m| m == tt) {
-                    let insert = if pv_move.is_some() { 1 } else { 0 };
-                    moves.swap(insert, idx);
+        // Sort descending by score
+        scored.sort_unstable_by(|a, b| b.0.cmp(&a.0));
+
+        // Rebuild move list
+        moves.extend(scored.into_iter().map(|(_, mv)| mv));
+    }
+    #[inline(always)]
+    fn score_move(
+        &self,
+        pos: &Chess,
+        ctx: &SearchContext,
+        mv: &Move,
+        pv_move: Option<&Move>,
+        tt_move: Option<&Move>,
+        killers: &[Option<Move>; 3],
+        previous_move: Option<&Move>,
+    ) -> i32 {
+
+        // 1. PV move
+        if Some(mv) == pv_move {
+
+            return 1_000_000;
+        }
+
+        // 2. TT move
+        if Some(mv) == tt_move {
+            return 900_000;
+        }
+
+        // 3. Captures
+        if mv.is_capture() {
+            return 500_000 + self.mvv_lva_score(pos, mv);
+        }
+        /*
+        if mv.is_promotion(){
+            let promotion_role = mv.promotion().unwrap() as i32;
+            return 450_000 + 100*promotion_role;
+        }
+        */
+        // 4. Killer moves
+        if killers[0].as_ref() == Some(mv) {
+            return 400_000;
+        }
+        if killers[1].as_ref() == Some(mv) {
+            return 399_000;
+        }
+        if killers[2].as_ref() == Some(mv) {
+            return 398_000;
+        }
+        /*
+        // 5. Counter move
+        if let Some(prev) = previous_move {
+            let side = pos.turn() as usize;   // side to move now
+            if let Some(counter) = ctx.get_counter_move(prev, side) {
+                if counter == *mv {
+                    return 350_000;
                 }
             }
         }
+        */
 
-        let (mut captures, quiets): (Vec<_>, Vec<_>) =
-            moves.drain(..).partition(|mv| mv.is_capture());
+        ctx.get_history_score(pos.turn() as usize, *mv)
 
-        self.order_captures(pos, &mut captures);
-
-        moves.extend(captures);
-        moves.extend(quiets);
     }
+
 
 
 

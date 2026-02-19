@@ -1,15 +1,18 @@
-const HIDDEN_SIZE: usize = 512;
+const HIDDEN_SIZE: usize =  1536;
 const SCALE: i32 = 400;
 const QA: i16 = 255;
 const QB: i16 = 64;
 
-use shakmaty::{Color, Position, Role};
+const NUM_OUTPUT_BUCKETS : usize = 8;
 
 
-pub fn evaluate_position<P: Position>(pos: &P, net: &Network) -> i32 {
+use shakmaty::{Chess, Color, Position, Role};
+
+#[inline(always)]
+pub fn evaluate_position(pos: &Chess, net: &Network) -> i32 {
     let (us, them) = accumulators_from_position(pos, net);
 
-    let mut eval = net.evaluate(&us, &them);
+    let mut eval = net.evaluate(&us, &them, pos);
 
     // Convert to white perspective if needed
     if pos.turn() == Color::Black {
@@ -19,8 +22,8 @@ pub fn evaluate_position<P: Position>(pos: &P, net: &Network) -> i32 {
     eval
 }
 
-
-fn role_index(role: Role) -> usize {
+#[inline(always)]
+pub fn role_index(role: Role) -> usize {
     match role {
         Role::Pawn => 0,
         Role::Knight => 1,
@@ -30,8 +33,8 @@ fn role_index(role: Role) -> usize {
         Role::King => 5,
     }
 }
-
-fn accumulators_from_position<P: Position>(
+#[inline(always)]
+pub fn accumulators_from_position<P: Position>(
     pos: &P,
     net: &Network,
 ) -> (Accumulator, Accumulator) {
@@ -63,8 +66,8 @@ fn accumulators_from_position<P: Position>(
 
     (us, them)
 }
-
-fn calculate_index(mut side: usize, mut sq_idx: usize, piece_type : usize, perspective : Color) -> usize{
+#[inline(always)]
+pub fn calculate_index(mut side: usize, mut sq_idx: usize, piece_type : usize, perspective : Color) -> usize{
     if perspective == Color::Black {
         side = 1-side;
         sq_idx ^= 0b111000;
@@ -97,43 +100,51 @@ pub struct Network {
     /// matrix, we use it like this to make the
     /// code nicer in `Network::evaluate`.
     /// Values have quantization of QB.
-    output_weights: [i16; 2 * HIDDEN_SIZE],
+    output_weights: [i16; 2 * HIDDEN_SIZE*NUM_OUTPUT_BUCKETS],
     /// Scalar output bias.
     /// Value has quantization of QA * QB.
-    output_bias: i16,
+    output_bias: [i16;NUM_OUTPUT_BUCKETS]
 }
 
 impl Network {
     /// Calculates the output of the network, starting from the already
     /// calculated hidden layer (done efficiently during makemoves).
-    pub fn evaluate(&self, us: &Accumulator, them: &Accumulator) -> i32 {
-        // Initialise output.
+    pub fn evaluate(&self, us: &Accumulator, them: &Accumulator, pos : &Chess) -> i32 {
         let mut output = 0;
+        let bucket = self.bucket(pos);
+        let offset = bucket * 2 * HIDDEN_SIZE;
 
-        // Side-To-Move Accumulator -> Output.
-        for (&input, &weight) in us.vals.iter().zip(&self.output_weights[..HIDDEN_SIZE]) {
+        let us_weights = &self.output_weights[offset .. offset + HIDDEN_SIZE];
+        let them_weights = &self.output_weights[offset + HIDDEN_SIZE .. offset + 2 * HIDDEN_SIZE];
+
+        // Side-To-Move
+        for (&input, &weight) in us.vals.iter().zip(us_weights) {
             output += screlu(input) * i32::from(weight);
         }
 
-        // Not-Side-To-Move Accumulator -> Output.
-        for (&input, &weight) in them.vals.iter().zip(&self.output_weights[HIDDEN_SIZE..]) {
+        // Not-Side-To-Move
+        for (&input, &weight) in them.vals.iter().zip(them_weights) {
             output += screlu(input) * i32::from(weight);
         }
 
-        // Reduce quantization from QA * QA * QB to QA * QB.
         output /= i32::from(QA);
 
-        // Add bias.
-        output += i32::from(self.output_bias);
+        output += i32::from(self.output_bias[bucket]);
 
-        // Apply eval scale.
         output *= SCALE;
 
-        // Remove quantisation altogether.
         output /= i32::from(QA) * i32::from(QB);
 
         output
     }
+
+
+    fn bucket(&self, pos: &Chess) -> usize {
+        let divisor = 32usize.div_ceil(NUM_OUTPUT_BUCKETS);
+        (pos.board().occupied().count() - 2) / divisor
+    }
+
+
 }
 
 /// A column of the feature-weights matrix.
@@ -141,7 +152,7 @@ impl Network {
 #[derive(Clone, Copy)]
 #[repr(C, align(64))]
 pub struct Accumulator {
-    vals: [i16; HIDDEN_SIZE],
+    pub(crate) vals: [i16; HIDDEN_SIZE],
 }
 
 impl Accumulator {

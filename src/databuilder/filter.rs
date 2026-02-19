@@ -1,5 +1,5 @@
 use shakmaty::{Chess, Position};
-use crate::engine::eval::evaluate;
+
 use crate::engine::params::Params;
 use crate::engine::search::context::SearchContext;
 use crate::engine::search::search::{negamax, quiescence};
@@ -14,7 +14,7 @@ fn is_quiet_position(pos: &mut Chess, params : &Params,ctx : &mut SearchContext)
     }
 
     // 2️⃣ Static evaluation
-    let static_eval = evaluate(pos,params);
+    let static_eval = 0.0;
 
     // 3️⃣ Quiescence search
     let q_eval = quiescence(pos, ctx, 0.0, 0.0);
@@ -24,7 +24,7 @@ fn is_quiet_position(pos: &mut Chess, params : &Params,ctx : &mut SearchContext)
     }
 
     // 4️⃣ Shallow Negamax
-    let nm_eval = negamax(pos, ctx,  NEGAMAX_DEPTH as usize, 0, 0.0, 0.0);
+    let nm_eval = negamax(pos, ctx,  NEGAMAX_DEPTH as usize, 0, 0.0, 0.0,None);
 
     if (static_eval - nm_eval).abs() > MARGIN_NM {
         return false;

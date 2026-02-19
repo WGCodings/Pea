@@ -3,14 +3,14 @@ use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 use shakmaty::{Chess, EnPassantMode, Move, Position};
 use shakmaty::zobrist::{Zobrist64};
-use crate::engine::eval::{evaluate, evaluate_nnue};
 
-use crate::engine::search::context::SearchContext;
+
+use crate::engine::search::context::{make_move_nnue, unmake_move_nnue, SearchContext};
 
 use crate::engine::time_manager::compute_time_limit;
 use crate::engine::tt::Bound;
 use crate::engine::types::{DRAW_SCORE, MATE_SCORE};
-use crate::nnue::network::Network;
+
 
 pub struct SearchStats {
     pub nodes: u64,
@@ -31,17 +31,20 @@ impl SearchStats {
         }
     }
 }
-static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../../../nnue/simple512/1_simple-40/quantised.bin")) };
+
 pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>) -> (f32,Move) {
 
     ctx.start_time = Instant::now();
     ctx.time_limit = compute_time_limit(pos,time_remaining,Some(Duration::ZERO));
     ctx.stop.store(false, Ordering::Relaxed);
 
+
     let mut best_score = f32::NEG_INFINITY;
     let mut best_move = None;
 
     for depth in 1..=max_depth {
+        ctx.clear_counter_moves();
+
         if ctx.start_time.elapsed() > ctx.time_limit{
             break;
         }
@@ -49,7 +52,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
         ctx.pv.clear_from(0);
         ctx.multipv.clear();
 
-        let score = negamax(pos, ctx, depth, 0, f32::NEG_INFINITY, f32::INFINITY);
+        let score = negamax(pos, ctx, depth, 0, f32::NEG_INFINITY, f32::INFINITY, None);
 
         //if ctx.stop.load(Ordering::Relaxed){ break;}  // DO NOT overwrite best_score
 
@@ -60,6 +63,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     ctx.stats.duration = ctx.start_time.elapsed();
 
     (best_score,best_move.unwrap())
+
 
 }
 
@@ -72,6 +76,7 @@ pub fn negamax(
     ply: usize,
     mut alpha: f32,
     beta: f32,
+    prev_move: Option<Move>,
 ) -> f32 {
     ctx.stats.nodes += 1;
     ctx.stats.seldepth = cmp::max(ply as u32, ctx.stats.seldepth);
@@ -82,18 +87,14 @@ pub fn negamax(
 
     ctx.pv.clear_from(ply);
 
-
     if pos.is_checkmate() {
         return -MATE_SCORE + ply as f32;
     }
 
-    if ctx.is_threefold(pos) || ctx.is_50_moves(pos){
+    if (ctx.is_threefold(pos) || ctx.is_50_moves(pos) || pos.is_stalemate() || pos.is_insufficient_material()) && ply !=0 {
         return DRAW_SCORE;
     }
 
-    if pos.is_stalemate() || pos.is_insufficient_material() {
-        return DRAW_SCORE;
-    }
 
     if pos.is_check() && ply < 64 && depth <= 2{
         depth += 1;
@@ -116,18 +117,26 @@ pub fn negamax(
 
     let mut moves = pos.legal_moves();
 
-    // is this correct?
+
     let pv_table = &ctx.pv.table;
     let pv_move: Option<Move> = pv_table.get(ply).and_then(|l| l.first()).cloned();
 
     let tt_move = tt_best_move(hash, ctx);
 
-    ctx.ordering.order_moves(pos, pv_move.as_ref(), tt_move.as_ref(), &mut moves);
+    ctx.ordering.order_moves(pos, ctx, pv_move.as_ref(), tt_move.as_ref(), &ctx.killers[ply],prev_move.as_ref(), &mut moves);
 
+    let mut quiets_searched: Vec<Move> = Vec::new();
 
     for mv in moves {
 
-        let mut child_pos = pos.clone();
+        if !mv.is_capture() {
+            quiets_searched.push(mv);
+        }
+
+
+        make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
+
+        let mut child_pos  = pos.clone();
 
         child_pos.play_unchecked(mv);
 
@@ -136,26 +145,74 @@ pub fn negamax(
 
         ctx.increase_history(hash_child);
 
+        /*
+        let (us2, them2) = accumulators_from_position(&child_pos, ctx.network);
+        if ctx.nnue.us.vals != us2.vals || ctx.nnue.them.vals != them2.vals {
+            println!("Move: {}", move_to_uci(&mv));
+            println!("FEN: {}", pos.board().board_fen());
+            println!("====================================");
+            println!("NNUE MISMATCH DETECTED");
 
-        let score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -beta, -alpha);
 
+            // Check US accumulator
+            for i in 0..ctx.nnue.us.vals.len() {
+                if ctx.nnue.us.vals[i] != us2.vals[i] {
+                    println!(
+                        "US mismatch at {}: incremental={} rebuild={}",
+                        i,
+                        ctx.nnue.us.vals[i],
+                        us2.vals[i]
+                    );
+                    break;
+                }
+            }
+
+            // Check THEM accumulator
+            for i in 0..ctx.nnue.them.vals.len() {
+                if ctx.nnue.them.vals[i] != them2.vals[i] {
+                    println!(
+                        "THEM mismatch at {}: incremental={} rebuild={}",
+                        i,
+                        ctx.nnue.them.vals[i],
+                        us2.vals[i]
+                    );
+                    break;
+                }
+            }
+
+            panic!("NNUE accumulator mismatch");
+        }
+
+        ////////////////////////////////////////////////////
+        */
+        let score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -beta, -alpha, Some(mv));
 
         ctx.decrease_history();
-
+        unmake_move_nnue(ctx.network, &mut ctx.nnue);
         //if ctx.stop.load(Ordering::Relaxed){ return 0.0; }
 
         if score > best_score {
             best_score = score;
             best_move = Some(mv);
-            update_pv(ply, mv, best_score, ctx);
+
         }
 
-        if best_score >= beta {
+        if score >= beta {
+            if !mv.is_capture() {
+                ctx.store_killer(ply, mv);
+                if let Some(prev) = prev_move { ctx.store_counter_move(&prev, mv, pos.turn() as usize); }
+                ctx.increase_history_bonus(pos.turn() as usize, mv, depth);
+                for q in quiets_searched.iter() {
+                    if *q != mv {
+                        ctx.decrease_history_bonus(pos.turn() as usize, *q, depth);
+                    }
+                }
+            }
             break;
         }
-
-        if best_score > alpha {
-            alpha = best_score;
+        if score > alpha {
+            alpha = score;
+            update_pv(ply, mv, best_score, ctx);
         }
     }
 
@@ -189,8 +246,9 @@ pub fn quiescence(
         return score;
     }
 
-    //let stand_pat = evaluate(pos, ctx.params);
-    let stand_pat = evaluate_nnue(pos, &NNUE);
+
+    //let stand_pat = evaluate_nnue(pos, ctx.network);
+    let stand_pat = ctx.network.evaluate(&ctx.nnue.us,&ctx.nnue.them,pos) as f32;
 
     if stand_pat >= beta {
         return beta;
@@ -208,6 +266,8 @@ pub fn quiescence(
 
     for mv in moves {
 
+        make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
+
         let mut child = pos.clone();
 
         child.play_unchecked(mv);
@@ -219,6 +279,8 @@ pub fn quiescence(
         let score = -quiescence(&child, ctx, -beta, -alpha);
 
         ctx.decrease_history();
+
+        unmake_move_nnue(ctx.network, &mut ctx.nnue);
 
         //if ctx.stop.load(Ordering::Relaxed){ return 0.0; }
 
