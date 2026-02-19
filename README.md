@@ -2,9 +2,9 @@
 
 Warning this README is written by AI, expect spectacular writing.
 
-A fast, UCI-compatible chess engine written in **Rust**, focused on clean architecture, high performance, and incremental strength improvements.
+A UCI-compatible chess engine written in **Rust**.
 
-This engine is built as a performance-driven learning project, combining efficient search techniques with lightweight evaluation for maximum speed.
+This engine is built as a performance-driven learning project. Currently using an NNUE trained on existing data found on the net. However when search is optimized I will start from scratch and train a NNUE purely from self play.  
 
 ---
 
