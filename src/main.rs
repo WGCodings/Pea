@@ -24,7 +24,7 @@ use crate::nnue::network::{evaluate_position, Network};
 fn main() {
     let debug = false;
     //static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/simple512/1_simple-40/quantised.bin")) };
-    static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/huge1536-0.2wdl/2_output_buckets-160/quantised.bin")) };
+    static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/huge1536-0.2-0.9 wdl/2_output_buckets-500/quantised.bin")) };
     if debug {
         let fen = "rnbqkb1r/p1pp1ppp/5n2/4p3/1pB1P3/3P1N2/PPP2PPP/RNBQK2R w KQkq - 0 5";
         let pos = read_position_from_fen(fen).unwrap();
@@ -140,12 +140,7 @@ fn main() {
                 } => {
                     uci_state.stop.store(false, Ordering::Relaxed);
 
-
-                    let max_depth = if let Some(d) = depth {
-                        d as usize
-                    } else {
-                        64
-                    };
+                    let max_depth = if let Some(d) = depth { d as usize } else {64};
 
                     let remaining = match engine_state.position.turn() {
                         Color::White => wtime.map(Duration::from_millis),
@@ -196,7 +191,7 @@ fn main() {
 
 
 
-                    let (_score,best_move) = search(
+                    let (best_score,best_move) = search(
                         &engine_state.position,
                         &mut ctx,
                         max_depth,
@@ -219,7 +214,7 @@ fn main() {
                         0
                     };
                     let multi_pv_lines = &multipv_lines.lines;
-                    for (i, (score, line)) in
+                    for (i, (_score, line)) in
                         multi_pv_lines.iter().enumerate()
                     {
                         let pv_string = pv_to_string(line);
@@ -229,7 +224,7 @@ fn main() {
                             line.len(),
                             stats.seldepth,
                             i + 1,
-                            score,
+                            best_score,
                             stats.nodes,
                             nps,
                             tt_occupancy,

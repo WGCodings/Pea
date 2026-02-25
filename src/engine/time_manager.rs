@@ -15,7 +15,7 @@ pub fn compute_time_limit(
     let increment = increment.unwrap_or(Duration::ZERO);
 
     // --- Base allocation ---
-    let mut time = remaining / 10 + increment;
+    let mut time = remaining / 50 + increment;
 
     // --- Complexity adjustment ---
     let move_count = pos.legal_moves().len() as u32;
@@ -28,7 +28,11 @@ pub fn compute_time_limit(
 
     // --- Safety clamps ---
     let min = Duration::from_millis(20);
-    let max = remaining * 2 / 3;
+    let mut max = remaining * 2 / 3;
+
+    if min > max {
+        max = min
+    }
 
     time.clamp(min, max)
 }

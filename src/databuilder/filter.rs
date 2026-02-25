@@ -24,7 +24,7 @@ fn is_quiet_position(pos: &mut Chess, params : &Params,ctx : &mut SearchContext)
     }
 
     // 4️⃣ Shallow Negamax
-    let nm_eval = negamax(pos, ctx,  NEGAMAX_DEPTH as usize, 0, 0.0, 0.0,None);
+    let nm_eval = negamax(pos, ctx, NEGAMAX_DEPTH as usize, 0, 0.0, 0.0, None, true);
 
     if (static_eval - nm_eval).abs() > MARGIN_NM {
         return false;

@@ -58,12 +58,6 @@ impl MoveOrdering {
         previous_move: Option<&Move>,
     ) -> i32 {
 
-        // 1. PV move
-        if Some(mv) == pv_move {
-
-            return 1_000_000;
-        }
-
         // 2. TT move
         if Some(mv) == tt_move {
             return 900_000;
@@ -88,6 +82,10 @@ impl MoveOrdering {
         }
         if killers[2].as_ref() == Some(mv) {
             return 398_000;
+        }
+        // 1. PV move
+        if Some(mv) == pv_move {
+            return 350_000;
         }
         /*
         // 5. Counter move
