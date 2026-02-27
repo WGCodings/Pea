@@ -1,13 +1,9 @@
 use std::cmp;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
-use shakmaty::{Chess, EnPassantMode, Move, Position};
+use shakmaty::{Bitboard, Chess, EnPassantMode, Move, Position};
 use shakmaty::zobrist::{Zobrist64};
-
-
 use crate::engine::search::context::{make_move_nnue, unmake_move_nnue, SearchContext};
-
-use crate::engine::time_manager::compute_time_limit;
 use crate::engine::tt::Bound;
 use crate::engine::types::{DRAW_SCORE, MATE_SCORE};
 
@@ -43,12 +39,12 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     let mut best_move = None;
 
     for depth in 1..=max_depth {
-        ctx.clear_counter_moves();
 
         if ctx.start_time.elapsed() > ctx.time_limit{
             break;
         }
 
+        ctx.clear_counter_moves();
         ctx.pv.clear_from(0);
         ctx.multipv.clear();
 
@@ -124,23 +120,38 @@ pub fn negamax(
     }
 
     let hash = pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
-    let mut score = tt_probe(hash, ctx, depth, alpha, beta).unwrap_or(-10000000.0);
-    if score != -10000000.0 && ply != 0 {
+    let mut score = tt_probe(hash, ctx, depth, alpha, beta).unwrap_or(f32::NEG_INFINITY);
+    if score > f32::NEG_INFINITY && !is_root {
         return score;
     }
 
     let static_eval = ctx.network.evaluate(&ctx.nnue.us, &ctx.nnue.them, pos) as f32;
-    /*
 
-
+    // Safety
     if ply > 63{
         return static_eval;
     }
 
-    let nmp_margin : f32= -120.0 + 20.0 * depth as f32;
-    if !in_check && depth >= 2 && ply != 0 && static_eval + nmp_margin >= beta && do_null {
-        //println!("{}", ply);
-        let reduction = (4 + depth / 4).min(depth);
+    // =====================================================================================================================//
+    // STATIC NULL MOVE PRUNING                                                                                             //
+    // =====================================================================================================================//
+    if  !in_check && !is_pv && beta.abs() < MATE_SCORE {
+        let score_margin = ctx.params.snmp_scaling * depth as f32;
+        if static_eval-score_margin >= beta {
+            return static_eval-score_margin
+        }
+    }
+
+    // =====================================================================================================================//
+    // NULL MOVE PRUNING                                                                                                    //
+    // =====================================================================================================================//
+    let nmp_margin : f32= -ctx.params.nmp_margin + ctx.params.nmp_scaling * depth as f32;
+    if  !in_check && !is_pv && !is_root &&
+        static_eval + nmp_margin >= beta &&
+        do_null && minors_or_majors(pos).count() >1 &&
+        depth >=ctx.params.nmp_min_depth {
+
+        let reduction = (ctx.params.nmp_base_reduction + depth/ctx.params.nmp_reduction_scaling).min(depth);
 
         std::mem::swap(&mut ctx.nnue.us, &mut ctx.nnue.them);
 
@@ -149,8 +160,7 @@ pub fn negamax(
         let hash_child = child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
         ctx.increase_history(hash_child);
 
-
-        let score = -negamax(&child_pos, ctx, depth - 1 - reduction, ply + 1, -beta, -beta + 1.0, None, false);
+        let score = -negamax(&child_pos, ctx, depth - reduction, ply + 1, -beta, -beta + 1.0, None, false);
 
         std::mem::swap(&mut ctx.nnue.us, &mut ctx.nnue.them);
         ctx.decrease_history();
@@ -161,10 +171,11 @@ pub fn negamax(
             return beta;
         }
     }
-    */
 
 
-    // Razoring from Snail chess
+    // =====================================================================================================================//
+    // RAZORING                                                                                                             //
+    // =====================================================================================================================//
     if !in_check && !is_pv && depth <= ctx.params.raz_max_depth && static_eval +ctx.params.raz_thr *(depth as f32) < alpha
     {
         let razor_score = quiescence(pos,ctx,alpha,beta);
@@ -185,6 +196,7 @@ pub fn negamax(
 
 
     for mv in moves {
+
         if !mv.is_capture() {
             quiets_searched.push(mv);
         }
@@ -192,26 +204,38 @@ pub fn negamax(
         make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
 
         let mut child_pos = pos.clone();
-
         child_pos.play_unchecked(mv);
-
-
         let hash_child = child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
 
         ctx.increase_history(hash_child);
 
-        // START PVS SEARCH WITH FULL WINDOW FOR THE FIRST MOVE
+        let is_quiet = !mv.is_capture() && !mv.is_promotion() && !child_pos.is_check();
+
+        // =====================================================================================================================//
+        // START PVS SEARCH WITH FULL WINDOW FOR THE FIRST MOVE AND LMR FOR LATE MOVES                                          //
+        // =====================================================================================================================//
         if moves_searched == 0{
             score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -beta, -alpha, Some(mv),true);
         }
         else {
-            score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -alpha-1.0, -alpha, Some(mv),true);
-
-            if score > alpha{
-                score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -beta, -alpha, Some(mv),true);
+            let mut reduction = 0;
+            if moves_searched >=ctx.params.lmr_min_searches &&  depth >= ctx.params.lmr_min_depth && is_quiet && !is_pv && !in_check{
+                reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as usize;
             }
 
+            score = -negamax(&child_pos, ctx, depth - 1 -reduction , ply + 1, -alpha-1.0, -alpha, Some(mv),true);
+
+            if score > alpha && reduction >0{
+                score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -alpha-1.0, -alpha, Some(mv),true);
+                if score > alpha{
+                    score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -beta, -alpha, Some(mv),true);
+                }
+            }
+            else if score > alpha && score < beta {
+                score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -beta, -alpha, Some(mv),true);
+            }
         }
+
         moves_searched +=1;
 
         ctx.decrease_history();
@@ -242,11 +266,10 @@ pub fn negamax(
         }
     }
 
-        if !ctx.stop.load(Ordering::Relaxed) {
-            tt_store(hash, ctx, depth, best_score, original_alpha, beta, best_move);
-        }
-
-        best_score
+    if !ctx.stop.load(Ordering::Relaxed) {
+        tt_store(hash, ctx, depth, best_score, original_alpha, beta, best_move);
+    }
+    best_score
     }
 
     #[inline(always)]
@@ -375,4 +398,9 @@ pub fn negamax(
         ctx.tt
             .probe(key)
             .and_then(|e| e.best_move.clone())
+    }
+    #[inline(always)]
+    fn minors_or_majors(pos : &Chess) -> Bitboard {
+        let board = pos.board();
+        (board.rooks_and_queens() | board.knights() | board.bishops())
     }

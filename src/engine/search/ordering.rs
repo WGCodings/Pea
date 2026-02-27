@@ -67,12 +67,7 @@ impl MoveOrdering {
         if mv.is_capture() {
             return 500_000 + self.mvv_lva_score(pos, mv);
         }
-        /*
-        if mv.is_promotion(){
-            let promotion_role = mv.promotion().unwrap() as i32;
-            return 450_000 + 100*promotion_role;
-        }
-        */
+
         // 4. Killer moves
         if killers[0].as_ref() == Some(mv) {
             return 400_000;
@@ -88,12 +83,17 @@ impl MoveOrdering {
             return 350_000;
         }
         /*
+        if mv.is_promotion(){
+            let promotion_role = mv.promotion().unwrap() as i32;
+            return 300_000 + 100*promotion_role;
+        }
+
         // 5. Counter move
         if let Some(prev) = previous_move {
             let side = pos.turn() as usize;   // side to move now
             if let Some(counter) = ctx.get_counter_move(prev, side) {
                 if counter == *mv {
-                    return 350_000;
+                    return 300_000;
                 }
             }
         }

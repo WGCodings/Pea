@@ -93,7 +93,7 @@ impl<'a> SearchContext<'a> {
         self.killers[ply][0] = Some(mv);
     }
     #[inline(always)]
-    pub fn is_killer(&self, ply: usize, mv: &Move) -> bool {
+    pub fn _is_killer(&self, ply: usize, mv: &Move) -> bool {
         self.killers[ply][0].as_ref() == Some(mv)
             || self.killers[ply][1].as_ref() == Some(mv)
             || self.killers[ply][2].as_ref() == Some(mv)
