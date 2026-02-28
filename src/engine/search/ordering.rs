@@ -7,7 +7,7 @@ pub struct MoveOrdering {
 }
 
 impl MoveOrdering {
-    pub fn new(piece_values: &[f32; 6]) -> Self {
+    pub fn new(piece_values: &[i32; 6]) -> Self {
         let mut table = [[0; 6]; 6];
 
         for attacker in 0..6 {

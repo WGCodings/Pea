@@ -19,7 +19,7 @@ use crate::engine::search::pv::{MultiPv, PvTable};
 use crate::engine::time_manager::compute_time_limit;
 use crate::engine::state::*;
 use crate::engine::utility::read_position_from_fen;
-use crate::nnue::network::{evaluate_position, Network};
+use crate::nnue::network::{Network};
 
 fn main() {
     let debug = false;

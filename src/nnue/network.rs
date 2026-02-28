@@ -8,19 +8,7 @@ const NUM_OUTPUT_BUCKETS : usize = 8;
 
 use shakmaty::{Chess, Color, Position, Role};
 
-#[inline(always)]
-pub fn evaluate_position(pos: &Chess, net: &Network) -> i32 {
-    let (us, them) = accumulators_from_position(pos, net);
 
-    let mut eval = net.evaluate(&us, &them, pos);
-
-    // Convert to white perspective if needed
-    if pos.turn() == Color::Black {
-        eval = -eval;
-    }
-
-    eval
-}
 
 #[inline(always)]
 pub fn role_index(role: Role) -> usize {

@@ -3,9 +3,10 @@ use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 use shakmaty::{Bitboard, Chess, EnPassantMode, Move, Position};
 use shakmaty::zobrist::{Zobrist64};
+use crate::engine::eval::evaluate;
 use crate::engine::search::context::{make_move_nnue, unmake_move_nnue, SearchContext};
-use crate::engine::tt::Bound;
-use crate::engine::types::{DRAW_SCORE, MATE_SCORE};
+use crate::engine::tt::{tt_best_move, tt_probe, tt_store, Bound};
+use crate::engine::types::{DRAW_SCORE, MATE_SCORE, MAX_INF, MIN_INF};
 
 
 pub struct SearchStats {
@@ -28,14 +29,14 @@ impl SearchStats {
     }
 }
 
-pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>) -> (f32,Move) {
+pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>) -> (i32,Move) {
 
     ctx.start_time = Instant::now();
     ctx.time_limit = time_remaining.unwrap();
     ctx.stop.store(false, Ordering::Relaxed);
 
 
-    let mut best_score = f32::NEG_INFINITY;
+    let mut best_score = MIN_INF;
     let mut best_move = None;
 
     for depth in 1..=max_depth {
@@ -48,7 +49,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
         ctx.pv.clear_from(0);
         ctx.multipv.clear();
 
-        let score = negamax(pos, ctx, depth, 0, f32::NEG_INFINITY, f32::INFINITY, None, true);
+        let score = negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, None, true);
 
         if ctx.stop.load(Ordering::Relaxed){
             if best_move == None && depth ==1{
@@ -75,11 +76,11 @@ pub fn negamax(
     ctx: &mut SearchContext,
     mut depth: usize,
     ply: usize,
-    mut alpha: f32,
-    beta: f32,
+    mut alpha: i32,
+    beta: i32,
     prev_move: Option<Move>,
     do_null : bool
-) -> f32 {
+) -> i32 {
     ctx.stats.nodes += 1;
     ctx.stats.seldepth = cmp::max(ply as u32, ctx.stats.seldepth);
     ctx.stats.depth_sum += ply as u64;
@@ -87,56 +88,66 @@ pub fn negamax(
 
     let is_root = ply == 0;
     let in_check = pos.is_check();
-    let is_pv = beta-alpha >1.0;
+    let is_pv = beta-alpha >1;
+
     let original_alpha = alpha;
-    let mut best_score = f32::NEG_INFINITY;
+    let mut best_score = MIN_INF;
     let mut best_move = None;
 
     check_time(ctx);
 
-
     let pv_table = &ctx.pv.table;
     let pv_move: Option<Move> = pv_table.get(ply).and_then(|l| l.first()).cloned();
 
+
+
     ctx.pv.clear_from(ply);
 
-    if ctx.stop.load(Ordering::Relaxed){ return 0.0; }
-
     if pos.is_checkmate() {
-        return -MATE_SCORE + ply as f32;
+        return -MATE_SCORE + ply as i32;
     }
 
     if (ctx.is_threefold(pos) || ctx.is_50_moves(pos) || pos.is_stalemate() || pos.is_insufficient_material()) && !is_root {
         return DRAW_SCORE;
     }
 
-    if pos.is_check() && ply < 63 && depth <= 2 {
+    if in_check && ply < 63 && depth <= 2 {
         depth += 1;
     }
 
+    if ctx.stop.load(Ordering::Relaxed){ return DRAW_SCORE; }
+
+
+
     if depth <= 0 {
         ctx.stats.nodes -= 1;
-        return quiescence(pos, ctx, alpha, beta);
+        return quiescence(pos, ctx, alpha, beta,ply);
     }
 
     let hash = pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
-    let mut score = tt_probe(hash, ctx, depth, alpha, beta).unwrap_or(f32::NEG_INFINITY);
-    if score > f32::NEG_INFINITY && !is_root {
-        return score;
+    let mut score = 0;
+
+    if let Some(score) = tt_probe(hash, ctx, depth, alpha, beta,ply) {
+        if !is_root {
+            return score;
+        }
     }
 
-    let static_eval = ctx.network.evaluate(&ctx.nnue.us, &ctx.nnue.them, pos) as f32;
+
+    let static_eval = evaluate(pos,ctx.network,&ctx.nnue.us, &ctx.nnue.them);
 
     // Safety
     if ply > 63{
         return static_eval;
     }
 
+    let do_pruning = true && minors_or_majors(pos).count() >0;
+
     // =====================================================================================================================//
     // STATIC NULL MOVE PRUNING                                                                                             //
     // =====================================================================================================================//
-    if  !in_check && !is_pv && beta.abs() < MATE_SCORE {
-        let score_margin = ctx.params.snmp_scaling * depth as f32;
+    if  do_pruning && !in_check && !is_pv && beta.abs() < MATE_SCORE {
+        let score_margin = ctx.params.snmp_scaling * depth as i32;
         if static_eval-score_margin >= beta {
             return static_eval-score_margin
         }
@@ -145,10 +156,10 @@ pub fn negamax(
     // =====================================================================================================================//
     // NULL MOVE PRUNING                                                                                                    //
     // =====================================================================================================================//
-    let nmp_margin : f32= -ctx.params.nmp_margin + ctx.params.nmp_scaling * depth as f32;
-    if  !in_check && !is_pv && !is_root &&
+    let nmp_margin : i32= -ctx.params.nmp_margin + ctx.params.nmp_scaling * depth as i32;
+    if  do_pruning && !in_check && !is_pv && !is_root &&
         static_eval + nmp_margin >= beta &&
-        do_null && minors_or_majors(pos).count() >1 &&
+        do_null && minors_or_majors(pos).count() >0 &&
         depth >=ctx.params.nmp_min_depth {
 
         let reduction = (ctx.params.nmp_base_reduction + depth/ctx.params.nmp_reduction_scaling).min(depth);
@@ -160,12 +171,12 @@ pub fn negamax(
         let hash_child = child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
         ctx.increase_history(hash_child);
 
-        let score = -negamax(&child_pos, ctx, depth - reduction, ply + 1, -beta, -beta + 1.0, None, false);
+        let score = -negamax(&child_pos, ctx, depth - reduction, ply + 1, -beta, -beta + 1, None, false);
 
         std::mem::swap(&mut ctx.nnue.us, &mut ctx.nnue.them);
         ctx.decrease_history();
 
-        if ctx.stop.load(Ordering::Relaxed){ return 0.0; }
+        if ctx.stop.load(Ordering::Relaxed){ return DRAW_SCORE;}
 
         if score >= beta && score.abs() < MATE_SCORE {
             return beta;
@@ -176,9 +187,9 @@ pub fn negamax(
     // =====================================================================================================================//
     // RAZORING                                                                                                             //
     // =====================================================================================================================//
-    if !in_check && !is_pv && depth <= ctx.params.raz_max_depth && static_eval +ctx.params.raz_thr *(depth as f32) < alpha
+    if  do_pruning && !in_check && !is_pv && depth <= ctx.params.raz_max_depth && static_eval +ctx.params.raz_thr *(depth as i32) < alpha
     {
-        let razor_score = quiescence(pos,ctx,alpha,beta);
+        let razor_score = quiescence(pos,ctx,alpha,beta,ply);
         if razor_score <= alpha{
             return razor_score;
         }
@@ -223,10 +234,10 @@ pub fn negamax(
                 reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as usize;
             }
 
-            score = -negamax(&child_pos, ctx, depth - 1 -reduction , ply + 1, -alpha-1.0, -alpha, Some(mv),true);
+            score = -negamax(&child_pos, ctx, depth - 1 -reduction , ply + 1, -alpha-1, -alpha, Some(mv),true);
 
             if score > alpha && reduction >0{
-                score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -alpha-1.0, -alpha, Some(mv),true);
+                score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -alpha-1, -alpha, Some(mv),true);
                 if score > alpha{
                     score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -beta, -alpha, Some(mv),true);
                 }
@@ -267,7 +278,7 @@ pub fn negamax(
     }
 
     if !ctx.stop.load(Ordering::Relaxed) {
-        tt_store(hash, ctx, depth, best_score, original_alpha, beta, best_move);
+        tt_store(hash, ctx, depth, best_score, original_alpha, beta, best_move,ply);
     }
     best_score
     }
@@ -276,13 +287,14 @@ pub fn negamax(
     pub fn quiescence(
         pos: &Chess,
         ctx: &mut SearchContext,
-        mut alpha: f32,
-        beta: f32,
-    ) -> f32 {
+        mut alpha: i32,
+        beta: i32,
+        ply : usize
+    ) -> i32 {
         ctx.stats.nodes += 1;
 
         check_time(ctx);
-        if ctx.stop.load(Ordering::Relaxed){ return 0.0; }
+        if ctx.stop.load(Ordering::Relaxed){ return DRAW_SCORE; }
 
         if ctx.is_threefold(pos) || ctx.is_50_moves(pos) {
             return DRAW_SCORE;
@@ -291,13 +303,13 @@ pub fn negamax(
         let hash = pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
 
         // TT probe for qsearch
-        if let Some(score) = tt_probe(hash, ctx, 0, alpha, beta) {
+        if let Some(score) = tt_probe(hash, ctx, 0, alpha, beta,ply) {
             return score;
         }
 
 
         //let stand_pat = evaluate_nnue(pos, ctx.network);
-        let stand_pat = ctx.network.evaluate(&ctx.nnue.us, &ctx.nnue.them, pos) as f32;
+        let stand_pat = evaluate(pos,ctx.network,&ctx.nnue.us, &ctx.nnue.them);
 
         if stand_pat >= beta {
             return beta;
@@ -324,7 +336,7 @@ pub fn negamax(
 
             ctx.increase_history(child_hash);
 
-            let score = -quiescence(&child, ctx, -beta, -alpha);
+            let score = -quiescence(&child, ctx, -beta, -alpha,ply+1);
 
             ctx.decrease_history();
 
@@ -342,7 +354,7 @@ pub fn negamax(
         }
 
         if !ctx.stop.load(Ordering::Relaxed) {
-            tt_store(hash, ctx, 0, alpha, original_alpha, beta, None);
+            tt_store(hash, ctx, 0, alpha, original_alpha, beta, None,ply);
         }
         alpha
     }
@@ -356,7 +368,7 @@ pub fn negamax(
         }
     }
     #[inline(always)]
-    fn update_pv(ply: usize, mv: Move, best_score: f32, ctx: &mut SearchContext) {
+    fn update_pv(ply: usize, mv: Move, best_score: i32, ctx: &mut SearchContext) {
         let child_line = ctx.pv.table[ply + 1].clone();
         ctx.pv.set_pv(ply, mv, &child_line);
 
@@ -364,43 +376,9 @@ pub fn negamax(
             ctx.multipv.insert(best_score, ctx.pv.pv_line().to_vec());
         }
     }
-    #[inline(always)]
-    fn tt_probe(key: u64, ctx: &mut SearchContext, depth: usize, alpha: f32, beta: f32, ) -> Option<f32> {
-        if let Some(entry) = ctx.tt.probe(key) {
-            if entry.depth as usize >= depth {
-                match entry.bound {
-                    Bound::Exact => return Some(entry.score),
-                    Bound::Lower if entry.score >= beta => {
-                        return Some(entry.score)
-                    }
-                    Bound::Upper if entry.score <= alpha => {
-                        return Some(entry.score)
-                    }
-                    _ => {}
-                }
-            }
-        }
-        None
-    }
-    #[inline(always)]
-    fn tt_store(key : u64, ctx: &mut SearchContext, depth: usize, best_score: f32, alpha: f32, beta: f32, best_move: Option<Move>, ) {
-        let bound = if best_score <= alpha {
-            Bound::Upper
-        } else if best_score >= beta {
-            Bound::Lower
-        } else {
-            Bound::Exact
-        };
-        ctx.tt.store(key, depth, best_score, bound, best_move);
-    }
-    #[inline(always)]
-    fn tt_best_move(key : u64, ctx: &mut SearchContext, ) -> Option<Move> {
-        ctx.tt
-            .probe(key)
-            .and_then(|e| e.best_move.clone())
-    }
+
     #[inline(always)]
     fn minors_or_majors(pos : &Chess) -> Bitboard {
         let board = pos.board();
-        (board.rooks_and_queens() | board.knights() | board.bishops())
+        (board.rooks_and_queens() | board.knights() | board.bishops()) & pos.us()
     }

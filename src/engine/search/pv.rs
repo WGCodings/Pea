@@ -33,7 +33,7 @@ impl PvTable {
 }
 
 pub struct MultiPv {
-    pub lines: std::vec::Vec<(f32, std::vec::Vec<shakmaty::Move>)>,
+    pub lines: std::vec::Vec<(i32, std::vec::Vec<shakmaty::Move>)>,
     capacity: usize,
 }
 
@@ -49,7 +49,7 @@ impl MultiPv {
         self.lines.clear();
     }
 
-    pub fn insert(&mut self, score: f32, line: Vec<shakmaty::Move>) {
+    pub fn insert(&mut self, score: i32, line: Vec<shakmaty::Move>) {
         self.lines.push((score, line));
 
         self.lines.sort_by(|a, b| {

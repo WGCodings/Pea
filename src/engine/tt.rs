@@ -1,4 +1,6 @@
 use shakmaty::Move;
+use crate::engine::search::context::SearchContext;
+use crate::engine::types::MATE_SCORE;
 
 #[derive(Clone, Copy)]
 pub enum Bound {
@@ -11,7 +13,7 @@ pub enum Bound {
 pub struct TTEntry {
     pub key: u64,
     pub depth: u8,
-    pub score: f32,
+    pub score: i32,
     pub bound: Bound,
     pub best_move: Option<Move>,
 }
@@ -59,7 +61,7 @@ impl TranspositionTable {
         &mut self,
         key: u64,
         depth: usize,
-        score: f32,
+        score: i32,
         bound: Bound,
         best_move: Option<Move>,
     ) {
@@ -101,4 +103,93 @@ impl TranspositionTable {
 
         ((used / total) * 1000.0) as u32
     }
+}
+const MATE_THRESHOLD: i32 = MATE_SCORE - 1000;
+
+#[inline(always)]
+fn score_to_tt(score: i32, ply: usize) -> i32 {
+    if score > MATE_THRESHOLD {
+        score + ply as i32
+    } else if score < -MATE_THRESHOLD {
+        score - ply as i32
+    } else {
+        score
+    }
+}
+
+#[inline(always)]
+fn score_from_tt(score: i32, ply: usize) -> i32 {
+    if score > MATE_THRESHOLD {
+        score - ply as i32
+    } else if score < -MATE_THRESHOLD {
+        score + ply as i32
+    } else {
+        score
+    }
+}
+
+#[inline(always)]
+pub(crate) fn tt_probe(
+    key: u64,
+    ctx: &mut SearchContext,
+    depth: usize,
+    alpha: i32,
+    beta: i32,
+    ply: usize,
+) -> Option<i32> {
+
+    if let Some(entry) = ctx.tt.probe(key) {
+        if entry.depth as usize >= depth{
+
+            let score: i32 = score_from_tt(entry.score, ply);
+
+            match entry.bound {
+                Bound::Exact => {
+                    return Some(score);
+                }
+
+                Bound::Lower if score >= beta => {
+                    return Some(beta);
+                }
+
+                Bound::Upper if score <= alpha => {
+                    return Some(alpha);
+                }
+
+                _ => {}
+            }
+        }
+    }
+
+    None
+}
+#[inline(always)]
+pub(crate) fn tt_store(
+    key: u64,
+    ctx: &mut SearchContext,
+    depth: usize,
+    best_score: i32,
+    alpha: i32,
+    beta: i32,
+    best_move: Option<Move>,
+    ply: usize,
+) {
+    let bound = if best_score <= alpha {
+        Bound::Upper
+    } else if best_score >= beta {
+        Bound::Lower
+    } else {
+        Bound::Exact
+    };
+
+    let adjusted_score = score_to_tt(best_score, ply);
+
+    ctx.tt.store(key, depth, adjusted_score, bound, best_move);
+}
+
+#[inline(always)]
+pub fn tt_best_move(key : u64, ctx: &mut SearchContext, ) -> Option<Move> {
+    ctx.tt
+        .probe(key)
+        .and_then(|e| e.best_move.clone())
 }
