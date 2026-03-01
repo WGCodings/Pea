@@ -58,11 +58,14 @@ impl MoveOrdering {
         previous_move: Option<&Move>,
     ) -> i32 {
 
-        // 2. TT move
+        // 1. TT move
         if Some(mv) == tt_move {
             return 900_000;
         }
-
+        // 2. PV move
+        if Some(mv) == pv_move {
+            return 800_000;
+        }
         // 3. Captures
         if mv.is_capture() {
             return 500_000 + self.mvv_lva_score(pos, mv);
@@ -78,10 +81,7 @@ impl MoveOrdering {
         if killers[2].as_ref() == Some(mv) {
             return 398_000;
         }
-        // 1. PV move
-        if Some(mv) == pv_move {
-            return 350_000;
-        }
+
         /*
         if mv.is_promotion(){
             let promotion_role = mv.promotion().unwrap() as i32;
@@ -97,7 +97,7 @@ impl MoveOrdering {
                 }
             }
         }
-        */
+*/
 
         ctx.get_history_score(pos.turn() as usize, *mv)
 

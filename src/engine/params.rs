@@ -14,7 +14,13 @@ pub struct Params {
     pub lmr_min_searches: i32,
     pub lmr_min_depth: usize,
     pub lmr_red_constant: f32,
-    pub lmr_red_scaling: f32
+    pub lmr_red_scaling: f32,
+    pub aspw_min_depth: usize,
+    pub aspw_window_size: i32,
+    pub aspw_widening_factor: i32,
+    pub fp_margins: [i32; 9],
+    pub fp_max_depth: usize,
+    pub lmp_margins: [i32; 6],
 }
 
 impl Params {
@@ -33,10 +39,19 @@ impl Params {
             // STATIC NULL MOVE PRUNING
             snmp_scaling: 85,
             // LATE MOVE REDUCTION
-            lmr_min_searches: 4,
+            lmr_min_searches: 5,
             lmr_min_depth: 3,
             lmr_red_constant: 0.7844,
             lmr_red_scaling: 2.4695,
+            // ASPIRATION WINDOW
+            aspw_min_depth: 3,
+            aspw_window_size: 50,
+            aspw_widening_factor: 2,
+            //FUTILITY PRUNING
+            fp_margins : [0,100,160,220,280,340,400,460,520],
+            fp_max_depth: 8,
+            // LATE MOVE PRUNING
+            lmp_margins : [0, 8, 12, 16, 20, 24]
         }
     }
 }

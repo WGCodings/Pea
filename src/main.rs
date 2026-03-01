@@ -90,7 +90,7 @@ fn main() {
     } else {
         let stdin = io::stdin();
         let mut uci_state = UciState::new();
-        let mut engine_state = EngineState::new(128);
+        let mut engine_state = EngineState::new(256);
         let params = Params::default();
 
         for line in stdin.lock().lines() {
@@ -201,7 +201,7 @@ fn main() {
 
 
                     let stats = ctx.stats;
-                    let multipv_lines = ctx.multipv;
+                    let multipv_lines = &ctx.multipv;
                     let tt_occupancy = ctx.tt.tt_occupancy();
 
 
@@ -213,7 +213,7 @@ fn main() {
                     } else {
                         0
                     };
-                    let multi_pv_lines = &multipv_lines.lines;
+                    let multi_pv_lines = multipv_lines.get_last_completed();
                     for (i, (_score, line)) in
                         multi_pv_lines.iter().enumerate()
                     {

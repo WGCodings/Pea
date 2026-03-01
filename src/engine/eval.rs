@@ -11,7 +11,7 @@ pub fn evaluate(pos: &Chess, net: &Network,us: &Accumulator, them: &Accumulator)
     nnue_score+mopup_score
 }
 
-
+#[inline(always)]
 fn mopup_evaluation(pos: &Chess,score : i32) -> i32{
     let board = pos.board();
     let mut mop_bonus = 0;

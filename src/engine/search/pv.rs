@@ -33,14 +33,16 @@ impl PvTable {
 }
 
 pub struct MultiPv {
-    pub lines: std::vec::Vec<(i32, std::vec::Vec<shakmaty::Move>)>,
+    pub lines: Vec<(i32, Vec<Move>)>,      // working iteration
+    last_completed: Vec<(i32, Vec<Move>)>, // stable storage
     capacity: usize,
 }
 
 impl MultiPv {
     pub fn new(capacity: usize) -> Self {
         Self {
-            lines: std::vec::Vec::new(),
+            lines: Vec::new(),
+            last_completed: Vec::new(),
             capacity,
         }
     }
@@ -58,4 +60,11 @@ impl MultiPv {
 
         self.lines.truncate(self.capacity);
     }
+    pub fn save_completed_iteration(&mut self) {
+        self.last_completed = self.lines.clone();
+    }
+    pub fn get_last_completed(&self) -> &Vec<(i32, Vec<Move>)> {
+        &self.last_completed
+    }
+
 }

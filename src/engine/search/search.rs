@@ -29,45 +29,80 @@ impl SearchStats {
     }
 }
 
-pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>) -> (i32,Move) {
+pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>, ) -> (i32, Move) {
 
     ctx.start_time = Instant::now();
     ctx.time_limit = time_remaining.unwrap();
     ctx.stop.store(false, Ordering::Relaxed);
 
-
     let mut best_score = MIN_INF;
     let mut best_move = None;
 
+    let mut prev_score = 0;
+
     for depth in 1..=max_depth {
 
-        if ctx.start_time.elapsed() > ctx.time_limit{
+        if ctx.start_time.elapsed() > ctx.time_limit {
             break;
         }
 
-        ctx.clear_counter_moves();
         ctx.pv.clear_from(0);
         ctx.multipv.clear();
 
-        let score = negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, None, true);
+        let mut alpha = MIN_INF;
+        let mut beta = MAX_INF;
+        let mut score;
 
-        if ctx.stop.load(Ordering::Relaxed){
-            if best_move == None && depth ==1{
-                best_move = ctx.pv.best_move();
+        // =====================================================================================================================//
+        // ASPIRATION SEARCH                                                                                                    //
+        // =====================================================================================================================//
+        if depth >= ctx.params.aspw_min_depth {
+            let mut window = ctx.params.aspw_window_size;
+
+            alpha = prev_score - window;
+            beta = prev_score + window;
+
+            loop {
+                score = negamax(pos, ctx, depth, 0, alpha, beta, None, true);
+
+                if ctx.stop.load(Ordering::Relaxed) {
+                    break;
+                }
+
+                if score <= alpha {
+                    alpha -= window;
+                } else if score >= beta {
+                    beta += window;
+                } else {
+                    break;
+                }
+
+                window *= ctx.params.aspw_widening_factor;
+
+                alpha = cmp::max(alpha,MIN_INF);
+                beta = cmp::min(beta,MAX_INF);
             }
+
+        } else {
+            score = negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, None, true);
+        }
+
+        if ctx.stop.load(Ordering::Relaxed) {
             break;
         }
 
+        ctx.multipv.save_completed_iteration();
+
         best_score = score;
+        prev_score = score;
         best_move = ctx.pv.best_move();
     }
 
     ctx.stats.duration = ctx.start_time.elapsed();
 
-    (best_score,best_move.unwrap())
-
-
+    (best_score, best_move.expect("No legal move found"))
 }
+
 
 
 #[inline(always)]
@@ -141,7 +176,17 @@ pub fn negamax(
         return static_eval;
     }
 
-    let do_pruning = true && minors_or_majors(pos).count() >0;
+    let do_pruning = minors_or_majors(pos).count() >0;
+    let mut can_futility_prune = false;
+
+
+    // =====================================================================================================================//
+    // REVERSE FUTILITY PRUNING                                                                                             //
+    // =====================================================================================================================//
+    let futility = 47*depth as i32;
+    if do_pruning && false && !is_pv && !in_check && depth <= 9 && !is_root && static_eval - futility   >=beta {
+        return (static_eval + beta)/2;
+    }
 
     // =====================================================================================================================//
     // STATIC NULL MOVE PRUNING                                                                                             //
@@ -195,9 +240,17 @@ pub fn negamax(
         }
     }
 
+    // =====================================================================================================================//
+    // FUTILITY PRUNING PART 1                                                                                              //
+    // =====================================================================================================================//
+    if  depth <= ctx.params.fp_max_depth && !is_pv && !in_check && alpha.abs() < MATE_SCORE && beta.abs() < MATE_SCORE {
+        let margin = ctx.params.fp_margins[depth];
+        can_futility_prune = static_eval+margin <= alpha;
+    }
+
 
     let mut moves = pos.legal_moves();
-    let mut moves_searched = 0;
+    let mut moves_searched : i32 = 0;
 
     let tt_move = tt_best_move(hash, ctx);
 
@@ -211,26 +264,49 @@ pub fn negamax(
         if !mv.is_capture() {
             quiets_searched.push(mv);
         }
+        moves_searched +=1;
 
-        make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
+
 
         let mut child_pos = pos.clone();
         child_pos.play_unchecked(mv);
-        let hash_child = child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
-
-        ctx.increase_history(hash_child);
 
         let is_quiet = !mv.is_capture() && !mv.is_promotion() && !child_pos.is_check();
 
         // =====================================================================================================================//
+        // LATE MOVE PRUNING                                                                                                    //
+        // =====================================================================================================================//
+        let lmp_moves= 4+2*depth as i32;
+        if depth <= 5
+            && !is_pv
+            && !in_check
+            && moves_searched > lmp_moves
+            && is_quiet && false {
+            continue;
+        }
+
+        // =====================================================================================================================//
+        // FUTILITY PRUNING PART 2                                                                                              //
+        // =====================================================================================================================//
+        if can_futility_prune && moves_searched >1 && is_quiet{
+            continue;
+        }
+
+        make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
+
+        let hash_child = child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
+
+        ctx.increase_history(hash_child);
+
+        // =====================================================================================================================//
         // START PVS SEARCH WITH FULL WINDOW FOR THE FIRST MOVE AND LMR FOR LATE MOVES                                          //
         // =====================================================================================================================//
-        if moves_searched == 0{
+        if moves_searched == 1{
             score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -beta, -alpha, Some(mv),true);
         }
         else {
             let mut reduction = 0;
-            if moves_searched >=ctx.params.lmr_min_searches &&  depth >= ctx.params.lmr_min_depth && is_quiet && !is_pv && !in_check{
+            if moves_searched >=ctx.params.lmr_min_searches &&  depth >= ctx.params.lmr_min_depth && is_quiet  && !is_pv && !in_check{
                 reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as usize;
             }
 
@@ -247,7 +323,7 @@ pub fn negamax(
             }
         }
 
-        moves_searched +=1;
+
 
         ctx.decrease_history();
         unmake_move_nnue(ctx.network, &mut ctx.nnue);
