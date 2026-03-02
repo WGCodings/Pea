@@ -5,7 +5,7 @@ use shakmaty::{Bitboard, Chess, EnPassantMode, Move, Position};
 use shakmaty::zobrist::{Zobrist64};
 use crate::engine::eval::evaluate;
 use crate::engine::search::context::{make_move_nnue, unmake_move_nnue, SearchContext};
-use crate::engine::tt::{tt_best_move, tt_probe, tt_store, Bound};
+use crate::engine::tt::{tt_best_move, tt_probe, tt_store};
 use crate::engine::types::{DRAW_SCORE, MATE_SCORE, MAX_INF, MIN_INF};
 
 
@@ -49,8 +49,8 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
         ctx.pv.clear_from(0);
         ctx.multipv.clear();
 
-        let mut alpha = MIN_INF;
-        let mut beta = MAX_INF;
+        let mut alpha ;
+        let mut beta ;
         let mut score;
 
         // =====================================================================================================================//
@@ -63,7 +63,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
             beta = prev_score + window;
 
             loop {
-                score = negamax(pos, ctx, depth, 0, alpha, beta, None, true);
+                score = negamax(pos, ctx, depth, 0, alpha, beta, true);
 
                 if ctx.stop.load(Ordering::Relaxed) {
                     break;
@@ -84,7 +84,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
             }
 
         } else {
-            score = negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, None, true);
+            score = negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, true);
         }
 
         if ctx.stop.load(Ordering::Relaxed) {
@@ -113,7 +113,6 @@ pub fn negamax(
     ply: usize,
     mut alpha: i32,
     beta: i32,
-    prev_move: Option<Move>,
     do_null : bool
 ) -> i32 {
     ctx.stats.nodes += 1;
@@ -160,7 +159,7 @@ pub fn negamax(
     }
 
     let hash = pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
-    let mut score = 0;
+    let mut score;
 
     if let Some(score) = tt_probe(hash, ctx, depth, alpha, beta,ply) {
         if !is_root {
@@ -216,7 +215,7 @@ pub fn negamax(
         let hash_child = child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
         ctx.increase_history(hash_child);
 
-        let score = -negamax(&child_pos, ctx, depth - reduction, ply + 1, -beta, -beta + 1, None, false);
+        let score = -negamax(&child_pos, ctx, depth - reduction, ply + 1, -beta, -beta + 1, false);
 
         std::mem::swap(&mut ctx.nnue.us, &mut ctx.nnue.them);
         ctx.decrease_history();
@@ -254,7 +253,7 @@ pub fn negamax(
 
     let tt_move = tt_best_move(hash, ctx);
 
-    ctx.ordering.order_moves(pos, ctx, pv_move.as_ref(), tt_move.as_ref(), &ctx.killers[ply], prev_move.as_ref(), &mut moves);
+    ctx.ordering.order_moves(pos, ctx, pv_move.as_ref(), tt_move.as_ref(), &ctx.killers[ply], ply, &mut moves);
 
     let mut quiets_searched: Vec<Move> = Vec::new();
 
@@ -276,12 +275,12 @@ pub fn negamax(
         // =====================================================================================================================//
         // LATE MOVE PRUNING                                                                                                    //
         // =====================================================================================================================//
-        let lmp_moves= 4+2*depth as i32;
-        if depth <= 5
+        let lmp_moves= ctx.params.lmp_base+depth as i32 * ctx.params.lmp_lin_scaling + depth as i32 * depth as i32 * ctx.params.lmp_quad_scaling;
+        if depth <= ctx.params.lmp_max_depth
             && !is_pv
             && !in_check
             && moves_searched > lmp_moves
-            && is_quiet && false {
+            && is_quiet {
             continue;
         }
 
@@ -298,11 +297,14 @@ pub fn negamax(
 
         ctx.increase_history(hash_child);
 
+        // Push move into stack for continuation history
+        ctx.move_stack[ply] = Some(mv);
+
         // =====================================================================================================================//
         // START PVS SEARCH WITH FULL WINDOW FOR THE FIRST MOVE AND LMR FOR LATE MOVES                                          //
         // =====================================================================================================================//
         if moves_searched == 1{
-            score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -beta, -alpha, Some(mv),true);
+            score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -beta, -alpha, true);
         }
         else {
             let mut reduction = 0;
@@ -310,20 +312,21 @@ pub fn negamax(
                 reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as usize;
             }
 
-            score = -negamax(&child_pos, ctx, depth - 1 -reduction , ply + 1, -alpha-1, -alpha, Some(mv),true);
+            score = -negamax(&child_pos, ctx, depth - 1 -reduction , ply + 1, -alpha-1, -alpha, true);
 
             if score > alpha && reduction >0{
-                score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -alpha-1, -alpha, Some(mv),true);
+                score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -alpha-1, -alpha, true);
                 if score > alpha{
-                    score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -beta, -alpha, Some(mv),true);
+                    score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -beta, -alpha, true);
                 }
             }
             else if score > alpha && score < beta {
-                score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -beta, -alpha, Some(mv),true);
+                score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -beta, -alpha, true);
             }
         }
 
-
+        // Pop move from stack
+        ctx.move_stack[ply] = None;
 
         ctx.decrease_history();
         unmake_move_nnue(ctx.network, &mut ctx.nnue);
@@ -336,12 +339,20 @@ pub fn negamax(
 
         if score >= beta {
             if !mv.is_capture() {
+
                 ctx.store_killer(ply, mv);
-                if let Some(prev) = prev_move { ctx.store_counter_move(&prev, mv, pos.turn() as usize); }
-                ctx.increase_history_bonus(pos.turn() as usize, mv, depth);
-                for q in quiets_searched.iter() {
-                    if *q != mv {
-                        ctx.decrease_history_bonus(pos.turn() as usize, *q, depth);
+
+                let side = pos.turn() as usize;
+
+                let bonus = ctx.params.cont_hist_scaling * depth as i32 - ctx.params.cont_hist_base;
+
+                ctx.update_quiet_history(side, mv, bonus, &quiets_searched,ctx.params); // Update normal history values and malus for quiets searched
+
+                ctx.update_continuation_history(ply, mv, bonus/2); // Update continuation history
+
+                for &q in quiets_searched.iter() {
+                    if q != mv {
+                        ctx.update_continuation_history(ply, q, -bonus/(2*ctx.params.cont_hist_malus_scaling)); // Update malus for continuation history
                     }
                 }
             }

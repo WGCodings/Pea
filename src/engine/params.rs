@@ -20,7 +20,14 @@ pub struct Params {
     pub aspw_widening_factor: i32,
     pub fp_margins: [i32; 9],
     pub fp_max_depth: usize,
-    pub lmp_margins: [i32; 6],
+    pub cont_hist_scaling: i32,
+    pub cont_hist_base: i32,
+    pub cont_hist_malus_scaling: i32,
+
+    pub lmp_base: i32,
+    pub lmp_lin_scaling: i32,
+    pub lmp_quad_scaling: i32,
+    pub lmp_max_depth: usize
 }
 
 impl Params {
@@ -51,7 +58,16 @@ impl Params {
             fp_margins : [0,100,160,220,280,340,400,460,520],
             fp_max_depth: 8,
             // LATE MOVE PRUNING
-            lmp_margins : [0, 8, 12, 16, 20, 24]
+            lmp_base: 4,
+            lmp_lin_scaling: 4,
+            lmp_quad_scaling: 0,
+            lmp_max_depth: 5,
+            // N-PLY CONTINUATION HISTORY
+            cont_hist_scaling: 150,
+            cont_hist_base: 125,
+            cont_hist_malus_scaling: 1,
+
+
         }
     }
 }

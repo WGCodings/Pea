@@ -20,6 +20,7 @@ use crate::engine::time_manager::compute_time_limit;
 use crate::engine::state::*;
 use crate::engine::utility::read_position_from_fen;
 use crate::nnue::network::{Network};
+use crate::engine::types::{MAX_PLY_CONTINUATION_HISTORY};
 
 fn main() {
     let debug = false;
@@ -30,6 +31,7 @@ fn main() {
         let pos = read_position_from_fen(fen).unwrap();
 
         let params = Params::default();
+
         let max_depth = 50;
         let time_remaining = Duration::from_millis(10000);
         let multipv = 3;
@@ -59,7 +61,8 @@ fn main() {
             network: &NNUE,
             killers: [[None; 3]; 128],
             history: [[[0; 64]; 64]; 2],
-            counter_moves: [[[None; 64]; 6];2],
+            continuation_history: Box::new([[[[[0; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]),
+            move_stack: [None;128],
 
         };
 
@@ -186,7 +189,8 @@ fn main() {
                         network: &NNUE,
                         killers: [[None; 3]; 128],
                         history: [[[0; 64]; 64]; 2],
-                        counter_moves: [[[None; 64]; 6];2],
+                        continuation_history: Box::new([[[[[0; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]),
+                        move_stack: [None;128],
                     };
 
 

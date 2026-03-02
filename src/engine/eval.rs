@@ -1,6 +1,5 @@
 use std::cmp::max;
-use shakmaty::{Bitboard, Chess, Color, Position, Square};
-use shakmaty::Color::{Black, White};
+use shakmaty::{Bitboard, Chess,Position, Square};
 use crate::engine::types::{KBN_TABLE_DARK, KBN_TABLE_LIGHT};
 use crate::nnue::network::{Accumulator, Network};
 

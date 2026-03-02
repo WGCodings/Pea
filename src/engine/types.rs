@@ -4,6 +4,9 @@ pub const DRAW_SCORE: i32 = 0;
 pub const MIN_INF : i32 = -300_000_000;
 pub const MAX_INF : i32 = 300_000_000;
 
+pub const MAX_HISTORY: i32 = 32_768;
+pub const MAX_PLY_CONTINUATION_HISTORY: usize = 2;
+
 pub const KBN_TABLE_DARK: [i32; 64] = [
     0,  40,  70, 100, 120, 140, 150, 170,
     40,  70, 100, 130, 210, 190, 180, 150,

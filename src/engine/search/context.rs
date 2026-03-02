@@ -1,13 +1,13 @@
 
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
-use shakmaty::{Chess, Color, EnPassantMode, Move, Piece, Position, Role, Square};
-use shakmaty::zobrist::Zobrist64;
+use shakmaty::{Chess, Color,  Move,Position, Role, Square};
 use crate::engine::params::Params;
 use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::pv::{MultiPv, PvTable};
 use crate::engine::search::search::SearchStats;
 use crate::engine::tt::TranspositionTable;
+use crate::engine::types::{MAX_HISTORY, MAX_PLY_CONTINUATION_HISTORY};
 use crate::nnue::network::{accumulators_from_position, calculate_index, role_index, Accumulator, Network};
 
 pub struct SearchContext<'a> {
@@ -29,8 +29,11 @@ pub struct SearchContext<'a> {
     pub network: &'a Network,
 
     pub killers: [[Option<Move>; 3]; 128],
-    pub history: [[[i32; 64]; 64]; 2], // [side][from][to]
-    pub counter_moves: [[[Option<Move>; 64]; 6]; 2],
+    pub history: [[[i16; 64]; 64]; 2], // [side][from][to]
+    pub continuation_history: Box<[[[[[i16; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]>,
+    pub move_stack: [Option<Move>; 128],
+
+
 }
 
 impl<'a> SearchContext<'a> {
@@ -98,67 +101,72 @@ impl<'a> SearchContext<'a> {
             || self.killers[ply][1].as_ref() == Some(mv)
             || self.killers[ply][2].as_ref() == Some(mv)
     }
+
     #[inline(always)]
-    pub fn get_history_score(&self, side: usize, mv : Move) -> i32 {
-        let from = mv.from().unwrap().to_usize();
-        let to = mv.to().to_usize();
-        self.history[side][from][to]
+    fn update_history_value(history_value: &mut i16, bonus: i32) {
+        let clamped = bonus.clamp(-MAX_HISTORY, MAX_HISTORY);
+
+        let new = *history_value as i32
+                + clamped
+                - (*history_value as i32 * clamped.abs() / MAX_HISTORY);
+
+        *history_value = new.clamp(-MAX_HISTORY, MAX_HISTORY) as i16;
     }
-    #[inline(always)]
-    pub fn increase_history_bonus(
+
+    pub fn update_quiet_history(
         &mut self,
         side: usize,
-        mv : Move,
-        depth: usize,
+        mv: Move,
+        bonus: i32,
+        quiets_searched: &[Move],
+        params : &Params
     ) {
-        let bonus = depth * depth;
+
         let from = mv.from().unwrap().to_usize();
-        let to = mv.to().to_usize();
+        let to   = mv.to().to_usize();
 
-        let entry = &mut self.history[side][from][to];
-        *entry += bonus as i32;
+        Self::update_history_value(&mut self.history[side][from][to], bonus);
 
-        // clamp to prevent overflow
-        if *entry > 320000 {
-            *entry = 320000;
+        // Malus for other quiets
+        for &m in quiets_searched {
+            if m != mv {
+                let f = m.from().unwrap().to_usize();
+                let t = m.to().to_usize();
+
+                Self::update_history_value(
+                    &mut self.history[side][f][t],
+                    -bonus/params.cont_hist_malus_scaling,
+                );
+            }
         }
     }
-    #[inline(always)]
-    pub fn decrease_history_bonus(
+
+    pub fn update_continuation_history(
         &mut self,
-        side: usize,
-        mv : Move,
-        depth: usize,
+        ply: usize,
+        mv: Move,
+        bonus : i32
     ) {
-        let malus = depth as i32;
-        let from = mv.from().unwrap().to_usize();
-        let to = mv.to().to_usize();
 
-        let entry = &mut self.history[side][from][to];
-        *entry -= malus;
+        let piece = mv.role() as usize - 1;
+        let to= mv.to() as usize;
 
-        if *entry < -320000 {
-            *entry = -320000;
+        for i in 0..MAX_PLY_CONTINUATION_HISTORY {
+            if ply > i {
+                if let Some(prev) = self.move_stack[ply - 1 - i] {
+                    let prev_piece = prev.role() as usize - 1;
+                    let prev_to    = prev.to() as usize;
+
+                    Self::update_history_value(
+                        &mut self.continuation_history[i]
+                            [prev_piece][prev_to]
+                            [piece][to],
+                        bonus,
+                    );
+                }
+            }
         }
     }
-    #[inline(always)]
-    pub fn clear_counter_moves(&mut self) {
-        self.counter_moves = [[[None; 64]; 6]; 2];
-    }
-    #[inline(always)]
-    pub fn store_counter_move(&mut self, prev_move: &Move, reply: Move, side: usize) {
-        let role_idx = prev_move.role() as usize - 1;
-        let to_sq = prev_move.to().to_usize();
-        self.counter_moves[side][role_idx][to_sq] = Some(reply);
-    }
-    #[inline(always)]
-    pub fn get_counter_move(&self, prev_move: &Move, side: usize) -> Option<Move> {
-        let role_idx = prev_move.role() as usize - 1;
-        let to_sq = prev_move.to().to_usize();
-        self.counter_moves[side][role_idx][to_sq]
-    }
-
-
 
 
 
