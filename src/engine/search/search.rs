@@ -5,6 +5,7 @@ use shakmaty::{Bitboard, Chess, EnPassantMode, Move, Position};
 use shakmaty::zobrist::{Zobrist64};
 use crate::engine::eval::evaluate;
 use crate::engine::search::context::{make_move_nnue, unmake_move_nnue, SearchContext};
+use crate::engine::search::see::see;
 use crate::engine::tt::{tt_best_move, tt_probe, tt_store};
 use crate::engine::types::{DRAW_SCORE, MATE_SCORE, MAX_INF, MIN_INF};
 
@@ -224,6 +225,7 @@ pub fn negamax(
 
         if score >= beta && score.abs() < MATE_SCORE {
             return beta;
+
         }
     }
 
@@ -398,6 +400,7 @@ pub fn negamax(
         //let stand_pat = evaluate_nnue(pos, ctx.network);
         let stand_pat = evaluate(pos,ctx.network,&ctx.nnue.us, &ctx.nnue.them);
 
+
         if stand_pat >= beta {
             return beta;
         }
@@ -413,6 +416,11 @@ pub fn negamax(
         ctx.ordering.order_captures(pos, &mut moves);
 
         for mv in moves {
+
+            if see(pos, mv) < 0 {
+                continue;
+            }
+
             make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
 
             let mut child = pos.clone();
@@ -428,6 +436,7 @@ pub fn negamax(
             ctx.decrease_history();
 
             unmake_move_nnue(ctx.network, &mut ctx.nnue);
+
 
 
 

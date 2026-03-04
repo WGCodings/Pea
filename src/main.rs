@@ -2,6 +2,7 @@ mod engine;
 mod uci;
 mod nnue;
 mod databuilder;
+mod tests;
 
 use std::cmp;
 use std::io::{self, BufRead};
