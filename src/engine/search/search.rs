@@ -170,6 +170,8 @@ pub fn negamax(
 
 
     let static_eval = evaluate(pos,ctx.network,&ctx.nnue.us, &ctx.nnue.them);
+    ctx.eval_stack[ply] = static_eval; // Store current eval for improving heuristic
+
 
     // Safety
     if ply > 63{
@@ -177,14 +179,16 @@ pub fn negamax(
     }
 
     let do_pruning = minors_or_majors(pos).count() >0;
+    let improving = ctx.is_improving(ply);
+
     let mut can_futility_prune = false;
 
 
     // =====================================================================================================================//
     // REVERSE FUTILITY PRUNING                                                                                             //
     // =====================================================================================================================//
-    let futility = 47*depth as i32;
-    if do_pruning && false && !is_pv && !in_check && depth <= 9 && !is_root && static_eval - futility   >=beta {
+    let futility = ctx.params.rfp_scaling * depth as i32 + ctx.params.rfp_improving_scaling * !improving as i32;
+    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth && !is_root && static_eval - futility   >=beta {
         return (static_eval + beta)/2;
     }
 
@@ -201,7 +205,7 @@ pub fn negamax(
     // =====================================================================================================================//
     // NULL MOVE PRUNING                                                                                                    //
     // =====================================================================================================================//
-    let nmp_margin : i32= -ctx.params.nmp_margin + ctx.params.nmp_scaling * depth as i32;
+    let nmp_margin : i32= -ctx.params.nmp_margin + ctx.params.nmp_scaling * depth as i32 + ctx.params.nmp_improving_scaling * improving as i32 ;
     if  do_pruning && !in_check && !is_pv && !is_root &&
         static_eval + nmp_margin >= beta &&
         do_null && minors_or_majors(pos).count() >0 &&
@@ -245,7 +249,7 @@ pub fn negamax(
     // FUTILITY PRUNING PART 1                                                                                              //
     // =====================================================================================================================//
     if  depth <= ctx.params.fp_max_depth && !is_pv && !in_check && alpha.abs() < MATE_SCORE && beta.abs() < MATE_SCORE {
-        let margin = ctx.params.fp_margins[depth];
+        let margin = ctx.params.fp_base+ depth*ctx.params.fp_scaling + ctx.params.fp_improving_margin * improving as i32;
         can_futility_prune = static_eval+margin <= alpha;
     }
 
@@ -328,10 +332,29 @@ pub fn negamax(
 
                 // Base reduction
                 reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as usize;
+                /*
+                if see(pos, mv) <= 0 {
+                    reduction += 1;
+                }
+                if let Some(ttm) = tt_move {
+                    if ttm.is_capture() || ttm.is_promotion() {
+                        reduction += 1;
+                    }
+                }
+                if child_pos.is_check(){
+                    reduction -=1;
+                }
+                if in_check{
+                    reduction -=1;
+                }
+                if is_pv{
+                    reduction -=1;
+                }
 
 
+                reduction -= (ctx.get_history_score(pos, mv) as i32 / 8192) as usize;
 
-
+                */
 
                 reduction = reduction.clamp(0,depth - 1);
             }
@@ -458,9 +481,6 @@ pub fn negamax(
             ctx.decrease_history();
 
             unmake_move_nnue(ctx.network, &mut ctx.nnue);
-
-
-
 
             if score >= beta {
                 return beta;

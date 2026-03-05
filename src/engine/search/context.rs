@@ -31,8 +31,9 @@ pub struct SearchContext<'a> {
     pub killers: [[Option<Move>; 3]; 128],
     pub history: [[[i16; 64]; 64]; 2], // [side][from][to]
     pub continuation_history: Box<[[[[[i16; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]>,
-    pub move_stack: [Option<Move>; 128],
 
+    pub move_stack: [Option<Move>; 128],
+    pub eval_stack: [i32; 128],
 
 }
 
@@ -112,6 +113,19 @@ impl<'a> SearchContext<'a> {
 
         *history_value = new.clamp(-MAX_HISTORY, MAX_HISTORY) as i16;
     }
+    #[inline(always)]
+    pub fn get_history_score(&self, pos: &Chess, mv: Move) -> i16 {
+        if mv.is_capture() {
+            return 0;
+        }
+
+        let side = pos.turn() as usize;
+        let from = mv.from().unwrap().to_usize();
+        let to = mv.to().to_usize();
+
+        self.history[side][from][to]
+    }
+
 
     pub fn update_quiet_history(
         &mut self,
@@ -167,7 +181,14 @@ impl<'a> SearchContext<'a> {
             }
         }
     }
+    #[inline(always)]
+    pub fn is_improving(&self, ply: usize) -> bool {
+        if ply < 2 {
+            return false;
+        }
 
+        self.eval_stack[ply] > self.eval_stack[ply - 2]
+    }
 
 
 
@@ -191,7 +212,7 @@ impl NNUEState {
         Self {
             us,
             them,
-            stack: Vec::with_capacity(64), // To easily undo index enabling
+            stack: Vec::with_capacity(64),
         }
     }
 }

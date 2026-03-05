@@ -83,7 +83,7 @@ impl MoveOrdering {
             if see > 0{
                 return 800_000 + see as i32
             }
-            if see == 0{
+            else if see == 0{
                 return 750_000
             }
             else {

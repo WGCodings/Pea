@@ -21,7 +21,7 @@ use crate::engine::time_manager::compute_time_limit;
 use crate::engine::state::*;
 use crate::engine::utility::read_position_from_fen;
 use crate::nnue::network::{Network};
-use crate::engine::types::{MAX_PLY_CONTINUATION_HISTORY};
+use crate::engine::types::{MAX_PLY_CONTINUATION_HISTORY, PIECE_VALUES}; // this should be moved to params somehow
 
 fn main() {
 
@@ -30,8 +30,8 @@ fn main() {
 
     let stdin = io::stdin();
     let mut uci_state = UciState::new();
-    let mut engine_state = EngineState::new(256);
-    let params = Params::default();
+    let mut engine_state = EngineState::new(256); // TT Size in MB
+    let params = Params::default(); // parameter set, later be loaded in from yaml for SPSA
 
     for line in stdin.lock().lines() {
         let line = line.unwrap();
@@ -70,14 +70,7 @@ fn main() {
                 }
             }
 
-            UciCommand::Go {
-                wtime,
-                btime,
-                winc,
-                binc,
-                movetime,
-                depth,
-            } => {
+            UciCommand::Go { wtime, btime, winc, binc, movetime, depth} => {
                 uci_state.stop.store(false, Ordering::Relaxed);
 
                 let max_depth = if let Some(d) = depth { d as usize } else {64};
@@ -106,7 +99,7 @@ fn main() {
                     }
                 };
 
-                let ordering = MoveOrdering::new(&params.piece_values);
+                let ordering = MoveOrdering::new(&PIECE_VALUES);
                 let repetition_stack = &engine_state.repetition_stack;
 
                 let nnue_state = NNUEState::new(&engine_state.position, &NNUE);
@@ -128,6 +121,7 @@ fn main() {
                     history: [[[0; 64]; 64]; 2],
                     continuation_history: Box::new([[[[[0; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]),
                     move_stack: [None;128],
+                    eval_stack: [0;128],
                 };
 
 
