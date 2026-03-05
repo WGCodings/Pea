@@ -1,5 +1,6 @@
 use shakmaty::{Chess, Move, MoveList, Position, Role};
 use crate::engine::search::context::SearchContext;
+use crate::engine::search::see::see;
 use crate::engine::types::MAX_PLY_CONTINUATION_HISTORY;
 
 #[derive(Clone)]
@@ -78,7 +79,17 @@ impl MoveOrdering {
         // 3. Captures
         // ============================================================
         if mv.is_capture() {
-            return 800_000 + self.mvv_lva_score(pos, mv);
+            let see = see(pos, *mv);
+            if see > 0{
+                return 800_000 + see as i32
+            }
+            if see == 0{
+                return 750_000
+            }
+            else {
+                return 5000 + see as i32;
+            }
+
         }
 
         // ============================================================

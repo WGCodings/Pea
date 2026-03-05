@@ -104,7 +104,7 @@ r2n3r/2P1P3/4N3/1k6/8/8/8/4K3 w - -; Nxd8; 300; N
 r1bqk1nr/pppp1ppp/2n5/1B2p3/1b2P3/5N2/PPPP1PPP/RNBQK2R w KQkq -; O-O; 0;
 "#;
 
-    let tests = parse_see_test_suite(raw);
+    let tests = _parse_see_test_suite(raw);
 
     let mut passed = 0;
 
@@ -137,7 +137,7 @@ r1bqk1nr/pppp1ppp/2n5/1B2p3/1b2P3/5N2/PPPP1PPP/RNBQK2R w KQkq -; O-O; 0;
     println!("Passed {}/{} SEE tests", passed, tests.len());
 
 }
-fn parse_see_test_suite(input: &str) -> Vec<SeeTest> {
+fn _parse_see_test_suite(input: &str) -> Vec<SeeTest> {
     input
         .lines()
         .filter(|l| !l.trim().is_empty())

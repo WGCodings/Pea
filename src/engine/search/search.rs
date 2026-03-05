@@ -283,7 +283,9 @@ pub fn negamax(
             && !in_check
             && moves_searched > lmp_moves
             && is_quiet {
-            continue;
+            if see(pos, mv) <= 0 {
+                continue;
+            }
         }
 
         // =====================================================================================================================//
@@ -291,6 +293,18 @@ pub fn negamax(
         // =====================================================================================================================//
         if can_futility_prune && moves_searched >1 && is_quiet{
             continue;
+        }
+
+
+        // =====================================================================================================================//
+        // HANGING PIECE PRUNING                                                                                                //
+        // Prunes bad captures and quiet moves that hang pieces. It feels a little dangerous but it works so I leave it for now //
+        // To be tuned later.                                                                                                   //
+        // =====================================================================================================================//
+        if depth <= 3 && !is_pv && !is_root && !in_check && !child_pos.is_check(){
+            if see(pos, mv) < 0{
+                continue;
+            }
         }
 
         make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
@@ -311,10 +325,18 @@ pub fn negamax(
         else {
             let mut reduction = 0;
             if moves_searched >=ctx.params.lmr_min_searches &&  depth >= ctx.params.lmr_min_depth && is_quiet  && !is_pv && !in_check{
+
+                // Base reduction
                 reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as usize;
+
+
+
+
+
+                reduction = reduction.clamp(0,depth - 1);
             }
 
-            score = -negamax(&child_pos, ctx, depth - 1 -reduction , ply + 1, -alpha-1, -alpha, true);
+            score = -negamax(&child_pos, ctx, depth - 1 - reduction , ply + 1, -alpha-1, -alpha, true);
 
             if score > alpha && reduction >0{
                 score = -negamax(&child_pos, ctx, depth - 1, ply + 1, -alpha-1, -alpha, true);
