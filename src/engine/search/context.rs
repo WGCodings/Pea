@@ -149,7 +149,7 @@ impl<'a> SearchContext<'a> {
 
                 Self::update_history_value(
                     &mut self.history[side][f][t],
-                    -bonus/params.cont_hist_malus_scaling,
+                    -bonus/params.cont_hist_malus_scaling as i32,
                 );
             }
         }

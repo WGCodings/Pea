@@ -1,0 +1,38 @@
+raz_max_depth: 5
+raz_thr: 256
+
+nmp_margin: 120
+nmp_scaling: 20
+nmp_improving_scaling: 0
+nmp_min_depth: 3
+nmp_base_reduction: 4
+nmp_reduction_scaling: 4
+
+snmp_scaling: 85
+
+lmr_min_searches: 5
+lmr_min_depth: 3
+lmr_red_constant: 0.7844
+lmr_red_scaling: 2.4695
+
+aspw_min_depth: 3
+aspw_window_size: 50
+aspw_widening_factor: 2
+
+fp_base: 40
+fp_scaling: 60
+fp_max_depth: 8
+fp_improving_margin: 0
+
+rfp_scaling: 47
+rfp_improving_scaling: 100
+rfp_max_depth: 9
+
+lmp_base: 4
+lmp_lin_scaling: 4
+lmp_quad_scaling: 0
+lmp_max_depth: 5
+
+cont_hist_scaling: 150
+cont_hist_base: 125
+cont_hist_malus_scaling: 1

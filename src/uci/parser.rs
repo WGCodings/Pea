@@ -26,8 +26,17 @@ pub enum UciCommand {
     Perft {
         depth: u32,
     },
+    // Used to load  and save params for teh SPSA
+    LoadParams { path: String },
+    SaveParams { path: String },
+    PerturbParams {
+        path: String,
+        c: f64,
+    },
+    RunSPSA,
     Unknown,
 }
+// Commands to be used in teh SPSA tuner
 
 pub fn parse_command(input: &str) -> UciCommand {
     let tokens: Vec<&str> = input.trim().split_whitespace().collect();
@@ -137,7 +146,39 @@ pub fn parse_command(input: &str) -> UciCommand {
             }
 
             UciCommand::Perft { depth: 1 }
-        }
+        },
+        "loadparams" => {
+            if tokens.len() >= 2 {
+                UciCommand::LoadParams {
+                    path: tokens[1].to_string()
+                }
+            }
+            else{
+                UciCommand::Unknown
+            }
+
+        },
+        "saveparams" => {
+            if tokens.len() >= 2 {
+                UciCommand::SaveParams {
+                    path: tokens[1].to_string()
+                }
+            }
+            else {
+                UciCommand::Unknown
+            }
+        },
+        "perturbparams" => {
+            if tokens.len() >= 3 {
+                UciCommand::PerturbParams {
+                    path: tokens[1].to_string(),
+                    c: tokens[2].parse::<f64>().unwrap_or(0.1),
+                }
+            } else {
+                UciCommand::Unknown
+            }
+        },
+        "runspsa" => UciCommand::RunSPSA,
 
         _ => UciCommand::Unknown,
     }

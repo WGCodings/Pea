@@ -1,0 +1,180 @@
+params:
+  raz_max_depth:
+    min: 0.0
+    max: 15.0
+    step: 1.0
+    include : true
+
+  raz_thr:
+    min: 0.0
+    max: 512.0
+    step: 5.0
+    include: true
+
+  nmp_margin:
+    min: 0.0
+    max: 250.0
+    step: 5.0
+    include: true
+
+  nmp_scaling:
+    min: 0.0
+    max: 100.0
+    step: 3.0
+    include: true
+
+  nmp_improving_scaling:
+    min: -100.0
+    max: 200.0
+    step: 5.0
+    include: true
+
+  nmp_min_depth:
+    min: 2.0
+    max: 10.0
+    step: 1.0
+    include: true
+
+  nmp_base_reduction:
+    min: 0.0
+    max: 8.0
+    step: 1.0
+    include: true
+
+  nmp_reduction_scaling:
+    min: 0.0
+    max: 10.0
+    step: 1.0
+    include: true
+
+  snmp_scaling:
+    min: 0.0
+    max: 200.0
+    step: 5.0
+    include: true
+
+  lmr_min_searches:
+    min: 1.0
+    max: 15.0
+    step: 1.0
+    include: true
+
+  lmr_min_depth:
+    min: 0.0
+    max: 10.0
+    step: 1.0
+    include: true
+
+  lmr_red_constant:
+    min: 0.0
+    max: 2.5
+    step: 0.1
+    include: true
+
+  lmr_red_scaling:
+    min: 1.0
+    max: 5.0
+    step: 0.1
+    include: true
+
+  aspw_min_depth:
+    min: 1.0
+    max: 10.0
+    step: 1.0
+    include: true
+
+  aspw_window_size:
+    min: 5.0
+    max: 150.0
+    step: 10.0
+    include: true
+
+  aspw_widening_factor:
+    min: 2.0
+    max: 10.0
+    step: 1.0
+    include: true
+
+  fp_base:
+    min: 0.0
+    max: 120.0
+    step: 5.0
+    include: true
+
+  fp_scaling:
+    min: 0.0
+    max: 120.0
+    step: 5.0
+    include: true
+
+  fp_max_depth:
+    min: 0.0
+    max: 15.0
+    step: 1.0
+    include: true
+
+  fp_improving_margin:
+    min: -100.0
+    max: 100.0
+    step: 10.0
+    include: true
+
+  rfp_scaling:
+    min: 0.0
+    max: 150.0
+    step: 5.0
+    include: true
+
+  rfp_improving_scaling:
+    min: -100.0
+    max: 100.0
+    step: 10.0
+    include: true
+
+  rfp_max_depth:
+    min: 0.0
+    max: 15.0
+    step: 1.0
+    include: true
+
+  lmp_base:
+    min: 0.0
+    max: 10.0
+    step: 1.0
+    include: true
+
+  lmp_lin_scaling:
+    min: -5.0
+    max: 5.0
+    step: 1.0
+    include: true
+
+  lmp_quad_scaling:
+    min: 0.0
+    max: 10.0
+    step: 1.0
+    include: true
+
+  lmp_max_depth:
+    min: 0.0
+    max: 15.0
+    step: 1.0
+    include: true
+
+  cont_hist_scaling:
+    min: 50.0
+    max: 300.0
+    step: 10.0
+    include: true
+
+  cont_hist_base:
+    min: 0.0
+    max: 300.0
+    step: 20.0
+    include: true
+
+  cont_hist_malus_scaling:
+    min: 1.0
+    max: 5.0
+    step: 1.0
+    include: true

@@ -3,7 +3,9 @@ mod uci;
 mod nnue;
 mod databuilder;
 mod tests;
+mod tuner;
 
+use crate::tuner::bounds::Bounds;
 use std::cmp;
 use std::io::{self, BufRead};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -21,7 +23,10 @@ use crate::engine::time_manager::compute_time_limit;
 use crate::engine::state::*;
 use crate::engine::utility::read_position_from_fen;
 use crate::nnue::network::{Network};
-use crate::engine::types::{MAX_PLY_CONTINUATION_HISTORY, PIECE_VALUES}; // this should be moved to params somehow
+use crate::engine::types::{MAX_PLY_CONTINUATION_HISTORY, PIECE_VALUES};
+use crate::tuner::main::run_spsa;
+use crate::tuner::perturb::perturb_params;
+// this should be moved to params somehow
 
 fn main() {
 
@@ -30,8 +35,9 @@ fn main() {
 
     let stdin = io::stdin();
     let mut uci_state = UciState::new();
-    let mut engine_state = EngineState::new(256); // TT Size in MB
-    let params = Params::default(); // parameter set, later be loaded in from yaml for SPSA
+    let params = Params::load_yaml("C:/Users/warre/RustroverProjects/FastPeaPea/src/tuner/config/best_params.yaml");
+    let mut engine_state = EngineState::new(256,params); // TT Size in MB
+
 
     for line in stdin.lock().lines() {
         let line = line.unwrap();
@@ -108,7 +114,7 @@ fn main() {
                     start_time: Instant::now(),
                     time_limit : time_limit.unwrap_or(Duration::from_millis(100)),
                     stop: AtomicBool::new(false),
-                    params: &params,
+                    params: &engine_state.params,
                     ordering: &ordering,
                     pv: PvTable::new(64),
                     stats: SearchStats::default(),
@@ -197,6 +203,33 @@ fn main() {
             }
 
             UciCommand::Quit => break,
+
+            // These are technically not uci commands but they are used for the tuner.
+            UciCommand::LoadParams {path} =>{
+                let params = Params::load_yaml(&path.as_str());
+                engine_state.params = params;
+            }
+            UciCommand::SaveParams {path} =>{
+                engine_state.params.save_yaml(&path.as_str());
+            }
+            UciCommand::PerturbParams { path, c } => {
+
+                // load base parameters
+                let base_params = Params::load_yaml(&path);
+
+                // load bounds
+                let bounds = Bounds::load_yaml("src/tuner/config/bounds.yaml");
+
+                // perturb
+                let (theta_plus, theta_minus,_) = perturb_params(&base_params, &bounds, c);
+
+                // save
+                theta_plus.save_yaml("src/tuner/config/theta_plus.yaml");
+                theta_minus.save_yaml("src/tuner/config/theta_minus.yaml");
+            },
+            UciCommand::RunSPSA =>{
+                run_spsa();
+            },
 
             _ => {}
         }

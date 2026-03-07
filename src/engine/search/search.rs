@@ -57,8 +57,8 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
         // =====================================================================================================================//
         // ASPIRATION SEARCH                                                                                                    //
         // =====================================================================================================================//
-        if depth >= ctx.params.aspw_min_depth {
-            let mut window = ctx.params.aspw_window_size;
+        if depth >= ctx.params.aspw_min_depth as usize {
+            let mut window = ctx.params.aspw_window_size as i32;
 
             alpha = prev_score - window;
             beta = prev_score + window;
@@ -78,7 +78,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
                     break;
                 }
 
-                window *= ctx.params.aspw_widening_factor;
+                window *= ctx.params.aspw_widening_factor as i32;
 
                 alpha = cmp::max(alpha,MIN_INF);
                 beta = cmp::min(beta,MAX_INF);
@@ -187,8 +187,8 @@ pub fn negamax(
     // =====================================================================================================================//
     // REVERSE FUTILITY PRUNING                                                                                             //
     // =====================================================================================================================//
-    let futility = ctx.params.rfp_scaling * depth as i32 + ctx.params.rfp_improving_scaling * !improving as i32;
-    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth && !is_root && static_eval - futility   >=beta {
+    let futility = (ctx.params.rfp_scaling as usize* depth) as i32 + ctx.params.rfp_improving_scaling as i32 * !improving as i32;
+    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && !is_root && static_eval - futility   >=beta {
         return (static_eval + beta)/2;
     }
 
@@ -196,7 +196,7 @@ pub fn negamax(
     // STATIC NULL MOVE PRUNING                                                                                             //
     // =====================================================================================================================//
     if  do_pruning && !in_check && !is_pv && beta.abs() < MATE_SCORE {
-        let score_margin = ctx.params.snmp_scaling * depth as i32;
+        let score_margin = ctx.params.snmp_scaling as i32 * depth as i32;
         if static_eval-score_margin >= beta {
             return static_eval-score_margin
         }
@@ -205,13 +205,15 @@ pub fn negamax(
     // =====================================================================================================================//
     // NULL MOVE PRUNING                                                                                                    //
     // =====================================================================================================================//
-    let nmp_margin : i32= -ctx.params.nmp_margin + ctx.params.nmp_scaling * depth as i32 + ctx.params.nmp_improving_scaling * improving as i32 ;
+    let nmp_margin : i32 = -ctx.params.nmp_margin as i32 + ctx.params.nmp_scaling as i32 * depth as i32 + ctx.params.nmp_improving_scaling as i32 * improving as i32 ;
     if  do_pruning && !in_check && !is_pv && !is_root &&
         static_eval + nmp_margin >= beta &&
         do_null && minors_or_majors(pos).count() >0 &&
-        depth >=ctx.params.nmp_min_depth {
+        depth >=ctx.params.nmp_min_depth as usize {
 
-        let reduction = (ctx.params.nmp_base_reduction + depth/ctx.params.nmp_reduction_scaling).min(depth);
+        let mut reduction = (ctx.params.nmp_base_reduction as usize + depth/ctx.params.nmp_reduction_scaling as usize).min(depth);
+
+        reduction = reduction.clamp(1,depth);
 
         std::mem::swap(&mut ctx.nnue.us, &mut ctx.nnue.them);
 
@@ -237,7 +239,7 @@ pub fn negamax(
     // =====================================================================================================================//
     // RAZORING                                                                                                             //
     // =====================================================================================================================//
-    if  do_pruning && !in_check && !is_pv && depth <= ctx.params.raz_max_depth && static_eval +ctx.params.raz_thr *(depth as i32) < alpha
+    if  do_pruning && !in_check && !is_pv && depth <= ctx.params.raz_max_depth as usize && static_eval +ctx.params.raz_thr as i32 *(depth as i32) < alpha
     {
         let razor_score = quiescence(pos,ctx,alpha,beta,ply);
         if razor_score <= alpha{
@@ -248,8 +250,8 @@ pub fn negamax(
     // =====================================================================================================================//
     // FUTILITY PRUNING PART 1                                                                                              //
     // =====================================================================================================================//
-    if  depth <= ctx.params.fp_max_depth && !is_pv && !in_check && alpha.abs() < MATE_SCORE && beta.abs() < MATE_SCORE {
-        let margin = ctx.params.fp_base+ depth*ctx.params.fp_scaling + ctx.params.fp_improving_margin * improving as i32;
+    if  depth <= ctx.params.fp_max_depth as usize && !is_pv && !in_check && alpha.abs() < MATE_SCORE && beta.abs() < MATE_SCORE {
+        let margin = ctx.params.fp_base as i32+ depth as i32 * ctx.params.fp_scaling as i32 + ctx.params.fp_improving_margin as i32 * improving as i32;
         can_futility_prune = static_eval+margin <= alpha;
     }
 
@@ -281,8 +283,8 @@ pub fn negamax(
         // =====================================================================================================================//
         // LATE MOVE PRUNING                                                                                                    //
         // =====================================================================================================================//
-        let lmp_moves= ctx.params.lmp_base+depth as i32 * ctx.params.lmp_lin_scaling + depth as i32 * depth as i32 * ctx.params.lmp_quad_scaling;
-        if depth <= ctx.params.lmp_max_depth
+        let lmp_moves= ctx.params.lmp_base as i32 +depth as i32 * ctx.params.lmp_lin_scaling as i32 + depth as i32 * depth as i32 * ctx.params.lmp_quad_scaling as i32;
+        if depth <= ctx.params.lmp_max_depth as usize
             && !is_pv
             && !in_check
             && moves_searched > lmp_moves
@@ -328,11 +330,11 @@ pub fn negamax(
         }
         else {
             let mut reduction = 0;
-            if moves_searched >=ctx.params.lmr_min_searches &&  depth >= ctx.params.lmr_min_depth && is_quiet  && !is_pv && !in_check{
+            if moves_searched >=ctx.params.lmr_min_searches as i32 &&  depth >= ctx.params.lmr_min_depth as usize && is_quiet  && !is_pv && !in_check{
 
                 // Base reduction
                 reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as usize;
-                /*
+
                 if see(pos, mv) <= 0 {
                     reduction += 1;
                 }
@@ -351,10 +353,7 @@ pub fn negamax(
                     reduction -=1;
                 }
 
-
                 reduction -= (ctx.get_history_score(pos, mv) as i32 / 8192) as usize;
-
-                */
 
                 reduction = reduction.clamp(0,depth - 1);
             }
@@ -391,7 +390,7 @@ pub fn negamax(
 
                 let side = pos.turn() as usize;
 
-                let bonus = ctx.params.cont_hist_scaling * depth as i32 - ctx.params.cont_hist_base;
+                let bonus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
 
                 ctx.update_quiet_history(side, mv, bonus, &quiets_searched,ctx.params); // Update normal history values and malus for quiets searched
 
@@ -399,7 +398,7 @@ pub fn negamax(
 
                 for &q in quiets_searched.iter() {
                     if q != mv {
-                        ctx.update_continuation_history(ply, q, -bonus/(2*ctx.params.cont_hist_malus_scaling)); // Update malus for continuation history
+                        ctx.update_continuation_history(ply, q, -bonus/(2*ctx.params.cont_hist_malus_scaling as i32)); // Update malus for continuation history
                     }
                 }
             }
