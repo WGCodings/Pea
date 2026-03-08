@@ -5,8 +5,8 @@ use serde_yaml::Value;
 use crate::engine::params::{map_to_params, params_to_map, Params};
 use crate::tuner::bounds::{Bounds};
 
+
 /// Perturb the current params into two : theta- and theta+ ready for an iteration of SPSA
-/// TODO : Make the reading of the parameters dynamic so that I dont have to manually add every new parameter.
 pub fn perturb_params(
     base: &Params,
     bounds: &Bounds,
@@ -33,43 +33,27 @@ pub fn perturb_params(
         let delta = if rng.random_bool(0.5) { 1.0 } else { -1.0 };
         deltas.insert(name.clone(), delta);
 
-        let step = c * bound.step * delta;
+        let step = c * delta;
 
-        match value {
+        if let Value::Number(n) = value {
 
-            Value::Number(n) if n.is_i64() => {
+            let v = n.as_f64().unwrap();
 
-                let v = n.as_i64().unwrap() as f64;
+            // normalize
+            let x = normalize(v, bound.min, bound.max);
 
-                plus.insert(
-                    name.clone(),
-                    serde_yaml::to_value((v + step).clamp(bound.min, bound.max) as i64).unwrap(),
-                );
+            // perturb in normalized space
+            let x_plus = (x + step).clamp(0.0, 1.0);
+            let x_minus = (x - step).clamp(0.0, 1.0);
 
-                minus.insert(
-                    name.clone(),
-                    serde_yaml::to_value((v - step).clamp(bound.min, bound.max) as i64).unwrap(),
-                );
-            }
+            // denormalize
+            let plus_real = denormalize(x_plus, bound.min, bound.max);
+            let minus_real = denormalize(x_minus, bound.min, bound.max);
 
-            Value::Number(n) if n.is_f64() => {
-
-                let v = n.as_f64().unwrap();
-
-                plus.insert(
-                    name.clone(),
-                    serde_yaml::to_value((v + step).clamp(bound.min, bound.max)).unwrap(),
-                );
-
-                minus.insert(
-                    name.clone(),
-                    serde_yaml::to_value((v - step).clamp(bound.min, bound.max)).unwrap(),
-                );
-            }
-
-
-            _ => {}
+            plus.insert(name.clone(), serde_yaml::to_value(plus_real).unwrap());
+            minus.insert(name.clone(), serde_yaml::to_value(minus_real).unwrap());
         }
+
     }
 
     (
@@ -96,37 +80,37 @@ pub fn apply_update(
 
         let g = score / (2.0 * ck * delta);
 
-        let step = ak * g * bound.step;
+        let step = ak * g;
 
         let val = map.get(&name).unwrap().clone();
 
-        match val {
+        if let Value::Number(n) = val {
 
-            Value::Number(n) if n.is_i64() => {
+            let v = n.as_f64().unwrap();
 
-                let v = n.as_i64().unwrap() as f64;
+            // normalize
+            let x = normalize(v, bound.min, bound.max);
 
-                let new_v = (v + step).clamp(bound.min, bound.max);
+            // SPSA update in normalized space
+            let x_new = (x + step).clamp(0.0, 1.0);
 
-                map.insert(name, serde_yaml::to_value(new_v as i64).unwrap());
-            }
+            // denormalize
+            let real_new = denormalize(x_new, bound.min, bound.max);
 
-            Value::Number(n) if n.is_f64() => {
-
-                let v = n.as_f64().unwrap();
-
-                let new_v = (v + step).clamp(bound.min, bound.max);
-
-                map.insert(name, serde_yaml::to_value(new_v).unwrap());
-            }
-
-            _ => {}
+            map.insert(name, serde_yaml::to_value(real_new).unwrap());
         }
+
     }
 
     map_to_params(map)
 }
+fn normalize(x: f64, min: f64, max: f64) -> f64 {
+    (x - min) / (max - min)
+}
 
+fn denormalize(x: f64, min: f64, max: f64) -> f64 {
+    min + x * (max - min)
+}
 
 
 

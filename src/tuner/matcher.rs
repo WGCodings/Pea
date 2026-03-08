@@ -24,7 +24,7 @@ pub fn run_match(
         .args([
             "-engine", &format!("cmd={}", engine1).as_str(),&format!("name={}",engine1_name).as_str(),
             "-engine", &format!("cmd={}", engine2).as_str(),&format!("name={}",engine2_name).as_str(),
-            "-each", "tc=2.5+0.1",
+            "-each", "tc=5+0.1",
             "-rounds", &games.to_string().as_str(),
             "-repeat",
             "-concurrency", "10",
@@ -48,8 +48,13 @@ fn parse_wdl(output: &str) -> MatchResult {
 
     for line in output.lines() {
 
-        println!("{}", line);
-
+        if line.contains("Games")
+            || line.contains("Elo")
+            || line.contains("Results")
+            || line.contains("LOS")
+            || line.contains("Ptnml(0-2)") {
+            println!("{}", line);
+        }
         if line.contains("Games") {
             let parts: Vec<&str> = line.split(',').collect();
 

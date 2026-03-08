@@ -90,7 +90,7 @@ params:
     include: true
 
   aspw_widening_factor:
-    min: 2.0
+    min: 1.5
     max: 10.0
     step: 1.0
     include: true
@@ -150,7 +150,7 @@ params:
     include: true
 
   lmp_quad_scaling:
-    min: 0.0
+    min: -5.0
     max: 10.0
     step: 1.0
     include: true

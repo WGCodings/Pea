@@ -13,10 +13,10 @@ pub fn run_spsa() {
 
     let mut base_params = Params::load_yaml("src/tuner/config/best_params.yaml");
     let bounds = Bounds::load_yaml("src/tuner/config/bounds.yaml");
-    let total_iterations = 100;
-    let a = 0.1;
+    let total_iterations = 1000;
+    let a = 0.06;
     let A = 0.1*total_iterations as f64;
-    let c = 0.3;
+    let c = 0.1;
     let alpha = 0.602;
     let gamma = 0.101;
 
@@ -33,6 +33,7 @@ pub fn run_spsa() {
         let ak = a/(iter as f64+1.0+A).powf(alpha);
         let ck = c/(iter as f64 +1.0).powf(gamma);
 
+        println!("ak: {:.5} ck: {:.5}", ak, ck);
 
 
         // perturb
