@@ -144,13 +144,13 @@ params:
     include: true
 
   lmp_lin_scaling:
-    min: -5.0
-    max: 5.0
+    min: 0.0
+    max: 10.0
     step: 1.0
     include: true
 
   lmp_quad_scaling:
-    min: -5.0
+    min: 0.0
     max: 10.0
     step: 1.0
     include: true

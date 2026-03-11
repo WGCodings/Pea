@@ -2,6 +2,7 @@
 
 use crate::engine::params::Params;
 use crate::tuner::bounds::Bounds;
+use crate::tuner::logger::{ elo_from_wdl, log_yaml_to_csv};
 use crate::tuner::matcher::run_match;
 use crate::tuner::perturb::{apply_update, perturb_params};
 
@@ -9,25 +10,34 @@ pub fn run_spsa() {
 
     let theta_minus_path = "src/tuner/config/theta_minus.yaml";
     let theta_plus_path = "src/tuner/config/theta_plus.yaml";
-    let games_per_iteration = 50;
+    let games_per_iteration = 100;
 
     let mut base_params = Params::load_yaml("src/tuner/config/best_params.yaml");
     let bounds = Bounds::load_yaml("src/tuner/config/bounds.yaml");
     let total_iterations = 1000;
-    let a = 0.06;
-    let A = 0.1*total_iterations as f64;
+    let a = 1.1;
+    let A = total_iterations as f64 /10.0;
     let c = 0.1;
     let alpha = 0.602;
     let gamma = 0.101;
+    //let x = csv_to_yaml("src/tuner/logging/spsa_params.csv",600,"src/tuner/config/params_600.yaml");
 
-    for iter in 0..total_iterations {
+    for iter in 685..total_iterations {
 
         println!("Iteration {}", iter);
+
+
 
         if iter % 10 == 0 {
             // every now and then run match against my base version to see improvements
             println!("Playing match against base version.");
-            run_match("src/tuner/config/best_params.yaml", "src/tuner/config/params.yaml", "BEST","BASE",games_per_iteration);
+
+
+            let result = run_match("src/tuner/config/best_params.yaml", "src/tuner/config/params.yaml", "BEST","BASE",games_per_iteration);
+
+            let elo = elo_from_wdl(result.wins, result.losses, result.draws);
+
+            log_yaml_to_csv(iter, "src/tuner/config/best_params.yaml", "src/tuner/logging/spsa_params.csv",elo); // Log parameters to plot
         }
 
         let ak = a/(iter as f64+1.0+A).powf(alpha);

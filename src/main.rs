@@ -30,14 +30,13 @@ use crate::tuner::perturb::perturb_params;
 
 fn main() {
 
-    //static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/simple512/1_simple-40/quantised.bin")) };
+    //static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/huge768nowdl/2_output_buckets-100/quantised.bin")) };
     static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/huge1536-0.2-0.9 wdl/2_output_buckets-500/quantised.bin")) };
 
     let stdin = io::stdin();
     let mut uci_state = UciState::new();
-    let params = Params::load_yaml("C:/Users/warre/RustroverProjects/FastPeaPea/src/tuner/config/best_params.yaml");
+    let params = Params::load_yaml("C:/Users/warre/RustroverProjects/FastPeaPea/src/tuner/config/params.yaml");
     let mut engine_state = EngineState::new(256,params); // TT Size in MB
-
 
     for line in stdin.lock().lines() {
         let line = line.unwrap();

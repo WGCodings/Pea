@@ -122,8 +122,10 @@ impl MoveOrdering {
 
         let mut score = ctx.history[side][from][to] as i32;
 
+
+        // onl compare even plies ago
         for i in 0..MAX_PLY_CONTINUATION_HISTORY {
-            if ply > i {
+            if ply > i  && (1+i)%2 ==0 {
                 if let Some(prev) = ctx.move_stack[ply - 1 - i] {
                     let prev_piece = prev.role() as usize - 1;
                     let prev_to    = prev.to() as usize;

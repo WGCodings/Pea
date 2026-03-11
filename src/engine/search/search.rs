@@ -268,17 +268,19 @@ pub fn negamax(
 
     for mv in moves {
 
-        if !mv.is_capture() {
+        let is_capture = mv.is_capture();
+
+        if !is_capture {
             quiets_searched.push(mv);
         }
         moves_searched +=1;
 
 
-
         let mut child_pos = pos.clone();
         child_pos.play_unchecked(mv);
 
-        let is_quiet = !mv.is_capture() && !mv.is_promotion() && !child_pos.is_check();
+
+        let is_quiet = !is_capture && !mv.is_promotion() && !child_pos.is_check();
 
         // =====================================================================================================================//
         // LATE MOVE PRUNING                                                                                                    //
@@ -307,6 +309,7 @@ pub fn negamax(
         // Prunes bad captures and quiet moves that hang pieces. It feels a little dangerous but it works so I leave it for now //
         // To be tuned later.                                                                                                   //
         // =====================================================================================================================//
+        // From WIKI : This is usually done with a linear depth margin for captures, and a quadratic depth margin for quiets, though such details may vary.
         if depth <= 3 && !is_pv && !is_root && !in_check && !child_pos.is_check(){
             if see(pos, mv) < 0{
                 continue;
@@ -343,7 +346,7 @@ pub fn negamax(
                         reduction += 1;
                     }
                 }
-                if child_pos.is_check(){
+                if pos.is_check(){
                     reduction -=1;
                 }
                 if in_check{

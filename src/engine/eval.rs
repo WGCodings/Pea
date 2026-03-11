@@ -1,5 +1,5 @@
 use std::cmp::max;
-use shakmaty::{Bitboard, Chess,Position, Square};
+use shakmaty::{Bitboard, Chess, Color, Position, Role, Square};
 use crate::engine::types::{KBN_TABLE_DARK, KBN_TABLE_LIGHT};
 use crate::nnue::network::{Accumulator, Network};
 
@@ -7,7 +7,7 @@ pub fn evaluate(pos: &Chess, net: &Network,us: &Accumulator, them: &Accumulator)
     let nnue_score= net.evaluate(us,them,pos);
     let mopup_score = mopup_evaluation(pos,nnue_score);
 
-    nnue_score+mopup_score
+    nnue_score + mopup_score
 }
 
 #[inline(always)]
@@ -65,3 +65,24 @@ fn mopup_evaluation(pos: &Chess,score : i32) -> i32{
     mop_bonus *color_value
 }
 
+fn _hce(pos: &Chess) -> i32 {
+    let piece_values = [100,300,320,500,900,10000];
+    let board = pos.board();
+    let mut score = 0;
+    for &role in &[
+        Role::Pawn,
+        Role::Knight,
+        Role::Bishop,
+        Role::Rook,
+        Role::Queen,
+        Role::King,
+    ] {
+        let idx = role as usize - 1;
+        let val = piece_values[idx];
+        let white = board.by_color(Color::White) & board.by_role(role);
+        let black = board.by_color(Color::Black) & board.by_role(role);
+        score += val * white.count() as i32;
+        score -= val * black.count() as i32;
+    }
+    score
+}

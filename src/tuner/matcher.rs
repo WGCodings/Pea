@@ -47,13 +47,13 @@ fn parse_wdl(output: &str) -> MatchResult {
     let mut draws = 0;
 
     for line in output.lines() {
-
+        println!("{}", line);
         if line.contains("Games")
             || line.contains("Elo")
             || line.contains("Results")
             || line.contains("LOS")
             || line.contains("Ptnml(0-2)") {
-            println!("{}", line);
+
         }
         if line.contains("Games") {
             let parts: Vec<&str> = line.split(',').collect();

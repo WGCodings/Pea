@@ -18,13 +18,15 @@ fp_base: 40.0
 fp_scaling: 60.0
 fp_max_depth: 8.0
 fp_improving_margin: 0.0
-rfp_scaling: 47.0
-rfp_improving_scaling: 100.0
-rfp_max_depth: 9.0
+cont_hist_scaling: 150.0
+cont_hist_base: 125.0
+cont_hist_malus_scaling: 1.0
 lmp_base: 4.0
 lmp_lin_scaling: 4.0
 lmp_quad_scaling: 0.0
 lmp_max_depth: 5.0
-cont_hist_scaling: 150.0
-cont_hist_base: 125.0
-cont_hist_malus_scaling: 1.0
+rfp_scaling: 47.0
+rfp_improving_scaling: 100.0
+rfp_max_depth: 9.0
+
+
