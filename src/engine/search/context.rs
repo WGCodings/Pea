@@ -102,6 +102,12 @@ impl<'a> SearchContext<'a> {
             || self.killers[ply][1].as_ref() == Some(mv)
             || self.killers[ply][2].as_ref() == Some(mv)
     }
+    #[inline(always)]
+    pub fn clear_killers(&mut self,ply:usize) {
+        self.killers[ply][0] = None;
+        self.killers[ply][1] = None;
+        self.killers[ply][2] = None;
+    }
 
     #[inline(always)]
     fn update_history_value(history_value: &mut i16, bonus: i32) {

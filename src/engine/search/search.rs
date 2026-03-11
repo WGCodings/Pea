@@ -172,6 +172,8 @@ pub fn negamax(
     let static_eval = evaluate(pos,ctx.network,&ctx.nnue.us, &ctx.nnue.them);
     ctx.eval_stack[ply] = static_eval; // Store current eval for improving heuristic
 
+    ctx.clear_killers(ply+1);
+
 
     // Safety
     if ply > 63{
@@ -255,11 +257,20 @@ pub fn negamax(
         can_futility_prune = static_eval+margin <= alpha;
     }
 
+    let tt_move = tt_best_move(hash, ctx);
+
+    // =====================================================================================================================//
+    // INTERNAL ITERATIVE REDUCTION                                                                                         //
+    // =====================================================================================================================//
+    if tt_move.is_none() && depth >= ctx.params.iir_min_depth as usize {
+        depth -= 1;
+    }
+
 
     let mut moves = pos.legal_moves();
     let mut moves_searched : i32 = 0;
 
-    let tt_move = tt_best_move(hash, ctx);
+
 
     ctx.ordering.order_moves(pos, ctx, pv_move.as_ref(), tt_move.as_ref(), &ctx.killers[ply], ply, &mut moves);
 
@@ -299,7 +310,7 @@ pub fn negamax(
         // =====================================================================================================================//
         // FUTILITY PRUNING PART 2                                                                                              //
         // =====================================================================================================================//
-        if can_futility_prune && moves_searched >1 && is_quiet{
+        if can_futility_prune && moves_searched >ctx.params.fp_min_moves_searched as i32 && is_quiet{
             continue;
         }
 
@@ -310,8 +321,8 @@ pub fn negamax(
         // To be tuned later.                                                                                                   //
         // =====================================================================================================================//
         // From WIKI : This is usually done with a linear depth margin for captures, and a quadratic depth margin for quiets, though such details may vary.
-        if depth <= 3 && !is_pv && !is_root && !in_check && !child_pos.is_check(){
-            if see(pos, mv) < 0{
+        if depth <= ctx.params.hpp_max_depth as usize && !is_pv && !is_root && !in_check && !child_pos.is_check(){
+            if (see(pos, mv) as i32) < !is_quiet as i32 * ctx.params.hpp_tactical_scaling as i32 * depth as i32{
                 continue;
             }
         }
@@ -356,7 +367,7 @@ pub fn negamax(
                     reduction -=1;
                 }
 
-                reduction -= (ctx.get_history_score(pos, mv) as i32 / 8192) as usize;
+                reduction -= (ctx.get_history_score(pos, mv) as i32 / ctx.params.lmr_history_divisor as i32) as usize;
 
                 reduction = reduction.clamp(0,depth - 1);
             }
@@ -464,7 +475,9 @@ pub fn negamax(
 
         for mv in moves {
 
-            if see(pos, mv) < 0 {
+            let see = see(pos, mv);
+
+            if see < 0 {
                 continue;
             }
 

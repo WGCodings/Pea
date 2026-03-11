@@ -72,8 +72,8 @@ impl TranspositionTable {
         }
 
         if let Some(existing) = &self.table[idx] {
-            if existing.depth > depth as u8 {
-                return; // don't replace deeper entry
+            if existing.key == key && existing.depth > depth as u8 + 2 {
+                return;
             }
         }
 

@@ -77,6 +77,12 @@ params:
     step: 0.1
     include: true
 
+  lmr_history_divisor:
+    min: 1024.0
+    max: 32768.0
+    step: 256.0
+    include: true
+
   aspw_min_depth:
     min: 1.0
     max: 10.0
@@ -117,6 +123,12 @@ params:
     min: -100.0
     max: 100.0
     step: 10.0
+    include: true
+
+  fp_min_moves_searched:
+    min: 0.0
+    max: 10.0
+    step: 1.0
     include: true
 
   rfp_scaling:
@@ -176,5 +188,23 @@ params:
   cont_hist_malus_scaling:
     min: 1.0
     max: 5.0
+    step: 1.0
+    include: true
+
+  hpp_max_depth:
+    min: 0.0
+    max: 10.0
+    step: 1.0
+    include: true
+
+  hpp_tactical_scaling:
+    min: -100.0
+    max: 100.0
+    step: 10.0
+    include: true
+
+  iir_min_depth:
+    min: 0.0
+    max: 10.0
     step: 1.0
     include: true

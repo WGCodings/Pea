@@ -20,6 +20,7 @@ pub struct Params {
     pub lmr_min_depth: f32,
     pub lmr_red_constant: f32,
     pub lmr_red_scaling: f32,
+    pub lmr_history_divisor: f32,
 
     pub aspw_min_depth: f32,
     pub aspw_window_size: f32,
@@ -29,6 +30,7 @@ pub struct Params {
     pub fp_scaling: f32,
     pub fp_max_depth: f32,
     pub fp_improving_margin: f32,
+    pub fp_min_moves_searched: f32,
 
     pub cont_hist_scaling: f32,
     pub cont_hist_base: f32,
@@ -42,7 +44,11 @@ pub struct Params {
     pub rfp_scaling: f32,
     pub rfp_improving_scaling: f32,
     pub rfp_max_depth: f32,
-    
+
+    pub hpp_max_depth: f32,
+    pub hpp_tactical_scaling: f32,
+
+    pub iir_min_depth: f32
 }
 
 impl Params {
@@ -79,6 +85,7 @@ impl Params {
             lmr_min_depth: 3.0,
             lmr_red_constant: 0.7844,
             lmr_red_scaling: 2.4695,
+            lmr_history_divisor: 8192.0,
             // ASPIRATION WINDOW
             aspw_min_depth: 3.0,
             aspw_window_size: 50.0,
@@ -88,11 +95,13 @@ impl Params {
             fp_scaling : 60.0,
             fp_max_depth: 8.0,
             fp_improving_margin: 0.0,
+            fp_min_moves_searched: 1.0,
             // REVERSE FUTILITY PRUNING
             rfp_scaling: 47.0,
             rfp_improving_scaling: 100.0,
             rfp_max_depth: 9.0,
             // LATE MOVE PRUNING
+
             lmp_base: 4.0,
             lmp_lin_scaling: 4.0,
             lmp_quad_scaling: 0.0,
@@ -101,6 +110,11 @@ impl Params {
             cont_hist_scaling: 150.0,
             cont_hist_base: 125.0,
             cont_hist_malus_scaling: 1.0,
+            // hanging piece pruning
+            hpp_max_depth: 3.0,
+            hpp_tactical_scaling: 0.0,
+            // internal iterative deepening
+            iir_min_depth: 4.0,
         }
     }
 }
