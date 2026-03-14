@@ -2,6 +2,7 @@ use shakmaty::{Chess, Position};
 
 use crate::engine::params::Params;
 use crate::engine::search::context::SearchContext;
+use crate::engine::search::pv::PvTable;
 use crate::engine::search::search::{negamax, quiescence};
 
 const _MARGIN_Q: i32 = 60;
@@ -24,7 +25,7 @@ fn _is_quiet_position(pos: &mut Chess, _params : &Params,ctx : &mut SearchContex
     }
 
     // 4️⃣ Shallow Negamax
-    let nm_eval = negamax(pos, ctx, _NEGAMAX_DEPTH as usize, 0, 0, 0,  true);
+    let nm_eval = negamax(pos, ctx, _NEGAMAX_DEPTH as usize, 0, 0, 0,  true,&mut PvTable::new());
 
     if (static_eval - nm_eval).abs() > _MARGIN_NM {
         return false;

@@ -11,14 +11,13 @@ use std::io::{self, BufRead};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
-use shakmaty::{perft, Chess, Color, Position};
+use shakmaty::{perft, Chess, Color, Move, Position};
 
 use crate::uci::{parser::*, state::*};
 use crate::engine::search::search::{search, SearchStats};
 use crate::engine::params::Params;
 use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::context::*;
-use crate::engine::search::pv::{MultiPv, PvTable};
 use crate::engine::time_manager::compute_time_limit;
 use crate::engine::state::*;
 use crate::engine::utility::read_position_from_fen;
@@ -115,9 +114,7 @@ fn main() {
                     stop: AtomicBool::new(false),
                     params: &engine_state.params,
                     ordering: &ordering,
-                    pv: PvTable::new(64),
                     stats: SearchStats::default(),
-                    multipv: MultiPv::new(uci_state.multipv),
                     repetition_stack: repetition_stack.to_vec(),
                     tt: &mut engine_state.tt,
                     nnue: nnue_state,
@@ -127,11 +124,12 @@ fn main() {
                     continuation_history: Box::new([[[[[0; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]),
                     move_stack: [None;128],
                     eval_stack: [0;128],
+                    excluded_move: [None; 128],
                 };
 
 
 
-                let (best_score,best_move) = search(
+                let (best_score,best_move,pv) = search(
                     &engine_state.position,
                     &mut ctx,
                     max_depth,
@@ -141,7 +139,6 @@ fn main() {
 
 
                 let stats = ctx.stats;
-                let multipv_lines = &ctx.multipv;
                 let tt_occupancy = ctx.tt.tt_occupancy();
 
 
@@ -153,25 +150,23 @@ fn main() {
                 } else {
                     0
                 };
-                let multi_pv_lines = multipv_lines.get_last_completed();
-                for (i, (_score, line)) in
-                    multi_pv_lines.iter().enumerate()
-                {
-                    let pv_string = pv_to_string(line);
 
-                    println!(
-                        "info depth {:.0} seldepth {} multipv {} score cp {} nodes {} nps {} hashfull {} time {} pv {}",
-                        line.len(),
-                        stats.seldepth,
-                        i + 1,
-                        best_score,
-                        stats.nodes,
-                        nps,
-                        tt_occupancy,
-                        elapsed_millis,
-                        pv_string
-                    );
-                }
+                let pv_string = pv_to_string(pv.line());
+
+                println!(
+                    "info depth {:.0} seldepth {} score cp {} nodes {} nps {} hashfull {} time {} SE {} pv {} ",
+                    stats.completed_depth,
+                    stats.seldepth,
+                    best_score,
+                    stats.nodes,
+                    nps,
+                    tt_occupancy,
+                    elapsed_millis,
+                    stats.singular_extensions,
+                    pv_string,
+
+                );
+
 
                 println!("bestmove {}", move_to_uci(&best_move));
             }
@@ -179,7 +174,7 @@ fn main() {
             UciCommand::SetOption { name, value } => {
                 if name.as_str().eq_ignore_ascii_case("multipv") {
                     if let Ok(n) = value.as_str().parse::<usize>() {
-                        println!("{}", n);
+                        println!("Setting multipv to {}", n);
                         uci_state.multipv = cmp::min(cmp::max(n,1),5);
                     }
                 }
@@ -236,13 +231,10 @@ fn main() {
 }
 
 
-fn pv_to_string(line: &[shakmaty::Move]) -> String {
-    let mut s = String::new();
-
-    for mv in line {
-        s.push(' ');
-        s.push_str(move_to_uci(mv).as_str());
-    }
-
-    s
+fn pv_to_string(line: &[Option<Move>]) -> String {
+    line.iter()
+        .filter_map(|mv| *mv)
+        .map(|mv| move_to_uci(&mv))
+        .collect::<Vec<_>>()
+        .join(" ")
 }

@@ -118,7 +118,7 @@ fn score_to_tt(score: i32, ply: usize) -> i32 {
 }
 
 #[inline(always)]
-fn score_from_tt(score: i32, ply: usize) -> i32 {
+pub fn score_from_tt(score: i32, ply: usize) -> i32 {
     if score > MATE_THRESHOLD {
         score - ply as i32
     } else if score < -MATE_THRESHOLD {

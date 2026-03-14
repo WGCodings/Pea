@@ -11,7 +11,7 @@ lmr_min_searches: 5.0
 lmr_min_depth: 3.0
 lmr_red_constant: 0.7844
 lmr_red_scaling: 2.4695
-lmr_history_divisor : 8192.0
+lmr_history_divisor: 8192.0
 aspw_min_depth: 3.0
 aspw_window_size: 50.0
 aspw_widening_factor: 2.0
@@ -19,7 +19,7 @@ fp_base: 40.0
 fp_scaling: 60.0
 fp_max_depth: 8.0
 fp_improving_margin: 0.0
-fp_min_moves_searched : 1.0
+fp_min_moves_searched: 1.0
 cont_hist_scaling: 150.0
 cont_hist_base: 125.0
 cont_hist_malus_scaling: 1.0
@@ -33,3 +33,7 @@ rfp_max_depth: 9.0
 hpp_max_depth: 3.0
 hpp_tactical_scaling: 0.0
 iir_min_depth: 4.0
+se_dext_margin: 17.0
+se_scaling: 2.0
+se_depth_ok: 3.0
+se_min_depth: 8.0

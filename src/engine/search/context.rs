@@ -4,7 +4,6 @@ use std::time::{Duration, Instant};
 use shakmaty::{Chess, Color,  Move,Position, Role, Square};
 use crate::engine::params::Params;
 use crate::engine::search::ordering::MoveOrdering;
-use crate::engine::search::pv::{MultiPv, PvTable};
 use crate::engine::search::search::SearchStats;
 use crate::engine::tt::TranspositionTable;
 use crate::engine::types::{MAX_HISTORY, MAX_PLY_CONTINUATION_HISTORY};
@@ -18,9 +17,7 @@ pub struct SearchContext<'a> {
     pub params: &'a Params,
     pub ordering: &'a MoveOrdering,
 
-    pub pv: PvTable,
     pub stats: SearchStats,
-    pub multipv: MultiPv,
 
     pub repetition_stack: Vec<u64>,
     pub tt: &'a mut TranspositionTable,
@@ -33,7 +30,8 @@ pub struct SearchContext<'a> {
     pub continuation_history: Box<[[[[[i16; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]>,
 
     pub move_stack: [Option<Move>; 128],
-    pub eval_stack: [i32; 128]
+    pub eval_stack: [i32; 128],
+    pub excluded_move: [Option<Move>; 128],
 
 }
 

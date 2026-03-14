@@ -29,7 +29,6 @@ impl MoveOrdering {
         &self,
         pos: &Chess,
         ctx : &SearchContext,
-        pv_move: Option<&Move>,
         tt_move: Option<&Move>,
         killers: &[Option<Move>; 3],
         ply : usize,
@@ -38,7 +37,7 @@ impl MoveOrdering {
         let mut scored: Vec<(i32, Move)> = Vec::with_capacity(moves.len());
 
         for mv in moves.drain(..) {
-            let score = self.score_move(pos, ctx, &mv, pv_move, tt_move, killers,ply);
+            let score = self.score_move(pos, ctx, &mv, tt_move, killers,ply);
             scored.push((score, mv));
         }
 
@@ -54,7 +53,6 @@ impl MoveOrdering {
         pos: &Chess,
         ctx: &SearchContext,
         mv: &Move,
-        pv_move: Option<&Move>,
         tt_move: Option<&Move>,
         killers: &[Option<Move>; 3],
         ply : usize,
@@ -66,13 +64,6 @@ impl MoveOrdering {
         // ============================================================
         if Some(mv) == tt_move {
             return 1_000_000;
-        }
-
-        // ============================================================
-        // 2. PV move
-        // ============================================================
-        if Some(mv) == pv_move {
-            return 900_000;
         }
 
         // ============================================================
