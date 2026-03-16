@@ -8,6 +8,7 @@ use crate::engine::eval::evaluate;
 use crate::engine::search::context::{make_move_nnue, unmake_move_nnue, SearchContext};
 use crate::engine::search::pv::PvTable;
 use crate::engine::search::see::see;
+use crate::engine::time_manager::TimeManager;
 use crate::engine::tt::{score_from_tt, tt_best_move, tt_probe, tt_store, Bound};
 use crate::engine::types::{DRAW_SCORE, MATE_SCORE, MAX_INF, MIN_INF};
 
@@ -36,74 +37,49 @@ impl SearchStats {
     }
 }
 
-pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>, ) -> (i32, Move, PvTable) {
+pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>) -> (i32, Move, PvTable) {
+    let start_time = Instant::now();
+    let base_time = time_remaining.unwrap();
 
-    ctx.start_time = Instant::now();
-    ctx.time_limit = time_remaining.unwrap();
+    ctx.time_limit = base_time;
+    ctx.start_time = start_time;
     ctx.stop.store(false, Ordering::Relaxed);
+    ctx.tt.increment_age();
 
+    let mut tm = TimeManager::new(base_time, start_time);
     let mut best_score = MIN_INF;
     let mut best_move = None;
     let mut pv = PvTable::new();
     let mut latest_pv = PvTable::new();
-
     let mut prev_score = 0;
-    ctx.tt.increment_age();
+
     for depth in 1..=max_depth {
         pv.clear();
 
-        if ctx.start_time.elapsed() > ctx.time_limit { break; }
+        if tm.should_stop() { break; }
 
-
-
-        let mut alpha ;
-        let mut beta ;
-        let mut score;
-
-        // =====================================================================================================================//
-        // ASPIRATION SEARCH                                                                                                    //
-        // =====================================================================================================================//
-        if depth >= ctx.params.aspw_min_depth as usize {
-            let mut window = ctx.params.aspw_window_size as i32;
-
-            alpha = prev_score - window;
-            beta = prev_score + window;
-
-            loop {
-
-                score = negamax(pos, ctx, depth, 0, alpha, beta, true, &mut pv);
-
-                if ctx.stop.load(Ordering::Relaxed) { break; }
-
-                if score <= alpha {
-                    alpha = cmp::max(alpha - window, MIN_INF);
-                } else if score >= beta {
-                    beta = cmp::min(beta+window,MAX_INF);
-                } else {
-                    break;
-                }
-
-                window = (window as f32 * ctx.params.aspw_widening_factor) as i32;
-            }
+        let score = if depth >= ctx.params.aspw_min_depth as usize {
+            aspiration_search(pos, ctx, depth, prev_score, &mut pv)
         } else {
-            score = negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, true, &mut pv);
-        }
+            negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, true, &mut pv)
+        };
 
-        if ctx.stop.load(Ordering::Relaxed) {
-            break;
-        }
+        if ctx.stop.load(Ordering::Relaxed) { break; }
+
+        tm.update(score, pv.best_move());
+
+
+        ctx.time_limit = tm.current_limit;
 
         best_score = score;
         prev_score = score;
         best_move = pv.best_move();
         latest_pv = pv;
         ctx.stats.completed_depth = depth;
-
     }
 
-    ctx.stats.duration = ctx.start_time.elapsed();
-
-    (best_score, best_move.expect("No legal move found"),latest_pv)
+    ctx.stats.duration = tm.elapsed();
+    (best_score, best_move.expect("No legal move found"), latest_pv)
 }
 
 
@@ -329,9 +305,7 @@ pub fn negamax(
 
         let is_capture = mv.is_capture();
 
-        if !is_capture {
-            quiets_searched.push(mv);
-        }
+
         moves_searched +=1;
 
 
@@ -398,13 +372,15 @@ pub fn negamax(
                     ctx.stats.singular_extensions += 1;
                     extension += 1;
 
-                    if !is_pv && se_score + (ctx.params.se_dext_margin as i32) < se_beta && ctx.stack.double_exts[ply] <= 8
+                    if !is_pv
+                        && se_score + (ctx.params.se_dext_margin as i32) < se_beta
+                        && ctx.stack.double_exts[ply] <= ctx.params.se_max_nr_dext as i32
                     {
                         // Double extensions
                         extension += 1;
                         ctx.stack.double_exts[ply] += 1;
                         // Triple extensions
-                        if is_quiet && se_score + 100 < se_beta{
+                        if is_quiet && se_score + (ctx.params.se_text_margin as i32) < se_beta{
                             extension += 1;
                         }
 
@@ -420,6 +396,10 @@ pub fn negamax(
 
         let mut child_pos = pos.clone();
         child_pos.play_unchecked(mv);
+
+        if !is_capture {
+            quiets_searched.push(mv);
+        }
 
         make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
 
@@ -605,7 +585,28 @@ pub fn quiescence(
     }
     alpha
 }
+#[inline(always)]
+fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, depth: usize, prev_score: i32, pv: &mut PvTable) -> i32 {
+    let mut window = ctx.params.aspw_window_size as i32;
+    let mut alpha = prev_score - window;
+    let mut beta = prev_score + window;
 
+    loop {
+        let score = negamax(pos, ctx, depth, 0, alpha, beta, true, pv);
+
+        if ctx.stop.load(Ordering::Relaxed) { return score; }
+
+        if score <= alpha {
+            alpha = cmp::max(alpha - window, MIN_INF);
+        } else if score >= beta {
+            beta = cmp::min(beta + window, MAX_INF);
+        } else {
+            return score;
+        }
+
+        window = (window as f32 * ctx.params.aspw_widening_factor) as i32;
+    }
+}
 #[inline(always)]
 fn check_time(ctx: &SearchContext) {
     if ctx.stats.nodes % 13337 == 0 {
@@ -620,3 +621,4 @@ fn minors_or_majors(pos : &Chess) -> Bitboard {
     let board = pos.board();
     (board.rooks_and_queens() | board.knights() | board.bishops()) & pos.us()
 }
+

@@ -52,7 +52,9 @@ pub struct Params {
     pub se_dext_margin: f32,
     pub se_scaling: f32,
     pub se_depth_ok: f32,
-    pub se_min_depth: f32
+    pub se_min_depth: f32,
+    pub se_text_margin: f32,
+    pub se_max_nr_dext: f32
 }
 
 impl Params {
@@ -123,6 +125,8 @@ impl Params {
             se_scaling: 2.0,
             se_depth_ok: 3.0,
             se_min_depth: 8.0,
+            se_text_margin: 100.0,
+            se_max_nr_dext: 8.0,
         }
     }
 }
