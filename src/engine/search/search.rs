@@ -1,4 +1,5 @@
 use std::cmp;
+use std::mem::forget;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 use shakmaty::{Bitboard, Chess, EnPassantMode, Move, Position};
@@ -44,12 +45,11 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     let mut best_score = MIN_INF;
     let mut best_move = None;
     let mut pv = PvTable::new();
+    let mut latest_pv = PvTable::new();
 
     let mut prev_score = 0;
-
+    ctx.tt.increment_age();
     for depth in 1..=max_depth {
-
-        // TODO clear all killers here
         pv.clear();
 
         if ctx.start_time.elapsed() > ctx.time_limit { break; }
@@ -83,7 +83,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
                     break;
                 }
 
-                window *= ctx.params.aspw_widening_factor as i32;
+                window = (window as f32 * ctx.params.aspw_widening_factor) as i32;
             }
         } else {
             score = negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, true, &mut pv);
@@ -96,13 +96,14 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
         best_score = score;
         prev_score = score;
         best_move = pv.best_move();
+        latest_pv = pv;
         ctx.stats.completed_depth = depth;
 
     }
 
     ctx.stats.duration = ctx.start_time.elapsed();
 
-    (best_score, best_move.expect("No legal move found"),pv)
+    (best_score, best_move.expect("No legal move found"),latest_pv)
 }
 
 
@@ -131,6 +132,10 @@ pub fn negamax(
     let original_alpha = alpha;
     let mut best_score = MIN_INF;
     let mut best_move = None;
+
+    if ply > 0 {
+        ctx.stack.double_exts[ply] = ctx.stack.double_exts[ply-1];
+    }
 
     check_time(ctx);
 
@@ -161,23 +166,40 @@ pub fn negamax(
     // =====================================================================================================================//
     // TT PROBE                                                                                                             //
     // =====================================================================================================================//
-    if let Some(score) = tt_probe(hash, ctx, depth, alpha, beta,ply) {
-        if !is_root && !is_excluded{
+
+    let tt_entry = if !is_excluded {
+        ctx.tt.probe(hash).cloned()
+    } else {
+        None
+    };
+    //let tt_move = tt_entry.as_ref().and_then(|entry| entry.best_move.clone());
+    let tt_move = tt_best_move(hash, ctx);
+
+    if !is_root && !is_excluded && tt_entry.is_some() {
+        if let Some(score) = tt_entry.as_ref().and_then(|e| e.try_score(depth, alpha, beta, ply)) {
             return score;
         }
     }
 
+    let static_eval = if is_excluded {
+        ctx.stack.evals[ply]
+    } else if let Some(e) = &tt_entry {
+        e.eval
+    } else {
+        evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
+    };
 
-    let static_eval = evaluate(pos,ctx.network,&ctx.nnue.us, &ctx.nnue.them);
-    ctx.eval_stack[ply] = static_eval; // Store current eval for improving heuristic
-
-    ctx.clear_killers(ply+1);
-
+    ctx.stack.evals[ply] = static_eval;
 
     // Safety
     if ply > 63{
         return static_eval;
     }
+
+    ctx.clear_killers_at(ply+1);
+
+
+
 
     let do_pruning = minors_or_majors(pos).count() >0 && !is_excluded;
     let improving = ctx.is_improving(ply);
@@ -255,7 +277,7 @@ pub fn negamax(
         can_futility_prune = static_eval+margin <= alpha;
     }
 
-    let tt_move = tt_best_move(hash, ctx);
+
 
     // =====================================================================================================================//
     // INTERNAL ITERATIVE REDUCTION                                                                                         //
@@ -270,7 +292,7 @@ pub fn negamax(
 
     let se_info: Option<(Move, i32)> = if !is_root && !is_excluded && depth >= ctx.params.se_min_depth as usize{
         tt_move.as_ref().and_then(|tt_mv| {
-            ctx.tt.probe(hash).and_then(|entry| {
+            tt_entry.as_ref().and_then(|entry| {
                 let tt_depth_ok = entry.depth as usize + ctx.params.se_depth_ok as usize>= depth;
                 let tt_score = score_from_tt(entry.score, ply);
                 let not_mate = tt_score.abs() < MATE_SCORE - 100;
@@ -301,6 +323,8 @@ pub fn negamax(
             continue;
         }
 
+        let see= see(pos,mv);
+
         local_pv.clear();
 
         let is_capture = mv.is_capture();
@@ -322,7 +346,7 @@ pub fn negamax(
             && !in_check
             && moves_searched > lmp_moves
             && is_quiet {
-            if see(pos, mv) <= 0 {
+            if see <= 0 {
                 continue;
             }
         }
@@ -342,13 +366,13 @@ pub fn negamax(
         // =====================================================================================================================//
         // From WIKI : This is usually done with a linear depth margin for captures, and a quadratic depth margin for quiets, though such details may vary.
         if depth <= ctx.params.hpp_max_depth as usize && !is_pv && !is_root && !in_check {
-            if (see(pos, mv) as i32) < !is_quiet as i32 * ctx.params.hpp_tactical_scaling as i32 * depth as i32{
+            if (see as i32) < !is_quiet as i32 * ctx.params.hpp_tactical_scaling as i32 * depth as i32{
                 continue;
             }
         }
 
         // =========================================================
-        // SINGULAR EXTENSIONS
+        // SINGULAR EXTENSIONS (Thanks to Simbelmyne)
         // =========================================================
         let mut extension: i32 = 0;
 
@@ -360,7 +384,7 @@ pub fn negamax(
 
                 let se_beta = (tt_score - ctx.params.se_scaling as i32 * depth as i32).max(-MATE_SCORE);
                 let se_depth = (depth - 1) / 2;
-                ctx.stats.singular_extensions += 1;
+
 
 
                 ctx.excluded_move[ply] = Some(mv);
@@ -370,17 +394,22 @@ pub fn negamax(
 
                 if ctx.stop.load(Ordering::Relaxed) { return DRAW_SCORE; }
 
-                if se_score < se_beta {
+                if se_score < se_beta  {
+                    ctx.stats.singular_extensions += 1;
+                    extension += 1;
 
-                    extension = 1;
-
-                    // Double extension - but guard against explosion
-                    if !is_pv && se_score + (ctx.params.se_dext_margin as i32) < se_beta
+                    if !is_pv && se_score + (ctx.params.se_dext_margin as i32) < se_beta && ctx.stack.double_exts[ply] <= 8
                     {
-                        extension = 2;
+                        // Double extensions
+                        extension += 1;
+                        ctx.stack.double_exts[ply] += 1;
+                        // Triple extensions
+                        if is_quiet && se_score + 100 < se_beta{
+                            extension += 1;
+                        }
+
                     }
                 } else if se_beta >= beta {
-                    // Multicut
                     return se_beta;
                 }
                 else if tt_score >= beta {
@@ -399,7 +428,7 @@ pub fn negamax(
         ctx.increase_history(hash_child);
 
         // Push move into stack for continuation history
-        ctx.move_stack[ply] = Some(mv);
+        ctx.stack.moves[ply] = Some(mv);
 
         // =====================================================================================================================//
         // START PVS SEARCH WITH FULL WINDOW FOR THE FIRST MOVE AND LMR FOR LATE MOVES                                          //
@@ -414,7 +443,7 @@ pub fn negamax(
                 // Base reduction
                 reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as usize;
 
-                if see(pos, mv) <= 0 {
+                if see <= 0 {
                     reduction += 1;
                 }
                 if let Some(ttm) = tt_move {
@@ -422,7 +451,7 @@ pub fn negamax(
                         reduction += 1;
                     }
                 }
-                if pos.is_check(){
+                if child_pos.is_check(){ // change to child pos
                     reduction -=1;
                 }
                 if in_check{
@@ -448,7 +477,7 @@ pub fn negamax(
         }
 
         // Pop move from stack
-        ctx.move_stack[ply] = None;
+        ctx.stack.moves[ply] = None;
 
         ctx.decrease_history();
         unmake_move_nnue(ctx.network, &mut ctx.nnue);
@@ -488,104 +517,106 @@ pub fn negamax(
     }
 
     if !ctx.stop.load(Ordering::Relaxed) && !is_excluded{
-        tt_store(hash, ctx, depth, best_score, original_alpha, beta, best_move,ply);
+        tt_store(hash, ctx, depth, best_score, static_eval,original_alpha, beta, best_move,ply);
     }
     best_score
+}
+
+#[inline(always)]
+pub fn quiescence(
+    pos: &Chess,
+    ctx: &mut SearchContext,
+    mut alpha: i32,
+    beta: i32,
+    ply : usize
+) -> i32 {
+    ctx.stats.nodes += 1;
+
+    check_time(ctx);
+    if ctx.stop.load(Ordering::Relaxed){ return DRAW_SCORE; }
+
+    if ctx.is_threefold(pos) || ctx.is_50_moves(pos) {
+        return DRAW_SCORE;
     }
 
-    #[inline(always)]
-    pub fn quiescence(
-        pos: &Chess,
-        ctx: &mut SearchContext,
-        mut alpha: i32,
-        beta: i32,
-        ply : usize
-    ) -> i32 {
-        ctx.stats.nodes += 1;
+    let hash = pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
 
-        check_time(ctx);
-        if ctx.stop.load(Ordering::Relaxed){ return DRAW_SCORE; }
+    // TT probe for qsearch
+    if let Some(score) = tt_probe(hash, ctx, 0, alpha, beta,ply) {
+        return score;
+    }
 
-        if ctx.is_threefold(pos) || ctx.is_50_moves(pos) {
-            return DRAW_SCORE;
+    let static_eval = if let Some(entry) = ctx.tt.probe(hash) {
+        entry.eval
+    } else {
+        evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
+    };
+
+
+    if static_eval >= beta {
+        return beta;
+    }
+
+    if static_eval > alpha {
+        alpha = static_eval;
+    }
+
+    let original_alpha = alpha;
+
+    let mut moves = pos.capture_moves();
+
+    ctx.ordering.order_captures(pos, &mut moves);
+
+    for mv in moves {
+
+        let see = see(pos, mv);
+
+        if see < 0 {
+            continue;
         }
 
-        let hash = pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
+        make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
 
-        // TT probe for qsearch
-        if let Some(score) = tt_probe(hash, ctx, 0, alpha, beta,ply) {
-            return score;
-        }
+        let mut child = pos.clone();
 
+        child.play_unchecked(mv);
 
-        //let stand_pat = evaluate_nnue(pos, ctx.network);
-        let stand_pat = evaluate(pos,ctx.network,&ctx.nnue.us, &ctx.nnue.them);
+        let child_hash = child.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
 
+        ctx.increase_history(child_hash);
 
-        if stand_pat >= beta {
+        let score = -quiescence(&child, ctx, -beta, -alpha,ply+1);
+
+        ctx.decrease_history();
+
+        unmake_move_nnue(ctx.network, &mut ctx.nnue);
+
+        if score >= beta {
             return beta;
         }
 
-        if stand_pat > alpha {
-            alpha = stand_pat;
-        }
-
-        let original_alpha = alpha;
-
-        let mut moves = pos.capture_moves();
-
-        ctx.ordering.order_captures(pos, &mut moves);
-
-        for mv in moves {
-
-            let see = see(pos, mv);
-
-            if see < 0 {
-                continue;
-            }
-
-            make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
-
-            let mut child = pos.clone();
-
-            child.play_unchecked(mv);
-
-            let child_hash = child.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
-
-            ctx.increase_history(child_hash);
-
-            let score = -quiescence(&child, ctx, -beta, -alpha,ply+1);
-
-            ctx.decrease_history();
-
-            unmake_move_nnue(ctx.network, &mut ctx.nnue);
-
-            if score >= beta {
-                return beta;
-            }
-
-            if score > alpha {
-                alpha = score;
-            }
-        }
-
-        if !ctx.stop.load(Ordering::Relaxed) {
-            tt_store(hash, ctx, 0, alpha, original_alpha, beta, None,ply);
-        }
-        alpha
-    }
-
-    #[inline(always)]
-    fn check_time(ctx: &SearchContext) {
-        if ctx.stats.nodes % 13337 == 0 {
-            if ctx.start_time.elapsed() >= ctx.time_limit {
-                ctx.stop.store(true, Ordering::Relaxed);
-            }
+        if score > alpha {
+            alpha = score;
         }
     }
 
-    #[inline(always)]
-    fn minors_or_majors(pos : &Chess) -> Bitboard {
-        let board = pos.board();
-        (board.rooks_and_queens() | board.knights() | board.bishops()) & pos.us()
+    if !ctx.stop.load(Ordering::Relaxed) {
+        tt_store(hash, ctx, 0, alpha, static_eval,original_alpha, beta, None,ply);
     }
+    alpha
+}
+
+#[inline(always)]
+fn check_time(ctx: &SearchContext) {
+    if ctx.stats.nodes % 13337 == 0 {
+        if ctx.start_time.elapsed() >= ctx.time_limit {
+            ctx.stop.store(true, Ordering::Relaxed);
+        }
+    }
+}
+
+#[inline(always)]
+fn minors_or_majors(pos : &Chess) -> Bitboard {
+    let board = pos.board();
+    (board.rooks_and_queens() | board.knights() | board.bishops()) & pos.us()
+}

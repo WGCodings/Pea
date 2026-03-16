@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicU8, Ordering};
 use shakmaty::Move;
 use crate::engine::search::context::SearchContext;
 use crate::engine::types::MATE_SCORE;
@@ -13,15 +14,58 @@ pub enum Bound {
 pub struct TTEntry {
     pub key: u64,
     pub depth: u8,
+    pub age : u8,
     pub score: i32,
+    pub eval : i32,
     pub bound: Bound,
     pub best_move: Option<Move>,
 }
-#[derive(Clone)]
+
+impl TTEntry {
+    pub fn get_best_move(&self) -> Option<Move> {
+        self.best_move
+    }
+    #[inline(always)]
+    pub fn try_score(
+        &self,
+        depth: usize,
+        alpha: i32,
+        beta: i32,
+        ply: usize,
+    ) -> Option<i32> {
+
+
+        if self.depth as usize >= depth{
+
+            let score: i32 = score_from_tt(self.score, ply);
+
+            match self.bound {
+                Bound::Exact => {
+                    return Some(score);
+                }
+
+                Bound::Lower if score >= beta => {
+                    return Some(beta);
+                }
+
+                Bound::Upper if score <= alpha => {
+                    return Some(alpha);
+                }
+
+                _ => {}
+            }
+        }
+
+
+        None
+    }
+}
+
 pub struct TranspositionTable {
     table: Vec<Option<TTEntry>>,
     mask: usize,
     entries : usize,
+    age : AtomicU8,
 }
 
 impl TranspositionTable {
@@ -36,7 +80,8 @@ impl TranspositionTable {
         Self {
             table: vec![None; capacity],
             mask: capacity - 1,
-            entries : 0
+            entries : 0,
+            age: AtomicU8::new(0),
         }
     }
 
@@ -62,6 +107,7 @@ impl TranspositionTable {
         key: u64,
         depth: usize,
         score: i32,
+        eval : i32,
         bound: Bound,
         best_move: Option<Move>,
     ) {
@@ -72,15 +118,19 @@ impl TranspositionTable {
         }
 
         if let Some(existing) = &self.table[idx] {
-            if existing.key == key && existing.depth > depth as u8 + 2 {
+            if existing.key == key && existing.depth > depth as u8 + 2 && existing.age == self.age.load(Ordering::Relaxed) {
                 return;
             }
         }
 
+        let age = self.age.load(Ordering::Relaxed);
+
         let entry = TTEntry {
             key,
             depth: depth as u8,
+            age,
             score,
+            eval,
             bound,
             best_move,
         };
@@ -103,6 +153,15 @@ impl TranspositionTable {
 
         ((used / total) * 1000.0) as u32
     }
+    pub fn increment_age(&self) {
+        let _ = self.age.fetch_update(
+            Ordering::Relaxed,
+            Ordering::Relaxed,
+            |age| Some((age + 1) % 32)
+        );
+    }
+
+
 }
 const MATE_THRESHOLD: i32 = MATE_SCORE - 1000;
 
@@ -169,6 +228,7 @@ pub(crate) fn tt_store(
     ctx: &mut SearchContext,
     depth: usize,
     best_score: i32,
+    eval : i32,
     alpha: i32,
     beta: i32,
     best_move: Option<Move>,
@@ -184,7 +244,7 @@ pub(crate) fn tt_store(
 
     let adjusted_score = score_to_tt(best_score, ply);
 
-    ctx.tt.store(key, depth, adjusted_score, bound, best_move);
+    ctx.tt.store(key, depth, adjusted_score, eval, bound, best_move);
 }
 
 #[inline(always)]
@@ -193,3 +253,4 @@ pub fn tt_best_move(key : u64, ctx: &mut SearchContext, ) -> Option<Move> {
         .probe(key)
         .and_then(|e| e.best_move.clone())
 }
+

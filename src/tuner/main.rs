@@ -15,14 +15,14 @@ pub fn run_spsa() {
     let mut base_params = Params::load_yaml("src/tuner/config/params.yaml");
     let bounds = Bounds::load_yaml("src/tuner/config/bounds.yaml");
     let total_iterations = 3000;
-    let a = 0.02;
-    let A = total_iterations as f64 /10.0;
+    let a = 0.04;
+    let biga = total_iterations as f64 /10.0;
     let c = 0.05;
     let alpha = 0.602;
     let gamma = 0.101;
     //let x = csv_to_yaml("src/tuner/logging/spsa_params.csv",600,"src/tuner/config/params_600.yaml");
 
-    for iter in 251..total_iterations {
+    for iter in 14 ..total_iterations {
 
         println!("Iteration {}", iter);
 
@@ -33,14 +33,14 @@ pub fn run_spsa() {
             println!("Playing match against base version.");
 
 
-            let result = run_match("src/tuner/config/best_params.yaml", "src/tuner/config/params.yaml", "BEST","BASE",50);
+            let result = run_match("src/tuner/config/best_params.yaml", "src/tuner/config/params.yaml", "BEST","BASE",games_per_iteration);
 
             let elo = elo_from_wdl(result.wins, result.losses, result.draws);
 
             log_yaml_to_csv(iter, "src/tuner/config/best_params.yaml", "src/tuner/logging/spsa_params.csv",elo); // Log parameters to plot
         }
 
-        let ak = a/(iter as f64+A).powf(alpha);
+        let ak = a/(iter as f64+biga).powf(alpha);
         let ck = c/(iter as f64).powf(gamma);
         let typical_step = ak / (2.0 * ck);  // gradient step per unit score
 

@@ -25,7 +25,7 @@ use crate::nnue::network::{Network};
 use crate::engine::types::{MAX_PLY_CONTINUATION_HISTORY, PIECE_VALUES};
 use crate::tuner::main::run_spsa;
 use crate::tuner::perturb::perturb_params;
-// this should be moved to params somehow
+
 
 fn main() {
 
@@ -108,6 +108,12 @@ fn main() {
 
                 let nnue_state = NNUEState::new(&engine_state.position, &NNUE);
 
+                let stack = Stack{
+                    moves: [None;128],
+                    evals: [0;128],
+                    double_exts: [0;128],
+                };
+
                 let mut ctx = SearchContext {
                     start_time: Instant::now(),
                     time_limit : time_limit.unwrap_or(Duration::from_millis(100)),
@@ -122,8 +128,7 @@ fn main() {
                     killers: [[None; 3]; 128],
                     history: [[[0; 64]; 64]; 2],
                     continuation_history: Box::new([[[[[0; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]),
-                    move_stack: [None;128],
-                    eval_stack: [0;128],
+                    stack,
                     excluded_move: [None; 128],
                 };
 
@@ -174,7 +179,6 @@ fn main() {
             UciCommand::SetOption { name, value } => {
                 if name.as_str().eq_ignore_ascii_case("multipv") {
                     if let Ok(n) = value.as_str().parse::<usize>() {
-                        println!("Setting multipv to {}", n);
                         uci_state.multipv = cmp::min(cmp::max(n,1),5);
                     }
                 }

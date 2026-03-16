@@ -1,4 +1,4 @@
-use std::fmt::Display;
+
 use shakmaty::Move;
 
 pub const MAX_PLY: usize = 128;
@@ -38,7 +38,7 @@ impl PvTable {
         &self.moves[..self.len]
     }
 
-    pub fn len(&self) -> usize {
+    pub fn _len(&self) -> usize {
         self.len
     }
 }

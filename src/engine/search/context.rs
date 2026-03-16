@@ -9,6 +9,12 @@ use crate::engine::tt::TranspositionTable;
 use crate::engine::types::{MAX_HISTORY, MAX_PLY_CONTINUATION_HISTORY};
 use crate::nnue::network::{accumulators_from_position, calculate_index, role_index, Accumulator, Network};
 
+pub struct Stack {
+    pub moves: [Option<Move>; 128],
+    pub evals: [i32; 128],
+    pub double_exts: [i32; 128],
+}
+
 pub struct SearchContext<'a> {
     pub start_time: Instant,
     pub time_limit: Duration,
@@ -29,8 +35,8 @@ pub struct SearchContext<'a> {
     pub history: [[[i16; 64]; 64]; 2], // [side][from][to]
     pub continuation_history: Box<[[[[[i16; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]>,
 
-    pub move_stack: [Option<Move>; 128],
-    pub eval_stack: [i32; 128],
+    pub stack : Stack,
+
     pub excluded_move: [Option<Move>; 128],
 
 }
@@ -101,7 +107,7 @@ impl<'a> SearchContext<'a> {
             || self.killers[ply][2].as_ref() == Some(mv)
     }
     #[inline(always)]
-    pub fn clear_killers(&mut self,ply:usize) {
+    pub fn clear_killers_at(&mut self,ply:usize) {
         self.killers[ply][0] = None;
         self.killers[ply][1] = None;
         self.killers[ply][2] = None;
@@ -171,7 +177,7 @@ impl<'a> SearchContext<'a> {
 
         for i in 0..MAX_PLY_CONTINUATION_HISTORY {
             if ply > i {
-                if let Some(prev) = self.move_stack[ply - 1 - i] {
+                if let Some(prev) = self.stack.moves[ply - 1 - i] {
                     let prev_piece = prev.role() as usize - 1;
                     let prev_to    = prev.to() as usize;
 
@@ -191,7 +197,7 @@ impl<'a> SearchContext<'a> {
             return false;
         }
 
-        self.eval_stack[ply] > self.eval_stack[ply - 2]
+        self.stack.evals[ply] > self.stack.evals[ply - 2]
     }
 
 

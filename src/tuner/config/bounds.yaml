@@ -57,49 +57,49 @@ params:
     min: 1.0
     max: 15.0
     step: 1.0
-    include: true
+    include: false
 
   lmr_min_depth:
     min: 0.0
     max: 10.0
     step: 1.0
-    include: true
+    include: false
 
   lmr_red_constant:
     min: 0.0
     max: 2.5
     step: 0.1
-    include: true
+    include: false
 
   lmr_red_scaling:
     min: 1.0
     max: 5.0
     step: 0.1
-    include: true
+    include: false
 
   lmr_history_divisor:
     min: 1024.0
     max: 32768.0
     step: 256.0
-    include: true
+    include: false
 
   aspw_min_depth:
     min: 1.0
     max: 10.0
     step: 1.0
-    include: true
+    include: false
 
   aspw_window_size:
     min: 5.0
     max: 150.0
     step: 10.0
-    include: true
+    include: false
 
   aspw_widening_factor:
-    min: 1.5
+    min: 1.2
     max: 10.0
     step: 1.0
-    include: true
+    include: false
 
   fp_base:
     min: 0.0
@@ -120,7 +120,7 @@ params:
     include: true
 
   fp_improving_margin:
-    min: -100.0
+    min: 0.0
     max: 200.0
     step: 10.0
     include: true
@@ -138,7 +138,7 @@ params:
     include: true
 
   rfp_improving_scaling:
-    min: -100.0
+    min: 0.0
     max: 200.0
     step: 10.0
     include: true
@@ -153,82 +153,82 @@ params:
     min: 0.0
     max: 10.0
     step: 1.0
-    include: true
+    include: false
 
   lmp_lin_scaling:
     min: 0.0
     max: 10.0
     step: 1.0
-    include: true
+    include: false
 
   lmp_quad_scaling:
     min: 0.0
     max: 10.0
     step: 1.0
-    include: true
+    include: false
 
   lmp_max_depth:
     min: 0.0
     max: 15.0
     step: 1.0
-    include: true
+    include: false
 
   cont_hist_scaling:
     min: 50.0
     max: 300.0
     step: 10.0
-    include: true
+    include: false
 
   cont_hist_base:
     min: 0.0
     max: 300.0
     step: 20.0
-    include: true
+    include: false
 
   cont_hist_malus_scaling:
     min: 1.0
     max: 5.0
     step: 1.0
-    include: true
+    include: false
 
   hpp_max_depth:
     min: 0.0
     max: 10.0
     step: 1.0
-    include: true
+    include: false
 
   hpp_tactical_scaling:
     min: -100.0
     max: 100.0
     step: 10.0
-    include: true
+    include: false
 
   iir_min_depth:
     min: 0.0
     max: 10.0
     step: 1.0
-    include: true
+    include: false
 
   se_dext_margin:
     min: 0.0
     max: 100.0
     step: 1.0
-    include: true
+    include: false
 
   se_scaling:
     min: 0.0
     max: 10.0
     step: 1.0
-    include: true
+    include: false
 
   se_depth_ok:
     min: 1.0
     max: 10.0
     step: 1.0
-    include: true
+    include: false
 
   se_min_depth:
     min: 2.0
     max: 12.0
     step: 1.0
-    include: true
+    include: false
