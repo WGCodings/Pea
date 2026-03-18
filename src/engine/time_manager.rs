@@ -85,35 +85,7 @@ impl TimeManager {
         self.start_time.elapsed()
     }
 }
-
-
 pub fn compute_time_limit(
-    pos: &impl Position,
-    remaining: Option<Duration>,
-    increment: Option<Duration>,
-) -> Duration {
-    let remaining = match remaining {
-        Some(t) => t,
-        None => return Duration::from_secs(1),
-    };
-
-    let increment = increment.unwrap_or(Duration::ZERO);
-
-    // Base allocation: 1/50 of remaining + increment
-    let mut time = remaining / 50 + increment;
-
-    // Complexity adjustment based on move count
-    let move_count = pos.legal_moves().len() as u32;
-    let complexity_factor = (move_count as f32 / 30.0).clamp(0.7, 1.3);
-    time = time.mul_f32(complexity_factor);
-
-    // Safety clamps
-    let min = Duration::from_millis(20);
-    let max = (remaining * 2 / 3).max(min);
-
-    time.clamp(min, max)
-}
-pub fn compute_time_limit_2(
     pos: &impl Position,
     remaining: Option<Duration>,
     increment: Option<Duration>,

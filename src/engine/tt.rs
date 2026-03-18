@@ -22,7 +22,7 @@ pub struct TTEntry {
 }
 
 impl TTEntry {
-    pub fn get_best_move(&self) -> Option<Move> {
+    pub fn _get_best_move(&self) -> Option<Move> {
         self.best_move
     }
     #[inline(always)]

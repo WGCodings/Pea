@@ -2,7 +2,7 @@
 
 use crate::engine::params::Params;
 use crate::tuner::bounds::Bounds;
-use crate::tuner::logger::{ elo_from_wdl, log_yaml_to_csv};
+use crate::tuner::logger::{_csv_to_yaml, elo_from_wdl, log_yaml_to_csv};
 use crate::tuner::matcher::run_match;
 use crate::tuner::perturb::{apply_update, perturb_params};
 
@@ -10,19 +10,19 @@ pub fn run_spsa() {
 
     let theta_minus_path = "src/tuner/config/theta_minus.yaml";
     let theta_plus_path = "src/tuner/config/theta_plus.yaml";
-    let games_per_iteration = 16;
+    let games_per_iteration = 10;
 
-    let mut base_params = Params::load_yaml("src/tuner/config/params.yaml");
+    let mut base_params = Params::load_yaml("src/tuner/config/best_params.yaml");
     let bounds = Bounds::load_yaml("src/tuner/config/bounds.yaml");
     let total_iterations = 3000;
-    let a = 0.04;
-    let biga = total_iterations as f64 /10.0;
-    let c = 0.05;
+    let a = 0.01;
+    let biga = 0.1;
+    let c = 0.1;
     let alpha = 0.602;
     let gamma = 0.101;
-    //let x = csv_to_yaml("src/tuner/logging/spsa_params.csv",600,"src/tuner/config/params_600.yaml");
+    //let x = _csv_to_yaml("src/tuner/logging/spsa_params.csv",860,"src/tuner/config/params_860.yaml");
 
-    for iter in 14 ..total_iterations {
+    for iter in 558 ..total_iterations {
 
         println!("Iteration {}", iter);
 

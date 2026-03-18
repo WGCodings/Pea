@@ -18,7 +18,7 @@ use crate::engine::search::search::{search, SearchStats};
 use crate::engine::params::Params;
 use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::context::*;
-use crate::engine::time_manager::{compute_time_limit, compute_time_limit_2};
+use crate::engine::time_manager::{compute_time_limit};
 use crate::engine::state::*;
 use crate::engine::utility::read_position_from_fen;
 use crate::nnue::network::{Network};
@@ -95,7 +95,7 @@ fn main() {
                     if max_depth != 64 {
                         Some(Duration::MAX / 10)
                     } else {
-                        Some(compute_time_limit_2(
+                        Some(compute_time_limit(
                             &engine_state.position,
                             remaining,
                             increment,
@@ -127,6 +127,7 @@ fn main() {
                     network: &NNUE,
                     killers: [[None; 3]; 128],
                     history: [[[0; 64]; 64]; 2],
+                    capture_history: [[[0; 6]; 64]; 2],
                     continuation_history: Box::new([[[[[0; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]),
                     stack,
                     excluded_move: [None; 128],

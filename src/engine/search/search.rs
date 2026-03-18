@@ -1,5 +1,4 @@
 use std::cmp;
-use std::mem::forget;
 use std::sync::atomic::Ordering;
 use std::time::{Duration, Instant};
 use shakmaty::{Bitboard, Chess, EnPassantMode, Move, Position};
@@ -289,6 +288,7 @@ pub fn negamax(
     let mut moves_searched : i32 = 0;
     let mut local_pv = PvTable::new();
     let mut quiets_searched: Vec<Move> = Vec::new();
+    let mut tacticals_tried: Vec<Move> = Vec::new();
 
     ctx.ordering.order_moves(pos, ctx,  tt_move.as_ref(), &ctx.killers[ply], ply, &mut moves);
 
@@ -305,7 +305,12 @@ pub fn negamax(
 
         let is_capture = mv.is_capture();
 
-
+        if !is_capture {
+            quiets_searched.push(mv);
+        }
+        else {
+            tacticals_tried.push(mv);
+        }
         moves_searched +=1;
 
 
@@ -321,6 +326,22 @@ pub fn negamax(
             && moves_searched > lmp_moves
             && is_quiet {
             if see <= 0 {
+                continue;
+            }
+        }
+        // =====================================================================================================================//
+        // HISTORY PRUNING                                                                                                      //
+        // =====================================================================================================================//
+        // Need to verify this
+        if !in_check
+            && false
+            && !is_pv
+            && depth <= ctx.params.hist_prune_depth as usize
+            && is_quiet
+            && moves_searched > 1  // never prune first move
+        {
+            let hist = ctx.get_history_score(pos, mv,ply);
+            if hist < -(ctx.params.hist_prune_margin as i32 * depth as i32) {
                 continue;
             }
         }
@@ -397,9 +418,7 @@ pub fn negamax(
         let mut child_pos = pos.clone();
         child_pos.play_unchecked(mv);
 
-        if !is_capture {
-            quiets_searched.push(mv);
-        }
+
 
         make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
 
@@ -441,7 +460,7 @@ pub fn negamax(
                     reduction -=1;
                 }
 
-                reduction -= (ctx.get_history_score(pos, mv) as i32 / ctx.params.lmr_history_divisor as i32) as usize;
+                reduction -= (ctx.get_history_score(pos, mv,ply)/ ctx.params.lmr_history_divisor as i32) as usize;
 
                 reduction = reduction.clamp(0,depth - 1);
             }
@@ -477,15 +496,12 @@ pub fn negamax(
 
                 let bonus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
 
-                ctx.update_quiet_history(side, mv, bonus, &quiets_searched,ctx.params); // Update normal history values and malus for quiets searched
+                ctx.update_quiet_history(side, mv, bonus, &quiets_searched); // Update normal history values and malus for quiets searched
 
-                ctx.update_continuation_history(ply, mv, bonus/2); // Update continuation history
+                ctx.update_continuation_history(ply, mv, bonus, &quiets_searched); // Update continuation history
 
-                for &q in quiets_searched.iter() {
-                    if q != mv {
-                        ctx.update_continuation_history(ply, q, -bonus/(2*ctx.params.cont_hist_malus_scaling as i32)); // Update malus for continuation history
-                    }
-                }
+
+
             }
             break;
         }

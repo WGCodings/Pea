@@ -54,7 +54,9 @@ pub struct Params {
     pub se_depth_ok: f32,
     pub se_min_depth: f32,
     pub se_text_margin: f32,
-    pub se_max_nr_dext: f32
+    pub se_max_nr_dext: f32,
+    pub hist_prune_margin: f32,
+    pub hist_prune_depth: f32
 }
 
 impl Params {
@@ -127,6 +129,9 @@ impl Params {
             se_min_depth: 8.0,
             se_text_margin: 100.0,
             se_max_nr_dext: 8.0,
+            // History pruning
+            hist_prune_margin: 150.0,
+            hist_prune_depth: 3.0,
         }
     }
 }
