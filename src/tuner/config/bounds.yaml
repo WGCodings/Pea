@@ -3,7 +3,7 @@ params:
     min: 0.0
     max: 15.0
     step: 1.0
-    include : true
+    include : false
 
   raz_thr:
     min: 0.0
@@ -33,7 +33,7 @@ params:
     min: 2.0
     max: 10.0
     step: 1.0
-    include: true
+    include: false
 
   nmp_base_reduction:
     min: 0.0
@@ -63,7 +63,7 @@ params:
     min: 0.0
     max: 10.0
     step: 1.0
-    include: true
+    include: false
 
   lmr_red_constant:
     min: 0.0
@@ -87,7 +87,7 @@ params:
     min: 1.0
     max: 10.0
     step: 1.0
-    include: true
+    include: false
 
   aspw_window_size:
     min: 5.0
@@ -117,7 +117,7 @@ params:
     min: 0.0
     max: 15.0
     step: 1.0
-    include: true
+    include: false
 
   fp_improving_margin:
     min: 0.0
@@ -147,7 +147,7 @@ params:
     min: 0.0
     max: 15.0
     step: 1.0
-    include: true
+    include: false
 
   lmp_base:
     min: 0.0
@@ -171,7 +171,7 @@ params:
     min: 0.0
     max: 15.0
     step: 1.0
-    include: true
+    include: false
 
   cont_hist_scaling:
     min: 50.0
@@ -195,7 +195,7 @@ params:
     min: 0.0
     max: 10.0
     step: 1.0
-    include: true
+    include: false
 
   hpp_tactical_scaling:
     min: -100.0
@@ -207,7 +207,7 @@ params:
     min: 0.0
     max: 10.0
     step: 1.0
-    include: true
+    include: false
 
   se_dext_margin:
     min: 0.0
@@ -225,13 +225,13 @@ params:
     min: 1.0
     max: 10.0
     step: 1.0
-    include: true
+    include: false
 
   se_min_depth:
     min: 2.0
     max: 12.0
     step: 1.0
-    include: true
+    include: false
 
   se_text_margin:
     min: 25.0

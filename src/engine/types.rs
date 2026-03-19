@@ -5,7 +5,7 @@ pub const MIN_INF : i32 = -300_000_000;
 pub const MAX_INF : i32 = 300_000_000;
 
 pub const MAX_HISTORY: i32 = 32_768;
-pub const MAX_PLY_CONTINUATION_HISTORY: usize = 2;
+pub const MAX_PLY_CONTINUATION_HISTORY: usize = 4;
 
 pub const PIECE_VALUES: [i32;6] = [100, 320, 330, 500, 900, 0]; // P, N, B, R, Q, K
 

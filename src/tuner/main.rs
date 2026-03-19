@@ -20,9 +20,9 @@ pub fn run_spsa() {
     let c = 0.1;
     let alpha = 0.602;
     let gamma = 0.101;
-    //let x = _csv_to_yaml("src/tuner/logging/spsa_params.csv",860,"src/tuner/config/params_860.yaml");
+    //let x = _csv_to_yaml("src/tuner/logging/spsa_params.csv",1190,"src/tuner/config/params_1.yaml");
 
-    for iter in 558 ..total_iterations {
+    for iter in 1220 ..total_iterations {
 
         println!("Iteration {}", iter);
 

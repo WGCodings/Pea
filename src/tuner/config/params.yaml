@@ -7,7 +7,7 @@ nmp_min_depth: 3.0
 nmp_base_reduction: 4.0
 nmp_reduction_scaling: 4.0
 snmp_scaling: 85.0
-lmr_min_searches: 5.0
+lmr_min_searches: 6.0
 lmr_min_depth: 3.0
 lmr_red_constant: 0.7844
 lmr_red_scaling: 2.4695

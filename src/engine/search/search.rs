@@ -304,8 +304,9 @@ pub fn negamax(
         local_pv.clear();
 
         let is_capture = mv.is_capture();
+        let is_quiet = !is_capture && !mv.is_promotion() ;
 
-        if !is_capture {
+        if is_quiet{
             quiets_searched.push(mv);
         }
         else {
@@ -314,7 +315,7 @@ pub fn negamax(
         moves_searched +=1;
 
 
-        let is_quiet = !is_capture && !mv.is_promotion() ;
+
 
         // =====================================================================================================================//
         // LATE MOVE PRUNING                                                                                                    //
@@ -450,7 +451,7 @@ pub fn negamax(
                         reduction += 1;
                     }
                 }
-                if child_pos.is_check(){ // change to child pos
+                if child_pos.is_check(){
                     reduction -=1;
                 }
                 if in_check{
@@ -496,9 +497,11 @@ pub fn negamax(
 
                 let bonus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
 
-                ctx.update_quiet_history(side, mv, bonus, &quiets_searched); // Update normal history values and malus for quiets searched
+                ctx.update_quiet_history(side, mv, bonus, &quiets_searched); // Update quiet history
 
                 ctx.update_continuation_history(ply, mv, bonus, &quiets_searched); // Update continuation history
+
+                // TODO Update capture/tactical history
 
 
 

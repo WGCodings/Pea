@@ -116,7 +116,7 @@ impl MoveOrdering {
 
         // onl compare even plies ago
         for i in 0..MAX_PLY_CONTINUATION_HISTORY {
-            if ply > i  && (1+i)%2 ==0 {
+            if ply > i  && ((1+i)%2 ==0 || i==0) {
                 if let Some(prev) = ctx.stack.moves[ply - 1 - i] {
                     let prev_piece = prev.role() as usize - 1;
                     let prev_to    = prev.to() as usize;

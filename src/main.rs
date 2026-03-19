@@ -34,7 +34,7 @@ fn main() {
 
     let stdin = io::stdin();
     let mut uci_state = UciState::new();
-    let params = Params::load_yaml("C:/Users/warre/RustroverProjects/FastPeaPea/src/tuner/config/params.yaml");
+    let params = Params::load_yaml("C:/Users/warre/RustroverProjects/FastPeaPea/src/tuner/config/params_patch.yaml");
     let mut engine_state = EngineState::new(256,params); // TT Size in MB
 
     for line in stdin.lock().lines() {
