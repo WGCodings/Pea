@@ -1,5 +1,5 @@
 use std::time::{Duration, Instant};
-use shakmaty::Position;
+use shakmaty::{Chess, Color, Position};
 use shakmaty::Move;
 
 pub struct TimeManager {
@@ -85,7 +85,7 @@ impl TimeManager {
         self.start_time.elapsed()
     }
 }
-pub fn compute_time_limit(
+fn compute_time_limit_sub(
     pos: &impl Position,
     remaining: Option<Duration>,
     increment: Option<Duration>,
@@ -117,4 +117,32 @@ pub fn compute_time_limit(
     let max = (remaining / 4).max(min);
 
     time.clamp(min, max)
+}
+pub fn compute_time_limit(
+    pos: &Chess,
+    wtime: Option<u64>,
+    btime: Option<u64>,
+    winc: Option<u64>,
+    binc: Option<u64>,
+    movetime: Option<u64>,
+    depth: Option<u32>,
+    move_overhead: u64,
+) -> Option<Duration> {
+    if let Some(ms) = movetime {
+        return Some(Duration::from_millis(ms.saturating_sub(move_overhead)));
+    }
+    // Just take whatever time is needed to get to that depth
+    if depth.is_some() {
+        return Some(Duration::MAX / 10);
+    }
+    let remaining = match pos.turn() {
+        Color::White => wtime.map(Duration::from_millis),
+        Color::Black => btime.map(Duration::from_millis),
+    };
+    let increment = match pos.turn() {
+        Color::White => winc.map(Duration::from_millis),
+        Color::Black => binc.map(Duration::from_millis),
+    };
+    let base = compute_time_limit_sub(pos, remaining, increment);
+    Some(base.saturating_sub(Duration::from_millis(move_overhead)))
 }

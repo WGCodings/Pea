@@ -1,4 +1,5 @@
 use std::sync::atomic::{AtomicU8, Ordering};
+use rand::RngExt;
 use shakmaty::Move;
 use crate::engine::search::context::SearchContext;
 use crate::engine::types::MATE_SCORE;
@@ -138,20 +139,16 @@ impl TranspositionTable {
         self.table[idx] = Some(entry);
     }
     pub fn clear(&mut self) {
-        self.entries = 0;
-        unsafe {
-            std::ptr::write_bytes(
-                self.table.as_mut_ptr(),
-                0,
-                self.table.len(),
-            );
-        }
+
+        self.table.fill(None);  // ← correct
+        self.age.store(0, Ordering::Relaxed);
+
     }
     pub fn tt_occupancy(&self) -> u32 {
-        let used = self.entries as f64;
-        let total = self.table.len() as f64;
-
-        ((used / total) * 1000.0) as u32
+        self.table[..1000]
+            .iter()
+            .filter(|e| e.is_some())
+            .count() as u32
     }
     pub fn increment_age(&self) {
         let _ = self.age.fetch_update(

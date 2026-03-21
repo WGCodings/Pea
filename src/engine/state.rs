@@ -9,12 +9,15 @@ pub struct EngineState {
     pub params : Params,
     pub repetition_stack: Vec<u64>,
     pub tt: TranspositionTable,
+    pub overhead : u64,
+    pub threads : u8
 
 }
 
 impl EngineState {
-    pub fn new(tt_size :usize, params : Params ) -> Self {
+    pub fn new() -> Self {
 
+        let params = Params::load_yaml("C:/Users/warre/RustroverProjects/FastPeaPea/src/tuner/config/params_patch.yaml");
         let position = Chess::new();
         let mut repetition_stack: Vec<u64> = Vec::with_capacity(256);
 
@@ -25,8 +28,10 @@ impl EngineState {
         Self {
             position,
             repetition_stack,
-            tt: TranspositionTable::new(tt_size),
-            params
+            tt: TranspositionTable::new(256), // Default 256mb
+            params,
+            overhead : 10, // 10 ms overhead on each move
+            threads: 1,
         }
     }
 
@@ -38,5 +43,16 @@ impl EngineState {
     pub fn increase_history(&mut self) {
         let hash = self.position.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
         self.repetition_stack.push(hash);
+    }
+
+    pub fn init_tt(&mut self, tt_size: usize) {
+        self.tt = TranspositionTable::new(tt_size);
+    }
+
+    pub fn set_overhead(&mut self, overhead: u64) {
+        self.overhead = overhead;
+    }
+    pub fn set_threads(&mut self, threads: u8) {
+        self.threads = threads;
     }
 }

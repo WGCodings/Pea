@@ -10,7 +10,7 @@ use crate::engine::search::see::see;
 use crate::engine::time_manager::TimeManager;
 use crate::engine::tt::{score_from_tt, tt_best_move, tt_probe, tt_store, Bound};
 use crate::engine::types::{DRAW_SCORE, MATE_SCORE, MAX_INF, MIN_INF};
-
+use crate::engine::utility::{extract_pv_from_tt, print_search_info};
 
 pub struct SearchStats {
     pub nodes: u64,
@@ -36,7 +36,7 @@ impl SearchStats {
     }
 }
 
-pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>) -> (i32, Move, PvTable) {
+pub fn search(pos: &Chess, ctx: &mut SearchContext, mut max_depth: usize, time_remaining: Option<Duration>) -> (i32, Move, PvTable) {
     let start_time = Instant::now();
     let base_time = time_remaining.unwrap();
 
@@ -51,6 +51,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     let mut pv = PvTable::new();
     let mut latest_pv = PvTable::new();
     let mut prev_score = 0;
+
 
     for depth in 1..=max_depth {
         pv.clear();
@@ -75,6 +76,8 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
         best_move = pv.best_move();
         latest_pv = pv;
         ctx.stats.completed_depth = depth;
+
+        print_search_info(ctx, pos, depth, best_score, tm.elapsed());
     }
 
     ctx.stats.duration = tm.elapsed();
@@ -210,6 +213,7 @@ pub fn negamax(
         depth >=ctx.params.nmp_min_depth as usize {
 
         let mut reduction = (ctx.params.nmp_base_reduction as usize + depth/ctx.params.nmp_reduction_scaling as usize).min(depth);
+        reduction += 2*improving as usize;
 
         reduction = reduction.clamp(1,depth);
 
