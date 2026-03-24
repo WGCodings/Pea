@@ -5,21 +5,24 @@ mod databuilder;
 mod tests;
 mod tuner;
 
+
 use crate::tuner::bounds::Bounds;
 use std::cmp;
 use std::io::{self, BufRead};
 use std::sync::atomic::{Ordering};
 
 
-use shakmaty::{perft, Chess,  Position};
+use shakmaty::{perft, Chess, Move, Position};
 
 use crate::uci::{parser::*, state::*};
-use crate::engine::search::search::{search, };
+
 use crate::engine::params::Params;
 use crate::engine::search::ordering::MoveOrdering;
+use crate::engine::search::pv::PvTable;
+use crate::engine::search::threads::Threads;
 use crate::engine::time_manager::{compute_time_limit};
 use crate::engine::state::*;
-use crate::engine::utility::{build_search_context, read_position_from_fen};
+use crate::engine::utility::{ read_position_from_fen};
 use crate::nnue::network::{Network};
 use crate::engine::types::{PIECE_VALUES};
 use crate::tuner::main::run_spsa;
@@ -52,19 +55,27 @@ fn main() {
                 println!("option name Hash type spin default 256 min 1 max 1024");
                 println!("option name Threads type spin default 1 min 1 max 16");
                 println!("option name Move Overhead type spin default 10 min 0 max 1000");
+                println!("option name Ponder type check default false");
                 println!("uciok");
             }
 
             UciCommand::IsReady => println!("readyok"),
 
             UciCommand::UciNewGame => {
-                uci_state.position = Chess::new();
+                // Stop all running threads
+                uci_state.stop();
+                engine_state.stop_ponder_thread();
+                uci_state.reset_stop();
+                // Reset position, tt and repetition stack
                 engine_state.position = Chess::new();
                 engine_state.tt.clear();
                 engine_state.repetition_stack.clear();
             }
 
             UciCommand::Position { fen, moves } => {
+                // Stop any ponder search before updating position
+                uci_state.reset_stop();            // reset for next search
+
                 if let Some(fen) = fen {
                     engine_state.position = read_position_from_fen(&fen.as_str()).unwrap();
                 } else {
@@ -80,23 +91,64 @@ fn main() {
                 }
             }
 
-            UciCommand::Go { wtime, btime, winc, binc, movetime, depth} => {
+            UciCommand::Go { wtime, btime, winc, binc, movetime, depth,ponder} => {
+
+                // Save time for if we ponderhit, then we search with saved time left
+                uci_state.save_time(wtime, btime, winc, binc);
+                uci_state.reset_stop();
+
                 let max_depth = depth.map_or(64, |d| d as usize );
+                let ordering = MoveOrdering::new(&PIECE_VALUES);
+                let position = engine_state.position.clone();
+
+                if ponder && uci_state.ponder_enabled  {
+                    uci_state.set_pondering(true);
+                    // if we get a command like go ponder x, so think on opponent move
+                    engine_state.ponder_thread = Some(Threads::start_ponder(
+                        position, &engine_state, &NNUE, uci_state.stop.clone(),uci_state.is_pondering.clone()
+                    ));
+
+                } else {
+                    // think on own move
+                    let time_limit = compute_time_limit(
+                        &engine_state.position,
+                        wtime, btime, winc, binc,
+                        movetime, depth,
+                        engine_state.overhead,
+                    );
+
+                    let (_, best_move, pv) = Threads::search(
+                        &position, &mut engine_state, &ordering, &NNUE,
+                        max_depth, time_limit, uci_state.stop.clone(),
+                    );
+                    print_bestmove(best_move, &pv, &mut engine_state, &uci_state);
+                }
+            }
+            UciCommand::PonderHit if uci_state.ponder_enabled => {
+                // If we get ponderhit we stop our ponder thread and start a main thread with the tt filled correctly
+                //eprintln!("DEBUG: ponderhit received");
+                uci_state.set_pondering(false); // dont print bestmove when stopping ponder thread
+                uci_state.stop();
+                engine_state.stop_ponder_thread();
+                uci_state.reset_stop();
+
+
                 let time_limit = compute_time_limit(
                     &engine_state.position,
-                    wtime, btime, winc, binc,
-                    movetime, depth,
-                    engine_state.overhead,
+                    uci_state.last_wtime, uci_state.last_btime,
+                    uci_state.last_winc,  uci_state.last_binc,
+                    None, None, engine_state.overhead,
                 );
+                //println!("time limit : {:?}", time_limit);
 
                 let ordering = MoveOrdering::new(&PIECE_VALUES);
-                let position = &engine_state.position.clone();
+                let position = engine_state.position.clone();
+                let (_, best_move, pv) = Threads::search(
+                    &position, &mut engine_state, &ordering,
+                    &NNUE, 64, time_limit, uci_state.stop.clone(),
+                );
 
-                let mut ctx = build_search_context(&mut engine_state, &ordering, &NNUE, time_limit);
-
-                let (_,best_move,_) = search(position, &mut ctx, max_depth, time_limit);
-
-                println!("bestmove {}", move_to_uci(&best_move));
+                print_bestmove(best_move, &pv, &mut engine_state, &uci_state);
             }
 
             UciCommand::SetOption { name, value } => {
@@ -123,11 +175,19 @@ fn main() {
                         engine_state.set_threads(threads);
                     }
                 }
+                if name.as_str().eq_ignore_ascii_case("ponder") {
+                    uci_state.ponder_enabled = value.as_str().eq_ignore_ascii_case("true");
+                }
             }
 
             UciCommand::Stop => {
-                uci_state.stop.store(true, Ordering::Relaxed);
+                //eprintln!("DEBUG: stop received");
+                uci_state.stop();
+                engine_state.stop_ponder_thread();
+                uci_state.set_pondering(false);
+
             }
+
 
             UciCommand::Perft { depth } => {
                 let start = std::time::Instant::now();
@@ -175,4 +235,11 @@ fn main() {
     }
 }
 
+fn print_bestmove(best_move: Move, pv: &Vec<Option<Move>>, engine_state: &mut EngineState, uci_state: &UciState) {
+    engine_state.ponder_move = pv.get(1).and_then(|m| *m);
 
+    match (uci_state.ponder_enabled, engine_state.ponder_move) {
+        (true, Some(pm)) => println!("bestmove {} ponder {}", move_to_uci(&best_move), move_to_uci(&pm)),
+        _ => println!("bestmove {}", move_to_uci(&best_move)),
+    }
+}

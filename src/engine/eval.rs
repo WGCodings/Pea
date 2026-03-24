@@ -1,13 +1,13 @@
 use std::cmp::max;
 use shakmaty::{Bitboard, Chess, Color, Position, Role, Square};
-use crate::engine::types::{KBN_TABLE_DARK, KBN_TABLE_LIGHT};
+use crate::engine::types::{KBN_TABLE_DARK, KBN_TABLE_LIGHT, MATE_SCORE};
 use crate::nnue::network::{Accumulator, Network};
 
 pub fn evaluate(pos: &Chess, net: &Network,us: &Accumulator, them: &Accumulator) -> i32 {
     let nnue_score= net.evaluate(us,them,pos);
     let mopup_score = mopup_evaluation(pos,nnue_score);
 
-    nnue_score + mopup_score
+    (nnue_score + mopup_score).clamp(-MATE_SCORE + 1000, MATE_SCORE - 1000)
 }
 
 #[inline(always)]

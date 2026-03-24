@@ -1,8 +1,8 @@
-
-use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::time::{Duration, Instant};
-use shakmaty::{Chess, Color, Move, Piece, Position, Role, Square};
-use shakmaty::Role::Pawn;
+use shakmaty::{Chess, Color, Move, Position, Role, Square};
+
 use crate::engine::params::Params;
 use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::search::SearchStats;
@@ -19,7 +19,9 @@ pub struct Stack {
 pub struct SearchContext<'a> {
     pub start_time: Instant,
     pub time_limit: Duration,
-    pub stop: AtomicBool,
+    pub stop: Arc<AtomicBool>, // Arc to share across threads
+    pub node_count: Arc<AtomicU64>,  // node counting over multiple threads
+    pub is_main : bool,
 
     pub params: &'a Params,
     pub ordering: &'a MoveOrdering,
@@ -27,7 +29,7 @@ pub struct SearchContext<'a> {
     pub stats: SearchStats,
 
     pub repetition_stack: Vec<u64>,
-    pub tt: &'a mut TranspositionTable,
+    pub tt: &'a TranspositionTable,
 
     pub nnue: NNUEState,
     pub network: &'a Network,

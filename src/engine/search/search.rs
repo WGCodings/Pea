@@ -1,5 +1,6 @@
 use std::cmp;
 use std::sync::atomic::Ordering;
+
 use std::time::{Duration, Instant};
 use shakmaty::{Bitboard, Chess, EnPassantMode, Move, Position};
 use shakmaty::zobrist::{Zobrist64};
@@ -8,9 +9,9 @@ use crate::engine::search::context::{make_move_nnue, unmake_move_nnue, SearchCon
 use crate::engine::search::pv::PvTable;
 use crate::engine::search::see::see;
 use crate::engine::time_manager::TimeManager;
-use crate::engine::tt::{score_from_tt, tt_best_move, tt_probe, tt_store, Bound};
+use crate::engine::tt::{ encode_move, score_from_tt, tt_probe, tt_store, validate_move, Bound};
 use crate::engine::types::{DRAW_SCORE, MATE_SCORE, MAX_INF, MIN_INF};
-use crate::engine::utility::{extract_pv_from_tt, print_search_info};
+use crate::engine::utility::{print_search_info};
 
 pub struct SearchStats {
     pub nodes: u64,
@@ -36,13 +37,13 @@ impl SearchStats {
     }
 }
 
-pub fn search(pos: &Chess, ctx: &mut SearchContext, mut max_depth: usize, time_remaining: Option<Duration>) -> (i32, Move, PvTable) {
+pub fn search(pos: &Chess, ctx: &mut SearchContext, mut max_depth: usize, time_remaining: Option<Duration>) -> (i32, Move, Vec<Option<Move>>) {
     let start_time = Instant::now();
     let base_time = time_remaining.unwrap();
 
     ctx.time_limit = base_time;
     ctx.start_time = start_time;
-    ctx.stop.store(false, Ordering::Relaxed);
+    (*ctx.stop).store(false, Ordering::Relaxed);
     ctx.tt.increment_age();
 
     let mut tm = TimeManager::new(base_time, start_time);
@@ -51,6 +52,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, mut max_depth: usize, time_r
     let mut pv = PvTable::new();
     let mut latest_pv = PvTable::new();
     let mut prev_score = 0;
+    let mut tt_pv = vec![];
 
 
     for depth in 1..=max_depth {
@@ -64,7 +66,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, mut max_depth: usize, time_r
             negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, true, &mut pv)
         };
 
-        if ctx.stop.load(Ordering::Relaxed) { break; }
+        if (*ctx.stop).load(Ordering::Relaxed) { break; }
 
         tm.update(score, pv.best_move());
 
@@ -74,14 +76,17 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, mut max_depth: usize, time_r
         best_score = score;
         prev_score = score;
         best_move = pv.best_move();
-        latest_pv = pv;
+        latest_pv = pv; // why use pv table if we get pv from tt? verification?
         ctx.stats.completed_depth = depth;
 
-        print_search_info(ctx, pos, depth, best_score, tm.elapsed());
+        if ctx.is_main{
+            tt_pv = print_search_info(ctx, pos, depth, best_score, tm.elapsed());
+        }
+
     }
 
     ctx.stats.duration = tm.elapsed();
-    (best_score, best_move.expect("No legal move found"), latest_pv)
+    (best_score, best_move.expect("No legal move found"), tt_pv)
 }
 
 
@@ -97,6 +102,7 @@ pub fn negamax(
     do_null : bool,
     pv: &mut PvTable,
 ) -> i32 {
+    (*ctx.node_count).fetch_add(1, Ordering::Relaxed);
     ctx.stats.nodes += 1;
     ctx.stats.seldepth = cmp::max(ply as u32, ctx.stats.seldepth);
     ctx.stats.depth_sum += ply as u64;
@@ -129,11 +135,11 @@ pub fn negamax(
         depth += 1;
     }
 
-    if ctx.stop.load(Ordering::Relaxed){ return DRAW_SCORE; }
-
+    if (*ctx.stop).load(Ordering::Relaxed){ return DRAW_SCORE; }
 
 
     if depth <= 0 {
+        (*ctx.node_count).fetch_sub(1, Ordering::Relaxed);
         ctx.stats.nodes -= 1;
         return quiescence(pos, ctx, alpha, beta,ply);
     }
@@ -146,12 +152,12 @@ pub fn negamax(
     // =====================================================================================================================//
 
     let tt_entry = if !is_excluded {
-        ctx.tt.probe(hash).cloned()
+        ctx.tt.probe(hash)
     } else {
         None
     };
-    //let tt_move = tt_entry.as_ref().and_then(|entry| entry.best_move.clone());
-    let tt_move = tt_best_move(hash, ctx);
+
+
 
     if !is_root && !is_excluded && tt_entry.is_some() {
         if let Some(score) = tt_entry.as_ref().and_then(|e| e.try_score(depth, alpha, beta, ply)) {
@@ -213,6 +219,7 @@ pub fn negamax(
         depth >=ctx.params.nmp_min_depth as usize {
 
         let mut reduction = (ctx.params.nmp_base_reduction as usize + depth/ctx.params.nmp_reduction_scaling as usize).min(depth);
+
         reduction += 2*improving as usize;
 
         reduction = reduction.clamp(1,depth);
@@ -229,7 +236,7 @@ pub fn negamax(
         std::mem::swap(&mut ctx.nnue.us, &mut ctx.nnue.them);
         ctx.decrease_history();
 
-        if ctx.stop.load(Ordering::Relaxed){ return DRAW_SCORE;}
+        if (*ctx.stop).load(Ordering::Relaxed){ return DRAW_SCORE;}
 
         if score >= beta && score.abs() < MATE_SCORE {
             return beta;
@@ -256,6 +263,13 @@ pub fn negamax(
         can_futility_prune = static_eval+margin <= alpha;
     }
 
+    let mut moves = pos.legal_moves();
+
+    let tt_move = tt_entry.as_ref().and_then(|e| {
+        let encoded = encode_move(e.best_move);
+        if encoded == 0 { return None; }
+        validate_move(encoded,&moves)
+    });
 
 
     // =====================================================================================================================//
@@ -288,7 +302,7 @@ pub fn negamax(
         None
     };
 
-    let mut moves = pos.legal_moves();
+
     let mut moves_searched : i32 = 0;
     let mut local_pv = PvTable::new();
     let mut quiets_searched: Vec<Move> = Vec::new();
@@ -366,7 +380,7 @@ pub fn negamax(
         // =====================================================================================================================//
         // From WIKI : This is usually done with a linear depth margin for captures, and a quadratic depth margin for quiets, though such details may vary.
         if depth <= ctx.params.hpp_max_depth as usize && !is_pv && !is_root && !in_check {
-            if (see as i32) < !is_quiet as i32 * ctx.params.hpp_tactical_scaling as i32 * depth as i32{
+            if (see as i32) < !is_quiet as i32 * ctx.params.hpp_tactical_scaling as i32 * depth as i32  {
                 continue;
             }
         }
@@ -392,7 +406,7 @@ pub fn negamax(
                 ctx.excluded_move[ply] = None;
 
 
-                if ctx.stop.load(Ordering::Relaxed) { return DRAW_SCORE; }
+                if (*ctx.stop).load(Ordering::Relaxed) { return DRAW_SCORE; }
 
                 if se_score < se_beta  {
                     ctx.stats.singular_extensions += 1;
@@ -519,7 +533,7 @@ pub fn negamax(
         }
     }
 
-    if !ctx.stop.load(Ordering::Relaxed) && !is_excluded{
+    if !(*ctx.stop).load(Ordering::Relaxed) && !is_excluded{
         tt_store(hash, ctx, depth, best_score, static_eval,original_alpha, beta, best_move,ply);
     }
     best_score
@@ -533,10 +547,11 @@ pub fn quiescence(
     beta: i32,
     ply : usize
 ) -> i32 {
-    ctx.stats.nodes += 1;
 
+    ctx.stats.nodes += 1;
+    (*ctx.node_count).fetch_add(1, Ordering::Relaxed);
     check_time(ctx);
-    if ctx.stop.load(Ordering::Relaxed){ return DRAW_SCORE; }
+    if (*ctx.stop).load(Ordering::Relaxed){ return DRAW_SCORE; }
 
     if ctx.is_threefold(pos) || ctx.is_50_moves(pos) {
         return DRAW_SCORE;
@@ -603,7 +618,7 @@ pub fn quiescence(
         }
     }
 
-    if !ctx.stop.load(Ordering::Relaxed) {
+    if !(*ctx.stop).load(Ordering::Relaxed) {
         tt_store(hash, ctx, 0, alpha, static_eval,original_alpha, beta, None,ply);
     }
     alpha
@@ -617,7 +632,7 @@ fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, depth: usize, prev_sc
     loop {
         let score = negamax(pos, ctx, depth, 0, alpha, beta, true, pv);
 
-        if ctx.stop.load(Ordering::Relaxed) { return score; }
+        if (*ctx.stop).load(Ordering::Relaxed) { return score; }
 
         if score <= alpha {
             alpha = cmp::max(alpha - window, MIN_INF);
@@ -633,8 +648,8 @@ fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, depth: usize, prev_sc
 #[inline(always)]
 fn check_time(ctx: &SearchContext) {
     if ctx.stats.nodes % 13337 == 0 {
-        if ctx.start_time.elapsed() >= ctx.time_limit {
-            ctx.stop.store(true, Ordering::Relaxed);
+        if ctx.start_time.elapsed() >= ctx.time_limit{
+            (*ctx.stop).store(true, Ordering::Relaxed);
         }
     }
 }

@@ -1,4 +1,4 @@
-pub const MATE_SCORE: i32 = 30_000_000;
+pub const MATE_SCORE: i32 = 30_000;
 pub const DRAW_SCORE: i32 = 0;
 
 pub const MIN_INF : i32 = -300_000_000;

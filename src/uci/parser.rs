@@ -16,7 +16,9 @@ pub enum UciCommand {
         winc: Option<u64>,
         binc: Option<u64>,
         depth: Option<u32>,
+        ponder : bool
     },
+    PonderHit,
     Stop,
     Quit,
     SetOption {
@@ -73,6 +75,7 @@ pub fn parse_command(input: &str) -> UciCommand {
 
             UciCommand::Position { fen, moves }
         }
+        "ponderhit" => UciCommand::PonderHit,
         "go" => {
             let mut wtime = None;
             let mut btime = None;
@@ -80,20 +83,31 @@ pub fn parse_command(input: &str) -> UciCommand {
             let mut winc = None;
             let mut binc = None;
             let mut depth = None;
+            let mut ponder = false;
 
             let mut i = 1;
 
-            while i + 1 < tokens.len() {
+            while i < tokens.len() {
                 match tokens[i] {
-                    "wtime" => wtime = tokens[i + 1].parse().ok(),
-                    "btime" => btime = tokens[i + 1].parse().ok(),
-                    "movetime" => movetime = tokens[i + 1].parse().ok(),
-                    "winc" => winc = tokens[i + 1].parse().ok(),
-                    "binc" => binc = tokens[i + 1].parse().ok(),
-                    "depth" => depth = tokens[i + 1].parse().ok(),
-                    _ => {}
+                    "ponder" => { ponder = true; i += 1; }
+                    "wtime" | "btime" | "movetime" | "winc" | "binc" | "depth" => {
+                        if i + 1 < tokens.len() {
+                            match tokens[i] {
+                                "wtime"    => wtime    = tokens[i+1].parse().ok(),
+                                "btime"    => btime    = tokens[i+1].parse().ok(),
+                                "movetime" => movetime = tokens[i+1].parse().ok(),
+                                "winc"     => winc     = tokens[i+1].parse().ok(),
+                                "binc"     => binc     = tokens[i+1].parse().ok(),
+                                "depth"    => depth    = tokens[i+1].parse().ok(),
+                                _ => {}
+                            }
+                            i += 2;
+                        } else {
+                            i += 1;
+                        }
+                    }
+                    _ => { i += 1; }
                 }
-                i += 2;
             }
 
             UciCommand::Go {
@@ -103,6 +117,7 @@ pub fn parse_command(input: &str) -> UciCommand {
                 winc,
                 binc,
                 depth,
+                ponder
             }
         }
         "setoption" => {
