@@ -39,7 +39,7 @@ impl PvTable {
         self.moves[0]
     }
 
-    pub fn line(&self) -> &[Option<Move>] {
+    pub fn _line(&self) -> &[Option<Move>] {
         &self.moves[..self.len]
     }
 

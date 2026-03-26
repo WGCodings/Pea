@@ -148,9 +148,6 @@ impl TranspositionTable {
         }
     }
 
-    pub fn init_tt(&mut self, size_mb: usize) {
-        *self = Self::new(size_mb);
-    }
 
     #[inline(always)]
     fn index(&self, key: u64) -> usize {

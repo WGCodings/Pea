@@ -30,19 +30,19 @@ use crate::tuner::perturb::perturb_params;
 
 fn main() {
 
-    /// Load in nnue and params from yaml file.
+    // Load in nnue
     static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/huge1536-0.2-0.9 wdl/2_output_buckets-500/quantised.bin")) };
 
 
 
-    /// Initialize uci state (manages commands) and engine state (manages repetition stack, TT and contains params the engine is using)
+    // Initialize uci state (manages commands) and engine state (manages repetition stack, TT and contains params the engine is using)
     let stdin = io::stdin();
     let mut uci_state = UciState::new();
     let mut engine_state = EngineState::new();
 
 
 
-    /// Listen to UCI commands
+    // Listen to UCI commands
     for line in stdin.lock().lines() {
         let line = line.unwrap();
         let cmd = parse_command(&line.as_str());
@@ -52,7 +52,7 @@ fn main() {
                 println!("id name Pea");
                 println!("id author Warre G.");
                 println!("option name Hash type spin default 256 min 1 max 1024");
-                println!("option name Threads type spin default 1 min 1 max 16");
+                println!("option name Threads type spin default 1 min 1 max 64");
                 println!("option name Move Overhead type spin default 10 min 0 max 1000");
                 println!("option name Ponder type check default false");
                 println!("uciok");
@@ -170,7 +170,7 @@ fn main() {
                 }
                 if name.as_str().eq_ignore_ascii_case("threads") {
                     if let Ok(threads) = value.as_str().parse::<usize>() {
-                        let threads = cmp::min(cmp::max(threads, 1), 16) as u8;
+                        let threads = cmp::min(cmp::max(threads, 1), 64) as u8;
                         engine_state.set_threads(threads);
                     }
                 }

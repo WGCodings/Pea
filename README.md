@@ -18,9 +18,13 @@
 
 ## About
 
-This project started as a way to get familiar with Rust — and then, as these things tend to go, it got completely out of hand. What began as tinkering with search algorithms has grown into a reasonably capable chess engine with NNUE evaluation, multithreading, and pondering support.
+This project started as a way to get familiar with Rust around two years go — and then, as these things tend to go, it got a little bit out of hand. 
+What began as tinkering with search algorithms has grown into a reasonably capable chess engine with NNUE evaluation, multithreading, and pondering support.
+This is currently my third attempt to make a chess engine and again I should've done a lot of things differently, but I think it is at a stage where it is release worthy.
 
-Move generation and board representation are handled by the [shakmaty][shakmaty] library. As a Rust beginner, I wanted to focus on search and evaluation first rather than getting bogged down in the details of legal move generation. Writing my own move generator is on the roadmap.
+Move generation and board representation are handled by the [shakmaty][shakmaty] library. 
+As a Rust beginner, I wanted to focus on search and evaluation first rather than getting bogged down in the details of legal move generation. 
+Writing my own move generator is on the roadmap and maybe the start of my fourth attempt to make an engine?
 
 ---
 
@@ -60,7 +64,7 @@ Move generation and board representation are handled by the [shakmaty][shakmaty]
 - Time management based on move and eval stability
 
 ### Evaluation
-- NNUE with architecture `(768 → 1536) × 2 → 1 × 8`
+- NNUE with architecture `(768 → 1536) × 2 → 1 × 8` trained with the excellent [Bullet] crate
 - SPSA trainer *(work in progress)*
 
 
@@ -68,18 +72,18 @@ Move generation and board representation are handled by the [shakmaty][shakmaty]
 
 The following UCI commands are implemented:
 
-| Command | Notes    |
-|---|----------|
-| `uci` | Done     |
-| `isready` | Done     |
-| `ucinewgame` | Done     |
-| `position <fen\|startpos> [moves ...]` | Done     |
-| `go <wtime, btime, winc, binc, movetime, depth, ponder>` | Done     |
-| `ponderhit` | 90% done |
-| `stop` | Done     |
-| `quit` | Done     |
-| `setoption name <Hash \| Threads \| Ponder \| Move Overhead>` | Done     |
-| `perft <depth>` | Done     |
+| Command | Notes                       |
+|---|-----------------------------|
+| `uci` | Done                        |
+| `isready` | Done                        |
+| `ucinewgame` | Done                        |
+| `position <fen\|startpos> [moves ...]` | Done                        |
+| `go <wtime, btime, winc, binc, movetime, depth, ponder>` | Need to implement movestogo |
+| `ponderhit` | 90% done                    |
+| `stop` | Done                        |
+| `quit` | Done                        |
+| `setoption name <Hash \| Threads \| Ponder \| Move Overhead>` | Done                        |
+| `perft <depth>` | Done                        |
 
 ---
 
@@ -88,9 +92,24 @@ The following UCI commands are implemented:
 Below is a table of Elo estimates from having the engine play against other engines and itself. Time controls are listed as `time / increment`, in seconds.
 [Stash][Stash] (and all its versions) have been used to estimate the rating of this engine.
 
-| Version | Estimate (5/0.1) |   [CCRL](https://computerchess.org.uk/ccrl/4040/) (40/15) | [CCRL Blitz](https://computerchess.org.uk/ccrl/404b/) (2/1) |
-|-------|------------------|----------------------------------------------------------|--------------------------------------------------------------|
-| v1.0  |                  |                                                          |                                                              |
+--------------------------------------------------
+Results of PEA vs STASH37 (5+0.1, 1t, 256MB - 1MB, book.epd):
+
+Elo: -15.80 +/- 124.91, nElo: -19.18 +/- 145.18
+
+LOS: 39.78 %, DrawRatio: 45.45 %, PairsRatio: 1.00
+
+Games: 22, Wins: 8, Losses: 9, Draws: 5, Points: 10.5 (47.73 %)
+
+Ptnml(0-2): [2, 1, 5, 2, 1], WL/DD Ratio: 4.00
+
+LLR: -0.02 (-0.7%) (-2.94, 2.94) [0.00, 5.00]
+
+--------------------------------------------------
+
+| Version | Estimate (5/0.1) | [CCRL](https://computerchess.org.uk/ccrl/4040/) (40/15) | [CCRL Blitz](https://computerchess.org.uk/ccrl/404b/) (2/1) |
+|-------|------------------|---------------------------------------------------------|-------------------------------------------------------------|
+| v1.0  |                  | None   yet                                              | None            yet                                         |
 
 
 ---
@@ -131,8 +150,8 @@ Running the binary directly drops you into a UCI prompt. In practice, you'll wan
 - [Cutechess][cutechess]
 - [Shredder][shredder]
 
-<!-- Uncomment once your lichess bot is live -->
-<!-- The engine is also available to play on [lichess][lichess-link]. -->
+
+The engine is also available to play on [lichess][lichess-link].
 
 ---
 
@@ -147,6 +166,7 @@ Running the binary directly drops you into a UCI prompt. In practice, you'll wan
 - [ ] Clean up code, especially datatypes (too many `as` casts)
 - [ ] Better time manager
 - [ ] Integration with OpenBench
+- [ ] Capture history
 
 ## Acknowledgements
 
@@ -178,3 +198,4 @@ This project is licensed under the [GNU General Public License v3.0][license-lin
 [arena]: http://www.playwitharena.de
 [cutechess]: https://cutechess.com
 [shredder]: https://www.shredderchess.com
+[bullet]: https://github.com/jw1912/bullet

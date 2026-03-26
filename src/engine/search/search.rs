@@ -37,7 +37,7 @@ impl SearchStats {
     }
 }
 
-pub fn search(pos: &Chess, ctx: &mut SearchContext, mut max_depth: usize, time_remaining: Option<Duration>) -> (i32, Move, Vec<Option<Move>>) {
+pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>) -> (i32, Move, Vec<Option<Move>>) {
     let start_time = Instant::now();
     let base_time = time_remaining.unwrap();
 
