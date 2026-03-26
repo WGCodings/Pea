@@ -6,7 +6,7 @@ use shakmaty::zobrist::Zobrist64;
 use crate::engine::params::Params;
 use crate::engine::search::context::{NNUEState, SearchContext, Stack};
 use crate::engine::search::ordering::MoveOrdering;
-
+use crate::engine::search::pv::PvTable;
 use crate::engine::search::search::SearchStats;
 use crate::engine::state::EngineState;
 use crate::engine::tt::TranspositionTable;
@@ -20,7 +20,7 @@ pub fn read_position_from_fen(fen_str: &str) -> Option<Chess> {
     fen.into_position(CastlingMode::Standard).ok() // Convert to `Chess` position
 }
 
-pub fn print_search_info(ctx: &SearchContext, pos : &Chess, depth: usize, score: i32, elapsed: Duration) ->Vec<Option<Move>>{
+pub fn print_search_info(ctx: &SearchContext, pos : &Chess, depth: usize, score: i32, elapsed: Duration,pv_table: PvTable) ->Vec<Option<Move>>{
     let elapsed_millis = elapsed.as_millis();
     let elapsed_secs = elapsed.as_secs_f64();
     let nodes = (*ctx.node_count).load(Ordering::Relaxed);
@@ -29,11 +29,17 @@ pub fn print_search_info(ctx: &SearchContext, pos : &Chess, depth: usize, score:
     let tt_occupancy = ctx.tt.tt_occupancy();
 
     // After depth loop, extract full PV from TT
-    let tt_pv = extract_pv_from_tt(pos, ctx.tt, ctx.stats.completed_depth+20,&ctx.repetition_stack.as_slice());
+    let tt_line = extract_pv_from_tt(pos, ctx.tt, ctx.stats.completed_depth+20,&ctx.repetition_stack.as_slice());
 
-    let pv_string = pv_to_string(&tt_pv.as_slice());
+    // Extract pv line from table
+    let pv_line = pv_table.line().to_vec();
 
+    // Pick the longest line from tt or pv table.
+    let mut pv_string = pv_to_string(&tt_line.as_slice());
 
+    if pv_line.len() >= tt_line.len() {
+        pv_string = pv_to_string(&pv_line.as_slice());
+    }
 
     println!(
         "info depth {} seldepth {} score cp {} nodes {} nps {} hashfull {} time {} pv {}",
@@ -46,7 +52,7 @@ pub fn print_search_info(ctx: &SearchContext, pos : &Chess, depth: usize, score:
         elapsed_millis,
         pv_string,
     );
-    tt_pv
+    pv_line
 }
 
 pub fn pv_to_string(line: &[Option<Move>]) -> String {

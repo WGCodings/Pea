@@ -92,24 +92,30 @@ The following UCI commands are implemented:
 Below is a table of Elo estimates from having the engine play against other engines and itself. Time controls are listed as `time / increment`, in seconds.
 [Stash][Stash] (and all its versions) have been used to estimate the rating of this engine.
 
---------------------------------------------------
-Results of PEA vs STASH37 (5+0.1, 1t, 256MB - 1MB, book.epd):
-
-Elo: -15.80 +/- 124.91, nElo: -19.18 +/- 145.18
-
-LOS: 39.78 %, DrawRatio: 45.45 %, PairsRatio: 1.00
-
-Games: 22, Wins: 8, Losses: 9, Draws: 5, Points: 10.5 (47.73 %)
-
-Ptnml(0-2): [2, 1, 5, 2, 1], WL/DD Ratio: 4.00
-
-LLR: -0.02 (-0.7%) (-2.94, 2.94) [0.00, 5.00]
-
---------------------------------------------------
 
 | Version | Estimate (5/0.1) | [CCRL](https://computerchess.org.uk/ccrl/4040/) (40/15) | [CCRL Blitz](https://computerchess.org.uk/ccrl/404b/) (2/1) |
 |-------|------------------|---------------------------------------------------------|-------------------------------------------------------------|
-| v1.0  |                  | None   yet                                              | None            yet                                         |
+| v1.0  | 3379*            | None   yet                                              | None            yet                                         |
+
+*Results from a match against Stash v36 which should be around 3384 ELO -> see below
+
+--------------------------------------------------
+
+Results of PEA vs STASH36 (5+0.1, 1t, 256MB, book.epd):
+
+Elo: -4.84 +/- 6.08, nElo: -5.86 +/- 7.36
+
+LOS: 5.95 %, DrawRatio: 38.71 %, PairsRatio: 0.98
+
+Games: 8550, Wins: 3213, Losses: 3332, Draws: 2005, Points: 4215.5 (49.30 %)
+
+Ptnml(0-2): [585, 735, 1655, 814, 486], WL/DD Ratio: 6.26
+
+LLR: -2.96 (-100.5%) (-2.94, 2.94) [0.00, 5.00]
+
+--------------------------------------------------
+
+
 
 
 ---
@@ -167,12 +173,16 @@ The engine is also available to play on [lichess][lichess-link].
 - [ ] Better time manager
 - [ ] Integration with OpenBench
 - [ ] Capture history
+- [ ] Solve NNUE bias towards White 
+- [ ] Fix missing PV lines due to cutoffs
+- [ ] Store evals in TT before recursive search
+- [ ] Mate Distance Pruning
 
 ## Acknowledgements
 
 [Simbelmyne][simbelmyne] by Sam Roelants was a major source of inspiration and learning throughout this project. A lot of ideas and how to implement them in Rust came from there.
 
-Thanks to the communities at the **Engine Programming**  Discord servers, where an enormous amount of collective knowledge lives out in the open.
+Thanks to the communities at the **Engine Programming**  Discord servers, the Chess Programming Wiki and TalkChess forum where an enormous amount of collective knowledge lives out in the open.
 
 ---
 

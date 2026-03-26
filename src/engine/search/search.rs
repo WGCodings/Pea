@@ -50,7 +50,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     let mut best_score = MIN_INF;
     let mut best_move = None;
     let mut pv = PvTable::new();
-    let mut latest_pv = PvTable::new();
+    let mut latest_pv;
     let mut prev_score = 0;
     let mut tt_pv = vec![];
 
@@ -80,7 +80,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
         ctx.stats.completed_depth = depth;
 
         if ctx.is_main{
-            tt_pv = print_search_info(ctx, pos, depth, best_score, tm.elapsed());
+            tt_pv = print_search_info(ctx, pos, depth, best_score, tm.elapsed(),latest_pv);
         }
 
     }

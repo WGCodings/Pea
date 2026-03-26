@@ -49,7 +49,7 @@ fn main() {
 
         match cmd {
             UciCommand::Uci => {
-                println!("id name Pea");
+                println!("id name Pea 1.0");
                 println!("id author Warre G.");
                 println!("option name Hash type spin default 256 min 1 max 1024");
                 println!("option name Threads type spin default 1 min 1 max 64");

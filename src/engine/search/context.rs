@@ -16,7 +16,7 @@ pub struct Stack {
     pub evals: [i32; 128],
     pub double_exts: [i32; 128],
 }
-// The searchcontext ot searchrunner is passed on during the search and contains parameters, time management, history, tt tables etc
+// The searchcontext or searchrunner is passed on during the search and contains parameters, time management, history, tt tables etc
 pub struct SearchContext<'a> {
     pub start_time: Instant,
     pub time_limit: Duration,
@@ -27,7 +27,7 @@ pub struct SearchContext<'a> {
     pub params: &'a Params, // Params struct loaded from yaml or default
     pub ordering: &'a MoveOrdering, // Used for ordering of moves
 
-    pub stats: SearchStats, // Some searchstatistics
+    pub stats: SearchStats, // Some search statistics
 
     pub repetition_stack: Vec<u64>, // Stack of moves from previous moves played in the game, important for 3 fold repetition
     pub tt: &'a TranspositionTable, // TT
