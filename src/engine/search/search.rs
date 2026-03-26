@@ -158,7 +158,7 @@ pub fn negamax(
     };
 
 
-
+    // TODO ADD CHECK IF PLY > MAX PLY MAYBE
     if !is_root && !is_excluded && tt_entry.is_some() {
         if let Some(score) = tt_entry.as_ref().and_then(|e| e.try_score(depth, alpha, beta, ply)) {
             return score;
@@ -181,8 +181,6 @@ pub fn negamax(
     }
 
     ctx.clear_killers_at(ply+1);
-
-
 
 
     let do_pruning = minors_or_majors(pos).count() >0 && !is_excluded;
@@ -265,6 +263,9 @@ pub fn negamax(
 
     let mut moves = pos.legal_moves();
 
+
+    // best move is encoded in the tt as 16 bits but does not contain all info,
+    // so when we need it we reconstruct the tt move based on all available legal moves
     let tt_move = tt_entry.as_ref().and_then(|e| {
         let encoded = encode_move(e.best_move);
         if encoded == 0 { return None; }
@@ -280,7 +281,7 @@ pub fn negamax(
     }
 
     // =====================================================================================================================//
-    // SINGULAR EXTENSION CANDIDATE                                                                                         //
+    // SINGULAR EXTENSION INFO                                                                                              //
     // =====================================================================================================================//
 
     let se_info: Option<(Move, i32)> = if !is_root && !is_excluded && depth >= ctx.params.se_min_depth as usize{
@@ -292,7 +293,7 @@ pub fn negamax(
                 let is_lower_bound = matches!(entry.bound, Bound::Lower | Bound::Exact);
 
                 if tt_depth_ok && not_mate && is_lower_bound {
-                    Some((tt_mv.clone(), tt_score))  // cache score here
+                    Some((tt_mv.clone(), tt_score))
                 } else {
                     None
                 }
@@ -351,13 +352,13 @@ pub fn negamax(
         // =====================================================================================================================//
         // HISTORY PRUNING                                                                                                      //
         // =====================================================================================================================//
-        // Need to verify this
+        // TODO FINETUNE PARAMETERS TO MAKE IT WORK
         if !in_check
             && false
             && !is_pv
             && depth <= ctx.params.hist_prune_depth as usize
             && is_quiet
-            && moves_searched > 1  // never prune first move
+            && moves_searched > 1  // never prune first move?
         {
             let hist = ctx.get_history_score(pos, mv,ply);
             if hist < -(ctx.params.hist_prune_margin as i32 * depth as i32) {
@@ -539,6 +540,10 @@ pub fn negamax(
     best_score
 }
 
+// =====================================================================================================================//
+// Q SEARCH                                                                                                             //
+// =====================================================================================================================//
+
 #[inline(always)]
 pub fn quiescence(
     pos: &Chess,
@@ -623,6 +628,11 @@ pub fn quiescence(
     }
     alpha
 }
+
+// =====================================================================================================================//
+// ASPIRATION SEARCH                                                                                                    //
+// =====================================================================================================================//
+
 #[inline(always)]
 fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, depth: usize, prev_score: i32, pv: &mut PvTable) -> i32 {
     let mut window = ctx.params.aspw_window_size as i32;

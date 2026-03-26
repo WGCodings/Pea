@@ -2,10 +2,14 @@
 
 use crate::engine::params::Params;
 use crate::tuner::bounds::Bounds;
-use crate::tuner::logger::{_csv_to_yaml, elo_from_wdl, log_yaml_to_csv};
+use crate::tuner::logger::{ elo_from_wdl, log_yaml_to_csv};
 use crate::tuner::matcher::run_match;
 use crate::tuner::perturb::{apply_update, perturb_params};
 
+// =====================================================================================================================//
+// MY OWN ATTEMPT ON MAKING AN SPSA TUNER
+// FOR THE MOMENT I HAVE NOT GOTTEN IT TO GIVE POSITIVE RESULTS SO WE KEEP TRYING AND IMPROVING
+// =====================================================================================================================//
 pub fn run_spsa() {
 
     let theta_minus_path = "src/tuner/config/theta_minus.yaml";

@@ -9,6 +9,11 @@ pub struct MoveOrdering {
 }
 
 impl MoveOrdering {
+
+    // =====================================================================================================================//
+    // CREATE MVV LVA TABLE                                                                                                 //
+    // =====================================================================================================================//
+
     pub fn new(piece_values: &[i32; 6]) -> Self {
         let mut table = [[0; 6]; 6];
 
@@ -24,6 +29,9 @@ impl MoveOrdering {
         Self { mvv_lva: table }
     }
 
+    // =====================================================================================================================//
+    // ORDER MOVES BASED ON SCORE                                                                                           //
+    // =====================================================================================================================//
     #[inline(always)]
     pub fn order_moves(
         &self,
@@ -47,6 +55,10 @@ impl MoveOrdering {
         // Rebuild move list
         moves.extend(scored.into_iter().map(|(_, mv)| mv));
     }
+
+    // =====================================================================================================================//
+    // ASSIGN SCORE TO MOVES                                                                                                //
+    // =====================================================================================================================//
     #[inline(always)]
     fn score_move(
         &self,
@@ -65,9 +77,8 @@ impl MoveOrdering {
         if Some(mv) == tt_move {
             return 1_000_000;
         }
-
         // ============================================================
-        // 3. Captures
+        // 2. Captures W SEE
         // ============================================================
         if mv.is_capture() {
             let see = see(pos, *mv);
@@ -82,9 +93,8 @@ impl MoveOrdering {
             }
 
         }
-
         // ============================================================
-        // 4. Killer moves
+        // 3. Killer moves
         // ============================================================
         if killers[0].as_ref() == Some(mv) {
             return 700_000;
@@ -95,15 +105,8 @@ impl MoveOrdering {
         if killers[2].as_ref() == Some(mv) {
             return 698_000;
         }
-        /*
-          if mv.is_promotion(){
-              let promotion_role = mv.promotion().unwrap() as i32;
-              return 300_000 + 100*promotion_role;
-          }
-         */
-
         // ============================================================
-        // 5. Quiet move ordering:
+        // 4. Quiet move ordering:
         //    Continuation history + normal history
         // ============================================================
         let side = pos.turn() as usize;
@@ -114,7 +117,7 @@ impl MoveOrdering {
         let mut score = ctx.history[side][from][to] as i32;
 
 
-        // onl compare even plies ago
+        // onlY compare even plies ago, 1,2,2n ply continuation
         for i in 0..MAX_PLY_CONTINUATION_HISTORY {
             if ply > i  && ((1+i)%2 ==0 || i==0) {
                 if let Some(prev) = ctx.stack.moves[ply - 1 - i] {
@@ -126,21 +129,21 @@ impl MoveOrdering {
                 }
             }
         }
-
-
         score
     }
 
 
 
-
-
+    // =====================================================================================================================//
+    // ASSIGN SCORE CAPTURE MOVES, SHOULD ADD SEE                                                                           //
+    // =====================================================================================================================//
+    // TODO ADD SEE
     #[inline(always)]
     pub fn order_captures(&self, pos: &Chess, moves: &mut [Move]) {
         moves.sort_by_key(|mv| -self.mvv_lva_score(pos, mv));
     }
     #[inline(always)]
-    pub fn mvv_lva_score(&self, pos: &Chess, mv: &Move) -> i32 {
+    fn mvv_lva_score(&self, pos: &Chess, mv: &Move) -> i32 {
         let board = pos.board();
 
         let attacker_role = board

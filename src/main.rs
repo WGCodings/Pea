@@ -1,7 +1,7 @@
 mod engine;
 mod uci;
 mod nnue;
-mod databuilder;
+mod datagen;
 mod tests;
 mod tuner;
 
@@ -9,7 +9,6 @@ mod tuner;
 use crate::tuner::bounds::Bounds;
 use std::cmp;
 use std::io::{self, BufRead};
-use std::sync::atomic::{Ordering};
 
 
 use shakmaty::{perft, Chess, Move, Position};
@@ -18,7 +17,7 @@ use crate::uci::{parser::*, state::*};
 
 use crate::engine::params::Params;
 use crate::engine::search::ordering::MoveOrdering;
-use crate::engine::search::pv::PvTable;
+
 use crate::engine::search::threads::Threads;
 use crate::engine::time_manager::{compute_time_limit};
 use crate::engine::state::*;

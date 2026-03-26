@@ -17,8 +17,6 @@ pub struct Bounds {
 }
 
 
-
-
 impl Bounds {
     pub fn load_yaml(path: &str) -> Self {
         let file = fs::File::open(path).unwrap();

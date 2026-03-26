@@ -2,6 +2,11 @@ use std::time::{Duration, Instant};
 use shakmaty::{Chess, Color, Position};
 use shakmaty::Move;
 
+// =====================================================================================================================//
+// MANAGES TIME TO SPEND ON MOVE BASED ON INCREMENT AND TIME LEFT
+// BASED ON MOVE STAILITY AND PV STABILITY AND COMPLEXITY ON POSITION
+// LOTS OF ROOM FOR IMPROVEMENT
+// =====================================================================================================================//
 pub struct TimeManager {
     pub base_time: Duration,
     pub current_limit: Duration,

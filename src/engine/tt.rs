@@ -157,13 +157,13 @@ impl TranspositionTable {
         key as usize & self.mask
     }
 
-    /// Probe without move validation — use when legal moves not yet generated
+    // Probe without move validation — use when legal moves not yet generated
     #[inline(always)]
     pub fn probe(&self, key: u64) -> Option<TTEntry> {
         self.table[self.index(key)].load(key)
     }
 
-    /// Probe with move validation — returns fully reconstructed Move
+    // Probe with move validation — returns fully reconstructed Move
     #[inline(always)]
     pub fn probe_move(&self, key: u64, legal_moves: &[Move]) -> Option<Move> {
         let entry = self.table[self.index(key)].load(key)?;
@@ -225,11 +225,10 @@ impl TranspositionTable {
 // MOVE ENCODING / DECODING                                                                                             //
 // =====================================================================================================================//
 
-/// Encode a Move into 16 bits. 0 = None.
-/// Layout: from(6) | to(6) | extra(2) | type(2)
-/// type: 0=Normal, 1=EnPassant, 2=Castle, 3=Put
-/// extra for Normal: 0=no promo, 1=Q, 2=R, 3=B (knight uses type bits differently)
-/// extra for Put: role index
+// Encode a Move into 16 bits. 0 = None.
+// Layout: from(6) | to(6) | extra(2) | type(2)
+// type: 0=Normal, 1=EnPassant, 2=Castle, 3=Put
+// extra for Normal: 0=no promo, 1=Q, 2=R, 3=B (knight uses type bits differently)
 #[inline(always)]
 pub fn encode_move(mv: Option<Move>) -> u16 {
     match mv {
@@ -261,8 +260,8 @@ pub fn encode_move(mv: Option<Move>) -> u16 {
     }
 }
 
-/// Decode a partial move (role and capture unknown for Normal moves)
-/// Used only internally — call validate_move for full reconstruction
+// Decode a partial move (role and capture unknown for Normal moves)
+// Used only internally — call validate_move for full reconstruction
 #[inline(always)]
 pub fn decode_move_partial(encoded: u16) -> Option<Move> {
     if encoded == 0 { return None; }
@@ -300,7 +299,7 @@ pub fn decode_move_partial(encoded: u16) -> Option<Move> {
     }
 }
 
-/// Validate encoded move against legal moves to get full Move
+// Validate encoded move against legal moves to get full Move
 #[inline(always)]
 pub fn validate_move(encoded: u16, legal_moves: &[Move]) -> Option<Move> {
 
@@ -395,9 +394,4 @@ pub(crate) fn tt_store(
     else if best_score >= beta { Bound::Lower }
     else { Bound::Exact };
     ctx.tt.store(key, depth, score_to_tt(best_score, ply), eval, bound, best_move);
-}
-
-#[inline(always)]
-pub fn _tt_best_move(key: u64, ctx: &SearchContext, legal_moves: &[Move]) -> Option<Move> {
-    ctx.tt.probe_move(key, legal_moves)
 }

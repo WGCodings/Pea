@@ -1,11 +1,14 @@
-use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+
 use shakmaty::{Chess, EnPassantMode, Move, Position};
 use shakmaty::zobrist::{Zobrist64};
 use crate::engine::params::Params;
 use crate::engine::tt::TranspositionTable;
 
-
+// =====================================================================================================================//
+// STATE OF THE ENGINE, SURVIVES DURING WHOLE GAME
+// NEEDED FOR TT THREADS PARAMS PONDERING POSITION ETC
+// INITIALISES ENGINE
+// =====================================================================================================================//
 pub struct EngineState {
     pub position: Chess,
     pub params : Params,
@@ -47,16 +50,13 @@ impl EngineState {
         self.repetition_stack.clear();
         self.increase_history()
     }
-
     pub fn increase_history(&mut self) {
         let hash = self.position.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
         self.repetition_stack.push(hash);
     }
-
     pub fn init_tt(&mut self, tt_size: usize) {
         self.tt = TranspositionTable::new(tt_size);
     }
-
     pub fn set_overhead(&mut self, overhead: u64) {
         self.overhead = overhead;
     }

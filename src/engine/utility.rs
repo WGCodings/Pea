@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
-use shakmaty::{Chess, fen::Fen, CastlingMode, Move, Color, Position, EnPassantMode, Role};
+use shakmaty::{Chess, fen::Fen, CastlingMode, Move,  Position, EnPassantMode, Role};
 use shakmaty::zobrist::Zobrist64;
 use crate::engine::params::Params;
 use crate::engine::search::context::{NNUEState, SearchContext, Stack};
@@ -14,7 +14,7 @@ use crate::engine::types::{MAX_PLY_CONTINUATION_HISTORY};
 use crate::nnue::network::Network;
 use crate::uci::parser::move_to_uci;
 
-/// Reads a FEN string and converts it to a `Chess` position.
+// Reads a FEN string and converts it to a `Chess` position.
 pub fn read_position_from_fen(fen_str: &str) -> Option<Chess> {
     let fen: Fen = fen_str.parse().ok()?; // Parse the FEN string
     fen.into_position(CastlingMode::Standard).ok() // Convert to `Chess` position
@@ -94,7 +94,7 @@ pub fn build_search_context<'a>(
         excluded_move:          [None; 128],
     }
 }
-// Convenience wrapper for the main thread using EngineState
+
 pub fn build_main_context<'a>(
     engine_state: &'a mut EngineState,
     ordering: &'a MoveOrdering,
@@ -117,6 +117,7 @@ pub fn build_main_context<'a>(
         time_limit,
     )
 }
+
 pub fn extract_pv_from_tt(
     pos: &Chess,
     tt: &TranspositionTable,

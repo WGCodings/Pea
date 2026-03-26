@@ -14,6 +14,10 @@ use crate::uci::parser::move_to_uci;
 
 pub struct Threads;
 
+// =====================================================================================================================//
+// HANDLES DIFFERNET THREADS NEEDED FOR LAZY SMP                                                                        //
+// =====================================================================================================================//
+
 impl Threads {
     pub fn search(
         pos: &Chess,
@@ -76,6 +80,11 @@ impl Threads {
         (score, mv, pv)
     }
 
+    // =====================================================================================================================//
+    //  PONDERING THREAD, DOES NOT WORK 100% CORRECT YET                                                                    //
+    // =====================================================================================================================//
+    // TODO SIMPLIFY THESE FUNCTIONS OR COMBINE
+
     pub fn start_ponder(
         pos: Chess,
         engine_state: &EngineState,
@@ -96,7 +105,7 @@ impl Threads {
         let num_threads           = engine_state.threads as usize;
 
         // Spawn helper ponder threads
-        for thread_id in 1..num_threads {
+        for _ in 1..num_threads {
             let pos       = pos.clone();
             let params    = params.clone();
             let rep_stack = rep_stack.clone();

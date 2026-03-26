@@ -2,6 +2,10 @@ use std::fs;
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::collections::BTreeMap;
+
+// =====================================================================================================================//
+// ALL OUR SEARCH PARAMETERS, CAN BE LOADED AND SAVE TO FROM YAML                                                       //
+// =====================================================================================================================//
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Params {
     pub raz_max_depth: f32,
@@ -89,7 +93,7 @@ impl Params {
             // STATIC NULL MOVE PRUNING
             snmp_scaling: 85.0,
             // LATE MOVE REDUCTION
-            lmr_min_searches: 5.0,
+            lmr_min_searches: 6.0,
             lmr_min_depth: 3.0,
             lmr_red_constant: 0.7844,
             lmr_red_scaling: 2.4695,
@@ -135,7 +139,7 @@ impl Params {
         }
     }
 }
-pub fn params_to_map(params: &Params) -> BTreeMap<String, Value> {
+pub(crate) fn params_to_map(params: &Params) -> BTreeMap<String, Value> {
     let value = serde_yaml::to_value(params).unwrap();
 
     match value {
@@ -147,7 +151,7 @@ pub fn params_to_map(params: &Params) -> BTreeMap<String, Value> {
     }
 }
 
-pub fn map_to_params(map: BTreeMap<String, Value>) -> Params {
+pub(crate) fn map_to_params(map: BTreeMap<String, Value>) -> Params {
     let mapping = map
         .into_iter()
         .map(|(k, v)| (Value::String(k), v))

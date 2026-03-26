@@ -3,8 +3,7 @@ use shakmaty::{
     Bitboard, Board, Chess, Color, Move, Position, Role, Square,
 };
 
-/// Piece values used by SEE.
-/// Indexing uses `role as usize - 1`.
+
 const PIECE_VALUES: [i16; 7] = [
     100,   // Pawn
     300,   // Knight
@@ -15,17 +14,9 @@ const PIECE_VALUES: [i16; 7] = [
     0,     // Empty square (quiet move target)
 ];
 
-/// Static Exchange Evaluation (SEE).
-///
-/// Returns the material gain/loss of playing `mv` assuming optimal
-/// captures on the target square by both sides.
-///
-/// Handles:
-/// - Promotions
-/// - En passant
-/// - X-ray attacks
-/// - Quiet moves
-///
+// =====================================================================================================================//
+// SEE, works for captures but also for quiets. If a quiet moves has see<0 it hangs piece                               //
+// =====================================================================================================================//
 pub fn see(pos: &Chess, mv: Move) -> i16 {
     let board = pos.board();
     let to = mv.to();
@@ -111,16 +102,16 @@ pub fn see(pos: &Chess, mv: Move) -> i16 {
     }
 }
 
-//
-// ───────────────────────── Helper Functions ─────────────────────────
-//
+// =====================================================================================================================//
+// HELPER FUNCTIONS                                                                                                     //
+// =====================================================================================================================//
 
 #[inline]
 fn piece_value(role: Role) -> i16 {
     PIECE_VALUES[role as usize - 1]
 }
 
-/// Returns value of initially captured piece
+// Returns value of initially captured piece
 #[inline]
 fn target_value(board: &Board, mv: Move) -> i16 {
     if mv.is_en_passant() {
@@ -133,14 +124,14 @@ fn target_value(board: &Board, mv: Move) -> i16 {
     }
 }
 
-/// Returns role of attacking piece after initial promotion
+// Returns role of attacking piece after initial promotion
 #[inline]
 fn promoted_role(board: &Board, mv: Move) -> Role {
     mv.promotion().unwrap_or_else(|| board.role_at(mv.from().unwrap()).unwrap())
 }
 
-/// Handles promotion inside recursive capture chain
-/// If a pawn captures on final rank, it is treated as a queen
+// Handles promotion inside recursive capture chain
+// If a pawn captures on final rank, it is treated as a queen
 #[inline]
 fn effective_role_with_promotion(
     role: Role,
@@ -165,7 +156,7 @@ fn is_promotion_square(side: Color, sq: Square) -> bool {
     }
 }
 
-/// Computes x-ray attackers after a piece is removed.
+// Computes x-ray attackers after a piece is removed.
 #[inline]
 fn xray_attackers(board: &Board, sq: Square, occupied: Bitboard) -> Bitboard {
     let bishops = board.bishops();
@@ -176,7 +167,7 @@ fn xray_attackers(board: &Board, sq: Square, occupied: Bitboard) -> Bitboard {
         | (rook_attacks(sq, occupied) & (rooks | queens))
 }
 
-/// Returns least valuable attacker of given color.
+// Returns least valuable attacker of given color.
 #[inline]
 fn least_valuable_attacker(
     board: &Board,

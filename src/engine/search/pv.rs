@@ -3,6 +3,11 @@ use shakmaty::Move;
 
 pub const MAX_PLY: usize = 128;
 
+
+// =====================================================================================================================//
+// HANDLE PV TABLE                                                                                                      //
+// =====================================================================================================================//
+
 #[derive(Clone, Copy)]
 pub struct PvTable {
     moves: [Option<Move>; MAX_PLY],
@@ -21,7 +26,7 @@ impl PvTable {
         self.len = 0;
     }
 
-    /// Prepend mv to child's PV and store as our PV
+    // Prepend mv to child's PV and store as our PV
     pub fn add_child_to_parent(&mut self, mv: Move, child: &PvTable) {
 
         self.moves[0] = Some(mv);

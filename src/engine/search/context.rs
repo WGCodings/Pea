@@ -10,29 +10,30 @@ use crate::engine::tt::TranspositionTable;
 use crate::engine::types::{MAX_HISTORY, MAX_PLY_CONTINUATION_HISTORY};
 use crate::nnue::network::{accumulators_from_position, calculate_index, role_index, Accumulator, Network};
 
+// Keep track of move, eval and nr of double ext per ply.
 pub struct Stack {
     pub moves: [Option<Move>; 128],
     pub evals: [i32; 128],
     pub double_exts: [i32; 128],
 }
-
+// The searchcontext ot searchrunner is passed on during the search and contains parameters, time management, history, tt tables etc
 pub struct SearchContext<'a> {
     pub start_time: Instant,
     pub time_limit: Duration,
     pub stop: Arc<AtomicBool>, // Arc to share across threads
     pub node_count: Arc<AtomicU64>,  // node counting over multiple threads
-    pub is_main : bool,
+    pub is_main : bool, // Flag to check if this is a main or helper thread
 
-    pub params: &'a Params,
-    pub ordering: &'a MoveOrdering,
+    pub params: &'a Params, // Params struct loaded from yaml or default
+    pub ordering: &'a MoveOrdering, // Used for ordering of moves
 
-    pub stats: SearchStats,
+    pub stats: SearchStats, // Some searchstatistics
 
-    pub repetition_stack: Vec<u64>,
-    pub tt: &'a TranspositionTable,
+    pub repetition_stack: Vec<u64>, // Stack of moves from previous moves played in the game, important for 3 fold repetition
+    pub tt: &'a TranspositionTable, // TT
 
-    pub nnue: NNUEState,
-    pub network: &'a Network,
+    pub nnue: NNUEState, // State of NNUE i e accumulators
+    pub network: &'a Network, // NNUE network
 
     pub killers: [[Option<Move>; 3]; 128],
     pub history: [[[i16; 64]; 64]; 2], // [side][from][to]
@@ -41,12 +42,15 @@ pub struct SearchContext<'a> {
 
     pub stack : Stack,
 
-    pub excluded_move: [Option<Move>; 128],
+    pub excluded_move: [Option<Move>; 128], // excluded moves for Singular extensions
 
 }
 
 impl<'a> SearchContext<'a> {
 
+    // =====================================================================================================================//
+    // THREEFOLD AND 50 MOVES                                                                                               //
+    // =====================================================================================================================//
     #[inline(always)]
     pub fn is_threefold(&mut self, pos: &Chess) -> bool {
 
@@ -68,7 +72,7 @@ impl<'a> SearchContext<'a> {
             if hash == *current {
                 count += 1;
                 if count >= 1 {
-                    return true; // 3-fold repetition
+                    return true; // 2-fold repetition
                 }
             }
         }
@@ -79,11 +83,10 @@ impl<'a> SearchContext<'a> {
     pub fn is_50_moves(&self,pos: &Chess) -> bool {
         pos.halfmoves()> 98
     }
-    #[inline(always)]
-    pub fn _init_history(&mut self, hash : u64) {
-        self.repetition_stack.clear();
-        self.repetition_stack.push(hash);
-    }
+
+    // =====================================================================================================================//
+    // REPETITION MANAGEMENT                                                                                                //
+    // =====================================================================================================================//
     #[inline(always)]
     pub fn increase_history(&mut self, hash : u64) {
         self.repetition_stack.push(hash);
@@ -92,6 +95,10 @@ impl<'a> SearchContext<'a> {
     pub fn decrease_history(&mut self) {
         self.repetition_stack.pop();
     }
+
+    // =====================================================================================================================//
+    // KILLER MOVES                                                                                                         //
+    // =====================================================================================================================//
     #[inline(always)]
     pub fn store_killer(&mut self, ply: usize, mv: Move) {
         // Do not store duplicates
@@ -105,18 +112,15 @@ impl<'a> SearchContext<'a> {
         self.killers[ply][0] = Some(mv);
     }
     #[inline(always)]
-    pub fn _is_killer(&self, ply: usize, mv: &Move) -> bool {
-        self.killers[ply][0].as_ref() == Some(mv)
-            || self.killers[ply][1].as_ref() == Some(mv)
-            || self.killers[ply][2].as_ref() == Some(mv)
-    }
-    #[inline(always)]
     pub fn clear_killers_at(&mut self,ply:usize) {
         self.killers[ply][0] = None;
         self.killers[ply][1] = None;
         self.killers[ply][2] = None;
     }
 
+    // =====================================================================================================================//
+    // HELPERS TO UPDATE (CONTINUATION) HISTORY                                                                             //
+    // =====================================================================================================================//
     #[inline(always)]
     fn update_history_value(history_value: &mut i16, bonus: i32) {
         let clamped = bonus.clamp(-MAX_HISTORY, MAX_HISTORY);
@@ -126,27 +130,6 @@ impl<'a> SearchContext<'a> {
                 - (*history_value as i32 * clamped.abs() / MAX_HISTORY);
 
         *history_value = new.clamp(-MAX_HISTORY, MAX_HISTORY) as i16;
-    }
-    #[inline(always)]
-    fn update_continuation_value(&mut self, ply : usize, m : Move, bonus : i32){
-        let piece = m.role() as usize - 1;
-        let to= m.to() as usize;
-
-        for i in 0..MAX_PLY_CONTINUATION_HISTORY {
-            if ply > i && ((1+i)%2 == 0 || i==0){
-                if let Some(prev) = self.stack.moves[ply - 1 - i] {
-                    let prev_piece = prev.role() as usize - 1;
-                    let prev_to    = prev.to() as usize;
-
-                    Self::update_history_value(
-                        &mut self.continuation_history[i]
-                            [prev_piece][prev_to]
-                            [piece][to],
-                        bonus,
-                    );
-                }
-            }
-        }
     }
     #[inline(always)]
     pub fn get_history_score(&self, pos: &Chess, mv: Move, ply: usize) -> i32 {
@@ -176,6 +159,32 @@ impl<'a> SearchContext<'a> {
     }
 
     #[inline(always)]
+    fn update_continuation_value(&mut self, ply : usize, m : Move, bonus : i32){
+        let piece = m.role() as usize - 1;
+        let to= m.to() as usize;
+
+        for i in 0..MAX_PLY_CONTINUATION_HISTORY {
+            if ply > i && ((1+i)%2 == 0 || i==0){
+                if let Some(prev) = self.stack.moves[ply - 1 - i] {
+                    let prev_piece = prev.role() as usize - 1;
+                    let prev_to    = prev.to() as usize;
+
+                    Self::update_history_value(
+                        &mut self.continuation_history[i]
+                            [prev_piece][prev_to]
+                            [piece][to],
+                        bonus,
+                    );
+                }
+            }
+        }
+    }
+
+    // =====================================================================================================================//
+    // UPDATE QUIET HISTORY                                                                                                 //
+    // =====================================================================================================================//
+
+    #[inline(always)]
     pub fn update_quiet_history(
         &mut self,
         side: usize,
@@ -199,6 +208,10 @@ impl<'a> SearchContext<'a> {
             }
         }
     }
+
+    // =====================================================================================================================//
+    // UPDATE CONTINUATION HISTORY                                                                                          //
+    // =====================================================================================================================//
     #[inline(always)]
     pub fn update_continuation_history(
         &mut self,
@@ -218,6 +231,10 @@ impl<'a> SearchContext<'a> {
         }
     }
 
+    // =====================================================================================================================//
+    // CHECK IF IMPROVING                                                                                                   //
+    // =====================================================================================================================//
+
     #[inline(always)]
     pub fn is_improving(&self, ply: usize) -> bool {
         if ply < 2 {
@@ -226,16 +243,23 @@ impl<'a> SearchContext<'a> {
 
         self.stack.evals[ply] > self.stack.evals[ply - 2]
     }
-
-
-
-
 }
 
+// =====================================================================================================================//
+// EVERYTHING TO UPDATE THE NNUE ACCUMULATOR STATE IN MAKE UNMAKE MOVE                                                  //
+// =====================================================================================================================//
+
+// =====================================================================================================================//
+// KEEP TRACK OF CHANGES TO ACCUMULATOR DURING MAKE MOVE                                                                //
+// =====================================================================================================================//
 pub struct AccumulatorDelta {
     removed: Vec<(usize, usize)>, // (us_idx, them_idx)
     added: Vec<(usize, usize)>,
 }
+
+// =====================================================================================================================//
+// STATE OF ACCUMULATOR                                                                                                 //
+// =====================================================================================================================//
 
 pub struct NNUEState {
     pub us: Accumulator,
@@ -252,6 +276,32 @@ impl NNUEState {
             stack: Vec::with_capacity(64),
         }
     }
+}
+
+// =====================================================================================================================//
+// MAKE AND UNMAKE NNUE ACCUMULATOR                                                                                     //
+// =====================================================================================================================//
+
+#[inline(always)]
+pub fn unmake_move_nnue(
+    net: &Network,
+    state: &mut NNUEState,
+) {
+    // swap back first
+    std::mem::swap(&mut state.us, &mut state.them);
+
+    let delta = state.stack.pop().unwrap();
+
+    for (us_idx, them_idx) in delta.added {
+        state.us.remove_feature(us_idx, net);
+        state.them.remove_feature(them_idx, net);
+    }
+
+    for (us_idx, them_idx) in delta.removed {
+        state.us.add_feature(us_idx, net);
+        state.them.add_feature(them_idx, net);
+    }
+
 }
 #[inline(always)]
 pub fn make_move_nnue<P: Position>(
@@ -409,6 +459,11 @@ pub fn make_move_nnue<P: Position>(
 
 
 }
+
+// =====================================================================================================================//
+// HELPER FUNCTION TO ACTIVATE AND DEACTIVATE FEATURES                                                                  //
+// =====================================================================================================================//
+
 fn remove_feature_pair(
     state: &mut NNUEState,
     net: &Network,
@@ -445,24 +500,4 @@ fn add_feature_pair(
     delta.added.push((us_idx, them_idx));
 }
 
-#[inline(always)]
-pub fn unmake_move_nnue(
-    net: &Network,
-    state: &mut NNUEState,
-) {
-    // swap back first
-    std::mem::swap(&mut state.us, &mut state.them);
 
-    let delta = state.stack.pop().unwrap();
-
-    for (us_idx, them_idx) in delta.added {
-        state.us.remove_feature(us_idx, net);
-        state.them.remove_feature(them_idx, net);
-    }
-
-    for (us_idx, them_idx) in delta.removed {
-        state.us.add_feature(us_idx, net);
-        state.them.add_feature(them_idx, net);
-    }
-
-}

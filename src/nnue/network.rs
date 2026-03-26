@@ -9,7 +9,9 @@ const NUM_OUTPUT_BUCKETS : usize = 8;
 use shakmaty::{Chess, Color, Position, Role};
 
 
-
+// =====================================================================================================================//
+// NNUE NETWORK IS TRAINED BY THE BULLET CRATE AND CODE HAS BEEN REUSED FROM ONE OF THE EXAMPLES TO DO THE INFERENCE
+// =====================================================================================================================//
 #[inline(always)]
 pub fn role_index(role: Role) -> usize {
     match role {

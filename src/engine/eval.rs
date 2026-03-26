@@ -3,6 +3,9 @@ use shakmaty::{Bitboard, Chess, Color, Position, Role, Square};
 use crate::engine::types::{KBN_TABLE_DARK, KBN_TABLE_LIGHT, MATE_SCORE};
 use crate::nnue::network::{Accumulator, Network};
 
+// =====================================================================================================================//
+// EVALUATE NNUE + MOPUP                                                                                                //
+// =====================================================================================================================//
 pub fn evaluate(pos: &Chess, net: &Network,us: &Accumulator, them: &Accumulator) -> i32 {
     let nnue_score= net.evaluate(us,them,pos);
     let mopup_score = mopup_evaluation(pos,nnue_score);
@@ -10,6 +13,10 @@ pub fn evaluate(pos: &Chess, net: &Network,us: &Accumulator, them: &Accumulator)
     (nnue_score + mopup_score).clamp(-MATE_SCORE + 1000, MATE_SCORE - 1000)
 }
 
+// =====================================================================================================================//
+// MOPUP EVAL TO HELP MATEFINDING KRK KQK KBNK , MIGHT BE OBSOLETE NOW WITH BETTER SEARCH                               //
+// =====================================================================================================================//
+// TODO TEST IS MOPUP IS STILL NEEDED NOW I CAN GET TO DEPTH 20+ EASILY
 #[inline(always)]
 fn mopup_evaluation(pos: &Chess,score : i32) -> i32{
     let board = pos.board();
@@ -65,6 +72,7 @@ fn mopup_evaluation(pos: &Chess,score : i32) -> i32{
     mop_bonus *color_value
 }
 
+// This is the hce i used initially LOL
 fn _hce(pos: &Chess) -> i32 {
     let piece_values = [100,300,320,500,900,10000];
     let board = pos.board();

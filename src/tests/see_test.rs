@@ -3,7 +3,9 @@ use shakmaty::san::San;
 use crate::engine::utility::read_position_from_fen;
 use crate::engine::search::see::see;
 
-
+// =====================================================================================================================//
+// TEST SUITE FOR SEE TESTS
+// =====================================================================================================================//
 struct SeeTest {
     fen: String,
     san: String,
