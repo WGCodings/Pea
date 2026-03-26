@@ -50,7 +50,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     let mut best_score = MIN_INF;
     let mut best_move = None;
     let mut pv = PvTable::new();
-    let mut latest_pv = PvTable::new();
+    let mut latest_pv;
     let mut prev_score = 0;
     let mut tt_pv = vec![];
 
@@ -80,7 +80,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
         ctx.stats.completed_depth = depth;
 
         if ctx.is_main{
-            tt_pv = print_search_info(ctx, pos, depth, best_score, tm.elapsed());
+            tt_pv = print_search_info(ctx, pos, depth, best_score, tm.elapsed(),latest_pv);
         }
 
     }
@@ -245,7 +245,10 @@ pub fn negamax(
     // =====================================================================================================================//
     // RAZORING                                                                                                             //
     // =====================================================================================================================//
-    if  do_pruning && !in_check && !is_pv && depth <= ctx.params.raz_max_depth as usize && static_eval +ctx.params.raz_thr as i32 *(depth as i32) < alpha
+    // TODO ADD IMRPOVING HEURISTIC TO MARGIN
+    if  do_pruning && !in_check && !is_pv
+        && depth <= ctx.params.raz_max_depth as usize
+        && static_eval + ctx.params.raz_thr as i32 *(depth as i32)  + improving as i32 * 0 < alpha
     {
         let razor_score = quiescence(pos,ctx,alpha,beta,ply);
         if razor_score <= alpha{
@@ -307,7 +310,7 @@ pub fn negamax(
     let mut moves_searched : i32 = 0;
     let mut local_pv = PvTable::new();
     let mut quiets_searched: Vec<Move> = Vec::new();
-    let mut tacticals_tried: Vec<Move> = Vec::new();
+    let mut tacticals_searched: Vec<Move> = Vec::new();
 
     ctx.ordering.order_moves(pos, ctx,  tt_move.as_ref(), &ctx.killers[ply], ply, &mut moves);
 
@@ -325,16 +328,19 @@ pub fn negamax(
         let is_capture = mv.is_capture();
         let is_quiet = !is_capture && !mv.is_promotion() ;
 
-        if is_quiet{
-            quiets_searched.push(mv);
-        }
-        else {
-            tacticals_tried.push(mv);
-        }
+
         moves_searched +=1;
 
-
-
+        // TODO TEST IF PROMOTIONS ARE BEST ADDED TO QUIETS OR TACTICALS
+        // Punish bad quiets and tacticals
+        if is_quiet {
+            // penalize quiets that fail low
+            quiets_searched.push(mv);
+        }
+        // malus for captures that did not fail high
+        if !is_quiet {
+            tacticals_searched.push(mv);
+        }
 
         // =====================================================================================================================//
         // LATE MOVE PRUNING                                                                                                    //
@@ -350,21 +356,22 @@ pub fn negamax(
             }
         }
         // =====================================================================================================================//
-        // HISTORY PRUNING                                                                                                      //
+        // QUIET HISTORY PRUNING                                                                                                      //
         // =====================================================================================================================//
-        // TODO FINETUNE PARAMETERS TO MAKE IT WORK
+        // TODO FINETUNE PARAMETERS TO MAKE IT WORK ADD CAPTURE HISTORY PRUNING WITH LARGER MARGIN
         if !in_check
-            && false
             && !is_pv
             && depth <= ctx.params.hist_prune_depth as usize
-            && is_quiet
             && moves_searched > 1  // never prune first move?
         {
-            let hist = ctx.get_history_score(pos, mv,ply);
-            if hist < -(ctx.params.hist_prune_margin as i32 * depth as i32) {
-                continue;
+            if is_quiet{
+                let hist = ctx.get_quiet_history_score(pos, mv, ply);
+                if hist < -(ctx.params.hist_prune_margin as i32 * depth as i32) {
+                    continue;
+                }
             }
         }
+
 
         // =====================================================================================================================//
         // FUTILITY PRUNING PART 2                                                                                              //
@@ -480,7 +487,7 @@ pub fn negamax(
                     reduction -=1;
                 }
 
-                reduction -= (ctx.get_history_score(pos, mv,ply)/ ctx.params.lmr_history_divisor as i32) as usize;
+                reduction -= (ctx.get_quiet_history_score(pos, mv, ply)/ ctx.params.lmr_history_divisor as i32) as usize;
 
                 reduction = reduction.clamp(0,depth - 1);
             }
@@ -502,29 +509,27 @@ pub fn negamax(
         unmake_move_nnue(ctx.network, &mut ctx.nnue);
 
 
+
         if score > best_score {
             best_score = score;
             best_move = Some(mv);
         }
 
         if score >= beta {
-            if !mv.is_capture() {
+            let bonus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
+
+            if !is_capture{
 
                 ctx.store_killer(ply, mv);
 
-                let side = pos.turn() as usize;
+                ctx.update_quiet_history(pos.turn() as usize, mv, bonus, &quiets_searched); // Update quiet history, bonus for move, malus for quiets searched
 
-                let bonus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
+                ctx.update_continuation_history(ply, mv, bonus, &quiets_searched); // Update continuation history, bonus for move, malus for quiets searched
 
-                ctx.update_quiet_history(side, mv, bonus, &quiets_searched); // Update quiet history
-
-                ctx.update_continuation_history(ply, mv, bonus, &quiets_searched); // Update continuation history
-
-                // TODO Update capture/tactical history
-
-
-
+            }else {
+                ctx.update_capture_history(pos, mv, bonus, &tacticals_searched);
             }
+
             break;
         }
         if score > alpha {
@@ -532,6 +537,8 @@ pub fn negamax(
             pv.add_child_to_parent(mv,&local_pv);
 
         }
+
+
     }
 
     if !(*ctx.stop).load(Ordering::Relaxed) && !is_excluded{
@@ -592,9 +599,9 @@ pub fn quiescence(
 
     for mv in moves {
 
-        let see = see(pos, mv);
+        let see = see(pos, mv) as i32;
 
-        if see < 0 {
+        if see <0{
             continue;
         }
 

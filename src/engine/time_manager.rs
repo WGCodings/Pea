@@ -67,7 +67,7 @@ impl TimeManager {
             scale *= 0.9;
         }
 
-        // Score dropped significantly, we're in trouble
+        // Score dropped significantly, more time
         if score_dropped {
             scale *= 1.4;
         }
@@ -102,8 +102,7 @@ fn compute_time_limit_sub(
 
     let increment = increment.unwrap_or(Duration::ZERO);
 
-    // More aggressive base: use 1/30 instead of 1/50
-    // This gives more time per move while still leaving plenty in reserve
+
     let base = remaining / 30;
 
     // Increment is almost free time — use 80% of it

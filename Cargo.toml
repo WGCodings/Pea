@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-shakmaty = {path = "../shakmaty/shakmaty"}
+shakmaty = "0.30.0"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_yaml = "0.9"
 rand = "0.10.0"

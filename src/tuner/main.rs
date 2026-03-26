@@ -14,19 +14,19 @@ pub fn run_spsa() {
 
     let theta_minus_path = "src/tuner/config/theta_minus.yaml";
     let theta_plus_path = "src/tuner/config/theta_plus.yaml";
-    let games_per_iteration = 10;
+    let games_per_iteration = 50;
 
     let mut base_params = Params::load_yaml("src/tuner/config/best_params.yaml");
     let bounds = Bounds::load_yaml("src/tuner/config/bounds.yaml");
     let total_iterations = 3000;
     let a = 0.01;
     let biga = 0.1;
-    let c = 0.05;
+    let c = 0.02;
     let alpha = 0.602;
     let gamma = 0.101;
     //let x = _csv_to_yaml("src/tuner/logging/spsa_params.csv",1920,"src/tuner/config/params_1.yaml");
 
-    for iter in 1921 ..total_iterations {
+    for iter in 11 ..total_iterations {
 
         println!("Iteration {}", iter);
 

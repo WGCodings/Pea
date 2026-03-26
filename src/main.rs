@@ -49,7 +49,7 @@ fn main() {
 
         match cmd {
             UciCommand::Uci => {
-                println!("id name Pea");
+                println!("id name Pea 1.0");
                 println!("id author Warre G.");
                 println!("option name Hash type spin default 256 min 1 max 1024");
                 println!("option name Threads type spin default 1 min 1 max 64");
@@ -123,6 +123,7 @@ fn main() {
                     print_bestmove(best_move, &pv, &mut engine_state, &uci_state);
                 }
             }
+
             UciCommand::PonderHit if uci_state.ponder_enabled => {
                 // If we get ponderhit we stop our ponder thread and start a main thread with the tt filled correctly
                 //eprintln!("DEBUG: ponderhit received");
@@ -187,7 +188,6 @@ fn main() {
 
             }
 
-
             UciCommand::Perft { depth } => {
                 let start = std::time::Instant::now();
                 let nodes = perft(&engine_state.position, depth);
@@ -201,7 +201,6 @@ fn main() {
             }
 
             UciCommand::Quit => break,
-
             // These are technically not uci commands but they are used for the tuner.
             UciCommand::LoadParams {path} =>{
                 let params = Params::load_yaml(&path.as_str());

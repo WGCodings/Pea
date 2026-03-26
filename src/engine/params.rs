@@ -134,8 +134,8 @@ impl Params {
             se_text_margin: 100.0,
             se_max_nr_dext: 8.0,
             // History pruning
-            hist_prune_margin: 150.0,
-            hist_prune_depth: 3.0,
+            hist_prune_margin: 1536.0,
+            hist_prune_depth: 4.0,
         }
     }
 }

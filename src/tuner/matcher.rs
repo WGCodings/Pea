@@ -24,7 +24,7 @@ pub fn run_match(
         .args([
             "-engine", &format!("cmd={}", engine1).as_str(),&format!("name={}",engine1_name).as_str(),
             "-engine", &format!("cmd={}", engine2).as_str(),&format!("name={}",engine2_name).as_str(),
-            "-each", "tc=5+0.1",
+            "-each", "tc=4+0.075",
             "-rounds", &games.to_string().as_str(),
             "-repeat",
             "-concurrency", "10",

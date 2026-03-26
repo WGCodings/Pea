@@ -16,7 +16,7 @@ pub struct Stack {
     pub evals: [i32; 128],
     pub double_exts: [i32; 128],
 }
-// The searchcontext ot searchrunner is passed on during the search and contains parameters, time management, history, tt tables etc
+// The searchcontext or searchrunner is passed on during the search and contains parameters, time management, history, tt tables etc
 pub struct SearchContext<'a> {
     pub start_time: Instant,
     pub time_limit: Duration,
@@ -27,7 +27,7 @@ pub struct SearchContext<'a> {
     pub params: &'a Params, // Params struct loaded from yaml or default
     pub ordering: &'a MoveOrdering, // Used for ordering of moves
 
-    pub stats: SearchStats, // Some searchstatistics
+    pub stats: SearchStats, // Some search statistics
 
     pub repetition_stack: Vec<u64>, // Stack of moves from previous moves played in the game, important for 3 fold repetition
     pub tt: &'a TranspositionTable, // TT
@@ -37,7 +37,7 @@ pub struct SearchContext<'a> {
 
     pub killers: [[Option<Move>; 3]; 128],
     pub history: [[[i16; 64]; 64]; 2], // [side][from][to]
-    pub capture_history: [[[i32; 6]; 64]; 2],// [side][to_square][captured_piece_type]
+    pub capture_history: [[[i16; 6]; 64]; 6],// [moved_piece][to_square][captured_piece_type]
     pub continuation_history: Box<[[[[[i16; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]>,
 
     pub stack : Stack,
@@ -118,21 +118,81 @@ impl<'a> SearchContext<'a> {
         self.killers[ply][2] = None;
     }
 
+
+    // =====================================================================================================================//
+    // UPDATE CAPTURE HISTORY                                                                                               //
+    // =====================================================================================================================//
+
+    #[inline(always)]
+    pub fn update_capture_history(&mut self, pos: &Chess, mv: Move, bonus: i32, tacticals_searched: &[Move]) {
+
+        let board = pos.board();
+
+        let to_sq   = mv.to();
+        let from_sq = mv.from().unwrap();
+        let captured_piece = board.role_at(to_sq).unwrap_or(Role::Pawn) as usize - 1; // If none it is en passant so captured piece is pawn
+        let moved_piece = board.role_at(from_sq).unwrap() as usize - 1;
+
+        Self::update_history_value(&mut self.capture_history[captured_piece][to_sq.to_usize()][moved_piece], bonus);
+
+        // Malus for other quiets
+        for &m in tacticals_searched {
+            if m != mv {
+
+                let to_sq   = m.to();
+                let from_sq = m.from().unwrap();
+                let captured_piece = board.role_at(to_sq).unwrap_or(Role::Pawn) as usize - 1;
+                let moved_piece = board.role_at(from_sq).unwrap() as usize - 1;
+
+                Self::update_history_value(&mut self.capture_history[captured_piece][to_sq.to_usize()][moved_piece], -bonus/self.params.cont_hist_malus_scaling as i32);
+            }
+        }
+    }
+
+    // =====================================================================================================================//
+    // UPDATE QUIET HISTORY                                                                                                 //
+    // =====================================================================================================================//
+    #[inline(always)]
+    pub fn update_quiet_history(&mut self, side: usize, mv: Move, bonus: i32, quiets_searched: &[Move]) {
+
+        let from = mv.from().unwrap().to_usize();
+        let to   = mv.to().to_usize();
+
+        Self::update_history_value(&mut self.history[side][from][to], bonus);
+
+        // Malus for other quiets
+        for &m in quiets_searched {
+            if m != mv {
+                let f = m.from().unwrap().to_usize();
+                let t = m.to().to_usize();
+
+                Self::update_history_value(&mut self.history[side][f][t], -bonus/self.params.cont_hist_malus_scaling as i32);
+            }
+        }
+    }
+
+    // =====================================================================================================================//
+    // UPDATE CONTINUATION HISTORY                                                                                          //
+    // =====================================================================================================================//
+    #[inline(always)]
+    pub fn update_continuation_history(&mut self, ply: usize, mv: Move, bonus : i32, quiets_searched: &[Move]) {
+
+        self.update_continuation_value(ply, mv, bonus);
+
+        // malus for continuation history
+        for &m in quiets_searched {
+            if m != mv {
+                self.update_continuation_value(ply,m,-bonus/(2*self.params.cont_hist_malus_scaling as i32));
+            }
+        }
+    }
+
     // =====================================================================================================================//
     // HELPERS TO UPDATE (CONTINUATION) HISTORY                                                                             //
     // =====================================================================================================================//
-    #[inline(always)]
-    fn update_history_value(history_value: &mut i16, bonus: i32) {
-        let clamped = bonus.clamp(-MAX_HISTORY, MAX_HISTORY);
 
-        let new = *history_value as i32
-                + clamped
-                - (*history_value as i32 * clamped.abs() / MAX_HISTORY);
-
-        *history_value = new.clamp(-MAX_HISTORY, MAX_HISTORY) as i16;
-    }
     #[inline(always)]
-    pub fn get_history_score(&self, pos: &Chess, mv: Move, ply: usize) -> i32 {
+    pub fn get_quiet_history_score(&self, pos: &Chess, mv: Move, ply: usize) -> i32 {
         if mv.is_capture() {
             return 0;
         }
@@ -157,7 +217,35 @@ impl<'a> SearchContext<'a> {
 
         score
     }
+    #[inline(always)]
+    pub fn get_capture_history_score(&self, pos: &Chess, mv: Move) -> i32 {
+        if !mv.is_capture() {
+            return 0;
+        }
 
+        let board = pos.board();
+
+
+        let to_sq   = mv.to();
+        let from_sq = mv.from().unwrap();
+        let captured_piece = board.role_at(to_sq).unwrap_or(Role::Pawn) as usize - 1; // If none it is en passant so captured piece is pawn
+        let moved_piece = board.role_at(from_sq).unwrap() as usize - 1;
+
+
+        self.capture_history[captured_piece][to_sq.to_usize()][moved_piece] as i32
+
+    }
+
+    #[inline(always)]
+    fn update_history_value(history_value: &mut i16, bonus: i32) {
+        let clamped = bonus.clamp(-MAX_HISTORY, MAX_HISTORY);
+
+        let new = *history_value as i32
+            + clamped
+            - (*history_value as i32 * clamped.abs() / MAX_HISTORY);
+
+        *history_value = new.clamp(-MAX_HISTORY, MAX_HISTORY) as i16;
+    }
     #[inline(always)]
     fn update_continuation_value(&mut self, ply : usize, m : Move, bonus : i32){
         let piece = m.role() as usize - 1;
@@ -180,56 +268,6 @@ impl<'a> SearchContext<'a> {
         }
     }
 
-    // =====================================================================================================================//
-    // UPDATE QUIET HISTORY                                                                                                 //
-    // =====================================================================================================================//
-
-    #[inline(always)]
-    pub fn update_quiet_history(
-        &mut self,
-        side: usize,
-        mv: Move,
-        bonus: i32,
-        quiets_searched: &[Move]
-    ) {
-
-        let from = mv.from().unwrap().to_usize();
-        let to   = mv.to().to_usize();
-
-        Self::update_history_value(&mut self.history[side][from][to], bonus);
-
-        // Malus for other quiets
-        for &m in quiets_searched {
-            if m != mv {
-                let f = m.from().unwrap().to_usize();
-                let t = m.to().to_usize();
-
-                Self::update_history_value(&mut self.history[side][f][t], -bonus/self.params.cont_hist_malus_scaling as i32);
-            }
-        }
-    }
-
-    // =====================================================================================================================//
-    // UPDATE CONTINUATION HISTORY                                                                                          //
-    // =====================================================================================================================//
-    #[inline(always)]
-    pub fn update_continuation_history(
-        &mut self,
-        ply: usize,
-        mv: Move,
-        bonus : i32,
-        quiets_searched: &[Move]
-    ) {
-        self.update_continuation_value(ply, mv, bonus);
-
-
-        // malus for continuation history
-        for &m in quiets_searched {
-            if m != mv {
-                self.update_continuation_value(ply,m,-bonus/(2*self.params.cont_hist_malus_scaling as i32));
-            }
-        }
-    }
 
     // =====================================================================================================================//
     // CHECK IF IMPROVING                                                                                                   //

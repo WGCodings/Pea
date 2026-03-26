@@ -80,8 +80,10 @@ impl MoveOrdering {
         // ============================================================
         // 2. Captures W SEE
         // ============================================================
+        // TODO ADD CAPTURE HISTORY
         if mv.is_capture() {
             let see = see(pos, *mv);
+
             if see > 0{
                 return 800_000 + see as i32
             }
@@ -137,10 +139,13 @@ impl MoveOrdering {
     // =====================================================================================================================//
     // ASSIGN SCORE CAPTURE MOVES, SHOULD ADD SEE                                                                           //
     // =====================================================================================================================//
-    // TODO ADD SEE
+    // TODO ADD SEE AND CAPTURE HISTORY
     #[inline(always)]
-    pub fn order_captures(&self, pos: &Chess, moves: &mut [Move]) {
-        moves.sort_by_key(|mv| -self.mvv_lva_score(pos, mv));
+    pub fn order_captures(&self, pos : &Chess, moves: &mut [Move]) {
+
+        moves.sort_by_key(|mv| {
+            -self.mvv_lva_score(pos, mv)
+        });
     }
     #[inline(always)]
     fn mvv_lva_score(&self, pos: &Chess, mv: &Move) -> i32 {
