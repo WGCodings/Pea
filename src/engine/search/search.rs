@@ -364,7 +364,7 @@ pub fn negamax(
             && depth <= ctx.params.hist_prune_depth as usize
             && moves_searched > 1  // never prune first move?
         {
-            if is_quiet{
+            if is_quiet && false{
                 let hist = ctx.get_quiet_history_score(pos, mv, ply);
                 if hist < -(ctx.params.hist_prune_margin as i32 * depth as i32) {
                     continue;
@@ -645,7 +645,7 @@ fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, depth: usize, prev_sc
     let mut window = ctx.params.aspw_window_size as i32;
     let mut alpha = prev_score - window;
     let mut beta = prev_score + window;
-
+    // TODO WINDOW X+avg squared score/Y or prev_score - score scaling
     loop {
         let score = negamax(pos, ctx, depth, 0, alpha, beta, true, pv);
 

@@ -37,7 +37,7 @@ pub fn run_spsa() {
             println!("Playing match against base version.");
 
 
-            let result = run_match("src/tuner/config/best_params.yaml", "src/tuner/config/params.yaml", "BEST","BASE",games_per_iteration);
+            let result = run_match("src/tuner/config/best_params.yaml", "src/tuner/config/params_patch.yaml", "BEST","BASE",games_per_iteration);
 
             let elo = elo_from_wdl(result.wins, result.losses, result.draws);
 

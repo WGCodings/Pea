@@ -68,13 +68,11 @@ impl Params {
     pub fn load_yaml(path: &str) -> Self {
         match fs::read_to_string(path) {
             Ok(file) =>
-            { serde_yaml::from_str::<Params>(&file.as_str()).unwrap_or_else(|_| { eprintln!("Failed to parse params.yaml, using defaults.");
-                Params::default() }) }
-            Err(_) => { eprintln!("Failed to read params.yaml, using defaults.");
-                Params::default() } } }
+            { serde_yaml::from_str::<Params>(&file.as_str()).unwrap_or_else(|_| {Params::default() }) }
+            Err(_) => { Params::default() } } }
     pub fn save_yaml(&self, path: &str) {
         let yaml = serde_yaml::to_string(self).expect("Failed to serialize params");
-        fs::write(path, yaml).expect("Failed to write params.yaml");
+        fs::write(path, yaml).expect("Failed to write params_patch.yaml");
     }
 
 
