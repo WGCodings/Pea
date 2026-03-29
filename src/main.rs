@@ -31,7 +31,7 @@ use crate::tuner::perturb::perturb_params;
 fn main() {
 
     // Load in nnue
-    static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/huge1536-0.2-0.9 wdl/2_output_buckets-500/quantised.bin")) };
+    static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/files/quantised.bin")) };
 
 
 

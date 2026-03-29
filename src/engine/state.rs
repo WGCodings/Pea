@@ -26,7 +26,7 @@ pub struct EngineState {
 
 impl EngineState {
     pub fn new() -> Self {
-        let params = Params::load_yaml("C:/Users/warre/RustroverProjects/FastPeaPea/src/tuner/config/params.yaml");
+        let params = Params::load_yaml("src/tuner/config/params.yaml");
         let position = Chess::new();
         let mut repetition_stack: Vec<u64> = Vec::with_capacity(256);
 
