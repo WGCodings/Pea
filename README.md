@@ -95,7 +95,7 @@ Below is a table of Elo estimates from having the engine play against other engi
 
 | Version | Estimate (5/0.1) | [CCRL](https://computerchess.org.uk/ccrl/4040/) (40/15) | [CCRL Blitz](https://computerchess.org.uk/ccrl/404b/) (2/1) |
 |-------|------------------|---------------------------------------------------------|-------------------------------------------------------------|
-| v1.0  | 3379*            | None   yet                                              | None            yet                                         |
+| v1.0  | 3397             | None   yet                                              | None            yet                                         |
 
 *Results from a match against Stash v36 which should be around 3384 ELO -> see below
 
@@ -103,15 +103,15 @@ Below is a table of Elo estimates from having the engine play against other engi
 
 Results of PEA vs STASH36 (5+0.1, 1t, 256MB, book.epd):
 
-Elo: -4.84 +/- 6.08, nElo: -5.86 +/- 7.36
+Elo: 13.08 +/- 7.59, nElo: 16.28 +/- 9.43
 
-LOS: 5.95 %, DrawRatio: 38.71 %, PairsRatio: 0.98
+LOS: 99.96 %, DrawRatio: 40.73 %, PairsRatio: 1.22
 
-Games: 8550, Wins: 3213, Losses: 3332, Draws: 2005, Points: 4215.5 (49.30 %)
+Games: 5210, Wins: 2089, Losses: 1893, Draws: 1228, Points: 2703.0 (51.88 %)
 
-Ptnml(0-2): [585, 735, 1655, 814, 486], WL/DD Ratio: 6.26
+Ptnml(0-2): [284, 411, 1061, 523, 326], WL/DD Ratio: 6.22
 
-LLR: -2.96 (-100.5%) (-2.94, 2.94) [0.00, 5.00]
+LLR: 2.96 (100.6%) (-2.94, 2.94) [0.00, 5.00]
 
 --------------------------------------------------
 
@@ -182,6 +182,7 @@ The engine is also available to play on [lichess][lichess-link].
 - [ ] Try improving heuristic in LMR
 - [ ] Contempt
 - [ ] WDL normalization
+- [ ] Variable window choice in Asp Window
 
 ## Acknowledgements
 
