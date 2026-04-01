@@ -189,7 +189,7 @@ This project is licensed under the [GNU General Public License v3.0][license-lin
 [release-link]: https://github.com/WGCodings/Pea/releases/latest
 
 [lichess-badge]: https://img.shields.io/badge/Play-latest-green?logo=lichess&style=for-the-badge
-[lichess-link]: https://lichess.org/@/MCPeaSearch
+[lichess-link]: https://lichess.org/@/Pea-Bot
 
 <!-- Links -->
 [shakmaty]: https://github.com/niklasf/shakmaty
