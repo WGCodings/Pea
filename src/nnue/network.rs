@@ -1,9 +1,9 @@
-const HIDDEN_SIZE: usize = 1536;
+const HIDDEN_SIZE: usize = 64;
 const SCALE: i32 = 400;
 const QA: i16 = 255;
 const QB: i16 = 64;
 
-const NUM_OUTPUT_BUCKETS : usize = 8;
+const NUM_OUTPUT_BUCKETS : usize = 1;
 
 
 use shakmaty::{Chess, Color, Position, Role};

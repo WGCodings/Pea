@@ -16,6 +16,7 @@ pub enum UciCommand {
         winc: Option<u64>,
         binc: Option<u64>,
         depth: Option<u32>,
+        nodes : Option<u64>,
         ponder : bool
     },
     PonderHit,
@@ -36,6 +37,7 @@ pub enum UciCommand {
         c: f64,
     },
     RunSPSA,
+    DataGen,
     Unknown,
 }
 // Commands to be used in teh SPSA tuner
@@ -83,6 +85,7 @@ pub fn parse_command(input: &str) -> UciCommand {
             let mut winc = None;
             let mut binc = None;
             let mut depth = None;
+            let mut nodes = None;
             let mut ponder = false;
 
             let mut i = 1;
@@ -90,7 +93,7 @@ pub fn parse_command(input: &str) -> UciCommand {
             while i < tokens.len() {
                 match tokens[i] {
                     "ponder" => { ponder = true; i += 1; }
-                    "wtime" | "btime" | "movetime" | "winc" | "binc" | "depth" => {
+                    "wtime" | "btime" | "movetime" | "winc" | "binc" | "depth" | "nodes" => {
                         if i + 1 < tokens.len() {
                             match tokens[i] {
                                 "wtime"    => wtime    = tokens[i+1].parse().ok(),
@@ -99,6 +102,7 @@ pub fn parse_command(input: &str) -> UciCommand {
                                 "winc"     => winc     = tokens[i+1].parse().ok(),
                                 "binc"     => binc     = tokens[i+1].parse().ok(),
                                 "depth"    => depth    = tokens[i+1].parse().ok(),
+                                "nodes"    => nodes    = tokens[i+1].parse().ok(),
                                 _ => {}
                             }
                             i += 2;
@@ -117,6 +121,7 @@ pub fn parse_command(input: &str) -> UciCommand {
                 winc,
                 binc,
                 depth,
+                nodes,
                 ponder
             }
         }
@@ -194,6 +199,7 @@ pub fn parse_command(input: &str) -> UciCommand {
             }
         },
         "runspsa" => UciCommand::RunSPSA,
+        "datagen" => UciCommand::DataGen,
 
         _ => UciCommand::Unknown,
     }

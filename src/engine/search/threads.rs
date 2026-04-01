@@ -1,3 +1,4 @@
+
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
@@ -25,6 +26,7 @@ impl Threads {
         ordering: &MoveOrdering,
         network: &'static Network,
         max_depth: usize,
+        max_nodes : u64,
         time_limit: Option<Duration>,
         stop: Arc<AtomicBool>,
     ) -> (i32, Move, Vec<Option<Move>>) {
@@ -60,16 +62,14 @@ impl Threads {
                 // Offset depth to diversify search
                 let offset_depth = max_depth+3%thread_id;
                 //println!("Starting helper thread {}...", thread_id);
-                search(&pos, &mut ctx, offset_depth, time_limit);
+                search(&pos, &mut ctx, offset_depth, time_limit,max_nodes);
             })
         }).collect();
 
         // Main thread
-        let mut main_ctx = build_main_context(
-            engine_state, ordering, network,
-            stop.clone(), node_count.clone(), time_limit);
+        let mut main_ctx = build_main_context(engine_state, ordering, network, stop.clone(), node_count.clone(), time_limit);
         //println!("Starting main thread.");
-        let (score, mv, pv) = search(pos, &mut main_ctx, max_depth, time_limit);
+        let (score, mv, pv) = search(pos, &mut main_ctx, max_depth, time_limit,max_nodes);
 
         // Stop helpers
         (*stop).store(true, Ordering::Relaxed);
@@ -119,9 +119,8 @@ impl Threads {
                 let mut ctx = build_search_context(
                     tt, &params, &ordering, network,
                     rep_stack, nnue_state, stop, nodes, false,
-                    Some(Duration::MAX / 10),
-                );
-                search(&pos, &mut ctx, 64, Some(Duration::MAX / 10));
+                    Some(Duration::MAX / 10));
+                search(&pos, &mut ctx, 64, Some(Duration::MAX / 10), u64::MAX);
                 eprintln!("DEBUG: helper ponder thread stopped");
             });
         }
@@ -135,9 +134,9 @@ impl Threads {
             let mut ctx = build_search_context(
                 tt, &params, &ordering, network,
                 rep_stack, nnue_state, stop, node_count, true,
-                Some(Duration::MAX / 10),
+                Some(Duration::MAX / 10)
             );
-            let (_, mv, _) = search(&pos, &mut ctx, 64, Some(Duration::MAX / 10));
+            let (_, mv, _) = search(&pos, &mut ctx, 64, Some(Duration::MAX / 10), u64::MAX);
 
             let is_pondering = (*is_pondering).load(Ordering::Relaxed);
 

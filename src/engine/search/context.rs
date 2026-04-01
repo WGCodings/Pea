@@ -20,6 +20,8 @@ pub struct Stack {
 pub struct SearchContext<'a> {
     pub start_time: Instant,
     pub time_limit: Duration,
+    pub node_limit : u64,
+
     pub stop: Arc<AtomicBool>, // Arc to share across threads
     pub node_count: Arc<AtomicU64>,  // node counting over multiple threads
     pub is_main : bool, // Flag to check if this is a main or helper thread

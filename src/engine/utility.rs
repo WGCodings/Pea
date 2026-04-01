@@ -79,6 +79,7 @@ pub fn build_search_context<'a>(
     SearchContext {
         start_time:             Instant::now(),
         time_limit:             time_limit.unwrap_or(Duration::from_millis(100)),
+        node_limit:             u64::MAX,
         stop,
         node_count,
         is_main,

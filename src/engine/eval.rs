@@ -8,9 +8,9 @@ use crate::nnue::network::{Accumulator, Network};
 // =====================================================================================================================//
 pub fn evaluate(pos: &Chess, net: &Network,us: &Accumulator, them: &Accumulator) -> i32 {
     let nnue_score= net.evaluate(us,them,pos);
-    let mopup_score = mopup_evaluation(pos,nnue_score);
+    //let mopup_score = mopup_evaluation(pos,nnue_score);
 
-    (nnue_score + mopup_score).clamp(-MATE_SCORE + 1000, MATE_SCORE - 1000)
+    nnue_score.clamp(-MATE_SCORE + 1000, MATE_SCORE - 1000)
 }
 
 // =====================================================================================================================//
@@ -92,5 +92,8 @@ fn _hce(pos: &Chess) -> i32 {
         score += val * white.count() as i32;
         score -= val * black.count() as i32;
     }
-    score
+    let mobility = pos.legal_moves().len() as i32;
+    let mobility_bonus = if pos.turn() == Color::White { mobility  } else { -mobility };
+
+    score + mobility_bonus
 }

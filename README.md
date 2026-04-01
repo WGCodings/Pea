@@ -26,6 +26,9 @@ Move generation and board representation are handled by the [shakmaty][shakmaty]
 As a Rust beginner, I wanted to focus on search and evaluation first rather than getting bogged down in the details of legal move generation. 
 Writing my own move generator is on the roadmap and maybe the start of my fourth attempt to make an engine?
 
+I'm currently training a NNUE from scratch. For more information about this progression see the CHANGELOG.md. 
+You can play the latest generation of my network on [lichess][lichess-link].
+
 ---
 
 ## Features
@@ -95,25 +98,7 @@ Below is a table of Elo estimates from having the engine play against other engi
 
 | Version | Estimate (5/0.1) | [CCRL](https://computerchess.org.uk/ccrl/4040/) (40/15) | [CCRL Blitz](https://computerchess.org.uk/ccrl/404b/) (2/1) |
 |-------|------------------|---------------------------------------------------------|-------------------------------------------------------------|
-| v1.0  | 3397             | None   yet                                              | None            yet                                         |
-
-*Results from a match against Stash v36 which should be around 3384 ELO -> see below
-
---------------------------------------------------
-
-Results of PEA vs STASH36 (5+0.1, 1t, 256MB, book.epd):
-
-Elo: 13.08 +/- 7.59, nElo: 16.28 +/- 9.43
-
-LOS: 99.96 %, DrawRatio: 40.73 %, PairsRatio: 1.22
-
-Games: 5210, Wins: 2089, Losses: 1893, Draws: 1228, Points: 2703.0 (51.88 %)
-
-Ptnml(0-2): [284, 411, 1061, 523, 326], WL/DD Ratio: 6.22
-
-LLR: 2.96 (100.6%) (-2.94, 2.94) [0.00, 5.00]
-
---------------------------------------------------
+| v1.0  | None    yet      | None   yet                                              | None            yet                                         |
 
 
 

@@ -37,11 +37,13 @@ impl SearchStats {
     }
 }
 
-pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>) -> (i32, Move, Vec<Option<Move>>) {
+pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>, max_nodes : u64) -> (i32, Move, Vec<Option<Move>>) {
     let start_time = Instant::now();
     let base_time = time_remaining.unwrap();
 
     ctx.time_limit = base_time;
+    ctx.node_limit = max_nodes;
+
     ctx.start_time = start_time;
     (*ctx.stop).store(false, Ordering::Relaxed);
     ctx.tt.increment_age();
@@ -58,7 +60,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     for depth in 1..=max_depth {
         pv.clear();
 
-        if tm.should_stop() { break; }
+        if tm.should_stop() && depth > 1 { break; }
 
         let score = if depth >= ctx.params.aspw_min_depth as usize {
             aspiration_search(pos, ctx, depth, prev_score, &mut pv)
@@ -66,7 +68,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
             negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, true, &mut pv)
         };
 
-        if (*ctx.stop).load(Ordering::Relaxed) { break; }
+        if (*ctx.stop).load(Ordering::Relaxed) && depth >1 { break; }
 
         tm.update(score, pv.best_move());
 
@@ -86,7 +88,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     }
 
     ctx.stats.duration = tm.elapsed();
-    (best_score, best_move.expect("No legal move found"), tt_pv)
+    (best_score, best_move.unwrap(), tt_pv)
 }
 
 
@@ -664,8 +666,8 @@ fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, depth: usize, prev_sc
 }
 #[inline(always)]
 fn check_time(ctx: &SearchContext) {
-    if ctx.stats.nodes % 13337 == 0 {
-        if ctx.start_time.elapsed() >= ctx.time_limit{
+    if ctx.stats.nodes % 2047 == 0 {
+        if (ctx.start_time.elapsed() >= ctx.time_limit) || (ctx.stats.nodes >= ctx.node_limit) {
             (*ctx.stop).store(true, Ordering::Relaxed);
         }
     }

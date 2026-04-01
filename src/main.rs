@@ -12,7 +12,7 @@ use std::io::{self, BufRead};
 
 
 use shakmaty::{perft, Chess, Move, Position};
-
+use crate::datagen::datagen_main::run_datagen;
 use crate::uci::{parser::*, state::*};
 
 use crate::engine::params::Params;
@@ -31,10 +31,10 @@ use crate::tuner::perturb::perturb_params;
 fn main() {
 
     // Load in nnue
-    static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/files/quantised.bin")) };
+    static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/run1_net_0/run1_net_0-10/quantised.bin")) };
 
-
-
+    //_generate_random_network("C:/Users/warre/RustroverProjects/FastPeaPea/nnue/net_0.bin", 64, 1);
+    //_generate_random_network("C:/Users/warre/RustroverProjects/FastPeaPea/nnue/net_1.bin", 64, 1);
     // Initialize uci state (manages commands) and engine state (manages repetition stack, TT and contains params the engine is using)
     let stdin = io::stdin();
     let mut uci_state = UciState::new();
@@ -90,13 +90,14 @@ fn main() {
                 }
             }
 
-            UciCommand::Go { wtime, btime, winc, binc, movetime, depth,ponder} => {
+            UciCommand::Go { wtime, btime, winc, binc, movetime, depth, nodes, ponder} => {
 
                 // Save time for if we ponderhit, then we search with saved time left
                 uci_state.save_time(wtime, btime, winc, binc);
                 uci_state.reset_stop();
 
                 let max_depth = depth.map_or(64, |d| d as usize );
+                let max_nodes = nodes.unwrap_or(u64::MAX);
                 let ordering = MoveOrdering::new(&PIECE_VALUES);
                 let position = engine_state.position.clone();
 
@@ -118,7 +119,7 @@ fn main() {
 
                     let (_, best_move, pv) = Threads::search(
                         &position, &mut engine_state, &ordering, &NNUE,
-                        max_depth, time_limit, uci_state.stop.clone(),
+                        max_depth, max_nodes, time_limit, uci_state.stop.clone(),
                     );
                     print_bestmove(best_move, &pv, &mut engine_state, &uci_state);
                 }
@@ -145,7 +146,7 @@ fn main() {
                 let position = engine_state.position.clone();
                 let (_, best_move, pv) = Threads::search(
                     &position, &mut engine_state, &ordering,
-                    &NNUE, 64, time_limit, uci_state.stop.clone(),
+                    &NNUE, 64, u64::MAX, time_limit, uci_state.stop.clone(),
                 );
 
                 print_bestmove(best_move, &pv, &mut engine_state, &uci_state);
@@ -227,7 +228,9 @@ fn main() {
             UciCommand::RunSPSA =>{
                 run_spsa();
             },
-
+            UciCommand::DataGen =>{
+                run_datagen();
+            }
             _ => {}
         }
     }
