@@ -13,6 +13,7 @@ use std::io::{self, BufRead};
 
 use shakmaty::{perft, Chess, Move, Position};
 use crate::datagen::datagen_main::run_datagen;
+use crate::datagen::init::_generate_random_network;
 use crate::uci::{parser::*, state::*};
 
 use crate::engine::params::Params;
@@ -31,9 +32,9 @@ use crate::tuner::perturb::perturb_params;
 fn main() {
 
     // Load in nnue
-    static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/run1_net_0/run1_net_0-10/quantised.bin")) };
+    static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/run1_net_0/run1_net_0-20/quantised.bin")) };
 
-    //_generate_random_network("C:/Users/warre/RustroverProjects/FastPeaPea/nnue/net_0.bin", 64, 1);
+    //_generate_random_network("C:/Users/warre/RustroverProjects/FastPeaPea/nnue/net_0.bin", 1536, 8);
     //_generate_random_network("C:/Users/warre/RustroverProjects/FastPeaPea/nnue/net_1.bin", 64, 1);
     // Initialize uci state (manages commands) and engine state (manages repetition stack, TT and contains params the engine is using)
     let stdin = io::stdin();

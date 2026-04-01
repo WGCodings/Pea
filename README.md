@@ -9,8 +9,8 @@
 
 [![License: GPL v3][license-badge]][license-link]
 [![Release][release-badge]][release-link]
-[![Release][lichess-badge]][lichess-link]
-
+[![Release][lichess-badge0]][lichess-link0]
+[![Release][lichess-badge1]][lichess-link1]
 
 </div>
 
@@ -26,8 +26,9 @@ Move generation and board representation are handled by the [shakmaty][shakmaty]
 As a Rust beginner, I wanted to focus on search and evaluation first rather than getting bogged down in the details of legal move generation. 
 Writing my own move generator is on the roadmap and maybe the start of my fourth attempt to make an engine?
 
-I'm currently training a NNUE from scratch. For more information about this progression see the CHANGELOG.md. 
-You can play the latest generation of my network on [lichess][lichess-link].
+I'm currently training two NNUEs from scratch. One with a big empty brain (768 -> 1536)x2 -> 1x8 and one small brain
+(768 -> 64)x2 -> 1. They train by constantly playing against eachother and learning from both views of the board. For more information about this progression see the CHANGELOG.md. 
+You can play the latest generations of my networks on lichess : [Big brain][lichess-link0], [Small brain][lichess-link1].
 
 ---
 
@@ -188,8 +189,11 @@ This project is licensed under the [GNU General Public License v3.0][license-lin
 [release-badge]: https://img.shields.io/github/v/release/WGCodings/Pea?style=for-the-badge&color=violet
 [release-link]: https://github.com/WGCodings/Pea/releases/latest
 
-[lichess-badge]: https://img.shields.io/badge/Play-latest-green?logo=lichess&style=for-the-badge
-[lichess-link]: https://lichess.org/@/Pea-Bot
+[lichess-badge0]: https://img.shields.io/badge/Play-Bigbrain-green?logo=lichess&style=for-the-badge
+[lichess-link0]: https://lichess.org/@/PeaNet0
+
+[lichess-badge1]: https://img.shields.io/badge/Play-Smallbrain-green?logo=lichess&style=for-the-badge
+[lichess-link1]: https://lichess.org/@/PeaNet1
 
 <!-- Links -->
 [shakmaty]: https://github.com/niklasf/shakmaty

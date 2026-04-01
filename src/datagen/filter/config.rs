@@ -69,7 +69,7 @@ impl FilterConfig {
             min_score:              0,
             max_per_pawn_hash:      0,
             target_positions:       0,
-            net_id:                 Some(0),
+            net_id:                 None,
             shuffle:                true,
             shuffle_seed:           None,
         }
