@@ -143,23 +143,21 @@ Running the binary directly drops you into a UCI prompt. In practice, you'll wan
 - [Shredder][shredder]
 
 
-The engine is also available to play on [lichess][lichess-link].
-
 ---
 
 
 ## Roadmap
 
+- [ ] IN PROGRESS : Solve NNUE bias towards White
+- [ ] IN PROGRESS : Investigate better NNUE architectures (two adversarial networks from scratch?)
+- [ ] IN PROGRESS : Data generator for NNUE training
 - [ ] Self-made move generation and board representation
 - [ ] Correction history
 - [ ] Successful run of SPSA
-- [ ] Investigate better NNUE architectures (two adversarial networks from scratch?)
-- [ ] Data generator for NNUE training
 - [ ] Clean up code, especially datatypes (too many `as` casts)
 - [ ] Better time manager
 - [ ] Integration with OpenBench
 - [ ] Capture history
-- [ ] Solve NNUE bias towards White 
 - [ ] Fix missing PV lines due to cutoffs
 - [ ] Store evals in TT before recursive search
 - [ ] Mate Distance Pruning

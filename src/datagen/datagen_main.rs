@@ -159,24 +159,30 @@ fn print_config(config: &DatagenConfig) {
     println!("info string   output  : {}",                          config.output_dir);
 }
 
-fn load_network(path: &str) -> Network {
-    let bytes = std::fs::read(path)
+fn load_network(path: &str) -> Box<Network> {
+    let bytes = fs::read(path)
         .unwrap_or_else(|e| panic!("Failed to load network '{}': {}", path, e));
+
 
     assert_eq!(
         bytes.len(),
-        std::mem::size_of::<Network>(),
+        size_of::<Network>(),
         "Network '{}': file is {} bytes but Network struct is {} bytes",
-        path, bytes.len(), std::mem::size_of::<Network>()
+        path, bytes.len(), size_of::<Network>()
     );
 
+    let mut network = Box::new(unsafe { std::mem::zeroed::<Network>() });
+
     unsafe {
-        let mut network = std::mem::zeroed::<Network>();
         std::ptr::copy_nonoverlapping(
             bytes.as_ptr(),
-            &mut network as *mut Network as *mut u8,
+            (&mut *network) as *mut Network as *mut u8,
             bytes.len(),
         );
         network
     }
+
+
+
+
 }

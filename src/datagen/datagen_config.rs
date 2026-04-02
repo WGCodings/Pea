@@ -39,12 +39,12 @@ impl DatagenConfig {
             nodes_per_move:        5_000,
             num_threads:           15,
             random_opening_plies:  6,
-            target_positions:      100_000_000,
+            target_positions:      50_000_000,
             adjudication_score:    2000,
             adjudication_plies:    8,
             draw_adjudication_score: 10,
-            net_0_path:            "../../nnue/run1_net_0/run1_net_0-10/quantised.bin".to_string(),
-            net_1_path:            "../../nnue/run1_net_1/run1_net_1-10/quantised.bin".to_string(),
+            net_0_path:            "../../nnue/run1_net_0/run1_net_0-60/quantised.bin".to_string(),
+            net_1_path:            "../../nnue/run1_net_0/run1_net_0-60/quantised.bin".to_string(),
             output_dir:            "C:/Users/warre/RustroverProjects/FastPeaPea/nnue/data/run2".to_string(),
         }
     }
