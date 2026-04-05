@@ -12,17 +12,7 @@ use shakmaty::{Chess, Color, Position, Role};
 // =====================================================================================================================//
 // NNUE NETWORK IS TRAINED BY THE BULLET CRATE AND CODE HAS BEEN REUSED FROM ONE OF THE EXAMPLES TO DO THE INFERENCE
 // =====================================================================================================================//
-#[inline(always)]
-pub fn role_index(role: Role) -> usize {
-    match role {
-        Role::Pawn => 0,
-        Role::Knight => 1,
-        Role::Bishop => 2,
-        Role::Rook => 3,
-        Role::Queen => 4,
-        Role::King => 5,
-    }
-}
+
 #[inline(always)]
 pub fn accumulators_from_position<P: Position>(
     pos: &P,
@@ -66,7 +56,17 @@ pub fn calculate_index(mut side: usize, mut sq_idx: usize, piece_type : usize, p
 
 }
 
-
+#[inline(always)]
+pub fn role_index(role: Role) -> usize {
+    match role {
+        Role::Pawn => 0,
+        Role::Knight => 1,
+        Role::Bishop => 2,
+        Role::Rook => 3,
+        Role::Queen => 4,
+        Role::King => 5,
+    }
+}
 
 #[inline]
 /// Square Clipped ReLU - Activation Function.

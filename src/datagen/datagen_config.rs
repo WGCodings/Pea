@@ -36,16 +36,16 @@ pub struct DatagenConfig {
 impl DatagenConfig {
     pub(crate) fn default() -> Self {
         Self {
-            nodes_per_move:        5_000,
-            num_threads:           15,
-            random_opening_plies:  6,
-            target_positions:      50_000_000,
-            adjudication_score:    2000,
-            adjudication_plies:    8,
+            nodes_per_move:        6_000,
+            num_threads:           10,
+            random_opening_plies:  8,
+            target_positions:      100_000_000,
+            adjudication_score:    3000,
+            adjudication_plies:    10,
             draw_adjudication_score: 10,
-            net_0_path:            "../../nnue/run1_net_0/run1_net_0-60/quantised.bin".to_string(),
-            net_1_path:            "../../nnue/run1_net_0/run1_net_0-60/quantised.bin".to_string(),
-            output_dir:            "C:/Users/warre/RustroverProjects/FastPeaPea/nnue/data/run2".to_string(),
+            net_0_path:            "../../nnue/run3_net_1/run3_net_1-10/quantised.bin".to_string(),
+            net_1_path:            "../../nnue/run3_net_1/run3_net_1-10/quantised.bin".to_string(),
+            output_dir:            "C:/Users/warre/RustroverProjects/FastPeaPea/nnue/data/run4".to_string(),
         }
     }
 }

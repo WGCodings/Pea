@@ -32,7 +32,7 @@ use crate::tuner::perturb::perturb_params;
 fn main() {
 
     // Load in nnue
-    static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/run2_1_net_1/run2_net_1-7/quantised.bin")) };
+    static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/run3_net_0/run3_net_0-7/quantised.bin")) };
 
     //_generate_random_network("C:/Users/warre/RustroverProjects/FastPeaPea/nnue/net_0.bin", 1536, 8);
     //_generate_random_network("C:/Users/warre/RustroverProjects/FastPeaPea/nnue/net_1.bin", 64, 1);

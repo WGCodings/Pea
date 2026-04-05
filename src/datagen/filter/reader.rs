@@ -16,13 +16,14 @@ pub struct RawPosition {
     pub wdl:       f32,   // white-relative: 1.0 / 0.5 / 0.0
     pub net_id:    u8,
     pub _nodes:     u64,
+    pub _depth:      usize,
     pub pawn_hash: u64,
 }
 
 impl RawPosition {
     pub fn from_line(line: &str) -> Option<Self> {
-        let parts: Vec<&str> = line.splitn(6, '|').collect();
-        if parts.len() != 6 { return None; }
+        let parts: Vec<&str> = line.splitn(7, '|').collect();
+        if parts.len() != 7 { return None; }
 
         Some(Self {
             fen:       parts[0].to_string(),
@@ -30,7 +31,8 @@ impl RawPosition {
             wdl:       parts[2].parse().ok()?,
             net_id:    parts[3].parse().ok()?,
             _nodes:     parts[4].parse().ok()?,
-            pawn_hash: u64::from_str_radix(parts[5].trim(), 16).ok()?,
+            _depth:     parts[5].parse().ok()?,
+            pawn_hash: u64::from_str_radix(parts[6].trim(), 16).ok()?,
         })
     }
 

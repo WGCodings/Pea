@@ -39,7 +39,7 @@ pub fn run_game(
     // Random opening                                                     //
     // ---------------------------------------------------------------- //
 
-    let random_plies = rng.random_range(2..config.random_opening_plies);
+    let random_plies = rng.random_range(0..config.random_opening_plies);
     let mut score_history: Vec<i32> = Vec::new(); // white-relative scores for adjudication
 
     for _ in 0..random_plies {
@@ -106,6 +106,8 @@ pub fn run_game(
             break adj_wdl;
         }
 
+
+
         // --- Filter and collect --- //
         if filter_position(&pos, &best_move, score as i16, MATE_THRESHOLD) == FilterResult::Keep {
             collected.push(RawPosition {
@@ -114,6 +116,7 @@ pub fn run_game(
                 wdl:       0.5, // filled in after game ends
                 net_id:    net_id as u8,
                 nodes,
+                depth : ctx.stats.completed_depth,
                 pawn_hash: pawn_hash(&pos),
             });
         }

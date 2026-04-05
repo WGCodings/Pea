@@ -13,13 +13,14 @@ use std::fs::{File, OpenOptions};
 /// One filtered position from a data generation game.
 /// Stored as a human-readable / easily parseable text line.
 /// Format (pipe-separated):
-///   fen|score|wdl|stm|net_id|ply|nodes|pawn_hash
+///   fen|score|wdl|stm|net_id|ply|nodes|depth|pawn_hash
 ///
 /// Fields:
 ///   fen        — FEN string of the position (without move counters)
 ///   score      — eval in centipawns from white perspective
 ///   wdl        — game result from White's perspective: 1.0 / 0.5 / 0.0
 ///   nodes      — nodes searched when choosing the move
+///   depth      — last completed depth in ID
 ///   pawn_hash  — pawn structure hash (hex) for correction history training
 #[derive(Debug, Clone)]
 pub struct RawPosition {
@@ -28,6 +29,7 @@ pub struct RawPosition {
     pub wdl:       f32,
     pub net_id:    u8,
     pub nodes:     u64,
+    pub depth:     usize,
     pub pawn_hash: u64,
 }
 
@@ -35,12 +37,13 @@ impl RawPosition {
     /// Serialize to a single pipe-separated line.
     pub fn to_line(&self) -> String {
         format!(
-            "{}|{}|{}|{}|{}|{:016x}",
+            "{}|{}|{}|{}|{}|{}|{:016x}",
             self.fen,
             self.score,
             self.wdl,
             self.net_id,
             self.nodes,
+            self.depth,
             self.pawn_hash,
         )
     }

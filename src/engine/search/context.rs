@@ -73,8 +73,8 @@ impl<'a> SearchContext<'a> {
 
             if hash == *current {
                 count += 1;
-                if count >= 1 {
-                    return true; // 2-fold repetition
+                if count >= 2 {
+                    return true; // 3-fold repetition
                 }
             }
         }
@@ -83,7 +83,7 @@ impl<'a> SearchContext<'a> {
     }
     #[inline(always)]
     pub fn is_50_moves(&self,pos: &Chess) -> bool {
-        pos.halfmoves()> 98
+        pos.halfmoves()>= 100
     }
 
     // =====================================================================================================================//
