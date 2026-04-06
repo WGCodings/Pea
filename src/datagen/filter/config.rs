@@ -65,7 +65,7 @@ impl FilterConfig {
             imbalance_threshold:    100,
             min_balanced_fraction:  0.5,
             min_imbalanced_fraction: 0.4,
-            max_score:              2000,
+            max_score:              3000,
             min_score:              0,
             max_per_pawn_hash:      0,
             target_positions:       0,

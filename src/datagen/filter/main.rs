@@ -41,7 +41,7 @@ fn main() {
         std::process::exit(1);
     }
 
-    println!("=== Pea Filter Tool ===");
+    println!("=== Filter Tool ===");
     println!("Input files:  {:?}", input_files);
     println!("Output file:  {}", output_file);
     println!("Max score:    {}cp", config.max_score);

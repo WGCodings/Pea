@@ -117,7 +117,7 @@ pub fn run_game(
                 net_id:    net_id as u8,
                 nodes,
                 depth : ctx.stats.completed_depth,
-                pawn_hash: pawn_hash(&pos),
+                pawn_hash: 0,
             });
         }
 
