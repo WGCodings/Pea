@@ -36,7 +36,7 @@ pub fn run_game(
     let mut collected: Vec<RawPosition> = Vec::new();
 
     // ---------------------------------------------------------------- //
-    // Random opening                                                     //
+    // Random opening TODO add opening book                             //
     // ---------------------------------------------------------------- //
 
     let random_plies = rng.random_range(0..config.random_opening_plies);
