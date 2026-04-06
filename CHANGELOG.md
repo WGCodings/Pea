@@ -16,6 +16,15 @@ The results for Gen x are always vs Gen x-1. For a more detailed match result se
 | **Net 0** | 0  | **+511.50 ± 92.45** | **+1000+ ± ?**  | **636.43 ± 109.02** | — | — |
 | **Net 1** | 0  | **+792.30 ± ?**     | **+916.01 ± ?** | **596.54 ± 106.05** | — |
 
+The plot below shows the training progression over the generations with error bars. 
+
+<div>
+
+<img src="./assets/TrainingProgression.png" width="500" />
+
+</div>
+
+
 #### Cross-net strength
 
 | Generation     | Match        | Elo ± Error         |

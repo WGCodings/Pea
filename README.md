@@ -30,6 +30,17 @@ I'm currently training two NNUEs from scratch. One with a big empty brain (768 -
 (768 -> 64)x2 -> 1. They train by constantly playing against eachother and learning from both views of the board. For more information about this progression see the CHANGELOG.md. 
 You can play the latest generations of my networks on lichess : [Big brain][lichess-link0], [Small brain][lichess-link1].
 
+The plot below shows the training progression over the generations with error bars:
+
+<div align="center">
+
+<img src="./assets/TrainingProgression.png" width="500" />
+
+</div>
+
+
+
+
 ---
 
 ## Features
@@ -97,9 +108,12 @@ Below is a table of Elo estimates from having the engine play against other engi
 [Stash][Stash] (and all its versions) have been used to estimate the rating of this engine.
 
 
-| Version | Estimate (5/0.1) | [CCRL](https://computerchess.org.uk/ccrl/4040/) (40/15) | [CCRL Blitz](https://computerchess.org.uk/ccrl/404b/) (2/1) |
-|-------|------------------|---------------------------------------------------------|-------------------------------------------------------------|
-| v1.0  | None    yet      | None   yet                                              | None            yet                                         |
+| Version | Estimate (8/0.08) | [CCRL](https://computerchess.org.uk/ccrl/4040/) (40/15) | [CCRL Blitz](https://computerchess.org.uk/ccrl/404b/) (2/1) |
+|---------|-------------------|---------------------------------------------------------|-------------------------------------------------------------|
+| v1.0    | 500-800           | /                                                       | /                                                           |
+| v2.0    |            | /                                                       | /                                                           |
+| v3.0    |            | /                                                       | /                                                           |
+| v4.0    |           | /                                                       | /                                                           |
 
 
 
@@ -148,9 +162,9 @@ Running the binary directly drops you into a UCI prompt. In practice, you'll wan
 
 ## Roadmap
 
-- [ ] IN PROGRESS : Solve NNUE bias towards White
+- [X] IN PROGRESS : Solve NNUE bias towards White
 - [ ] IN PROGRESS : Investigate better NNUE architectures (two adversarial networks from scratch?)
-- [ ] IN PROGRESS : Data generator for NNUE training
+- [X] IN PROGRESS : Data generator for NNUE training
 - [ ] Self-made move generation and board representation
 - [ ] Correction history
 - [ ] Successful run of SPSA

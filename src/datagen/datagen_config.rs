@@ -39,7 +39,7 @@ impl DatagenConfig {
             nodes_per_move:        6_000,
             num_threads:           10,
             random_opening_plies:  8,
-            target_positions:      100_000_000,
+            target_positions:      42_000_000,
             adjudication_score:    3000,
             adjudication_plies:    10,
             draw_adjudication_score: 10,
