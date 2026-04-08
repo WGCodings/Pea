@@ -110,11 +110,11 @@ Below is a table of Elo estimates from having the engine play against other engi
 
 | Version | Estimate (8/0.08) | [CCRL](https://computerchess.org.uk/ccrl/4040/) (40/15) | [CCRL Blitz](https://computerchess.org.uk/ccrl/404b/) (2/1) |
 |---------|-------------------|---------------------------------------------------------|-------------------------------------------------------------|
-| v1.0    | 500-800           | /                                                       | /                                                           |
-| v2.0    | 1257              | /                                                       | /                                                           |
-| v3.0    | 1981              | /                                                       | /                                                           |
-| v4.0    | 2271              | /                                                       | /                                                           |
-| v5.0    | 2501              | /                                                       | /                                                           |
+| v1.0    | 500-800  (Net 1)  | /                                                       | /                                                           |
+| v2.0    | 1257     (Net 1)  | /                                                       | /                                                           |
+| v3.0    | 1981     (Net 1)  | /                                                       | /                                                           |
+| v4.0    | 2271     (Net 1)  | /                                                       | /                                                           |
+| v5.0    | 2501     (Net 0)  | /                                                       | /                                                           |
 | v6.0    | /                 | /                                                       | /                                                           |
 
 
