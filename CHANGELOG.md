@@ -11,49 +11,51 @@ The results for Gen x are always vs Gen x-1. For a more detailed match result se
 
 #### Elo gain per generation
 
-| Net  | Gen 0 | Gen 1               | Gen 2           | Gen 3               | Gen 4              | Gen 5              | 
-|------------------|-----------------|---------------------|-----------------|---------------------|--------------------|--------------------|
-| **Net 0** | 0  | **+511.50 ± 92.45** | **+1000+ ± ?**  | **636.43 ± 109.02** | **183.78 ± 32.42** | **309.24 ± 40.38** | 
-| **Net 1** | 0  | **+792.30 ± ?**     | **+916.01 ± ?** | **596.54 ± 106.05** | **198.81 ± 32.13** | **151.58 ± 28.05** |
+| Net       | Gen 0 | Gen 1               | Gen 2           | Gen 3               | Gen 4              | Gen 5              | Gen 6              |
+|-----------|-------|---------------------|-----------------|---------------------|--------------------|--------------------|--------------------|
+| **Net 0** | 0     | **+511.50 ± 92.45** | **+1000+ ± ?**  | **636.43 ± 109.02** | **183.78 ± 32.42** | **309.24 ± 40.38** | **350.17 ± 47.62** | 
+| **Net 1** | 0     | **+792.30 ± ?**     | **+916.01 ± ?** | **596.54 ± 106.05** | **198.81 ± 32.13** | **151.58 ± 28.05** | **471.62 ± 69.61** |
 
 The plot below shows the training progression over the generations with error bars. 
 
 <div>
 
-<img src="./assets/TrainingProgression.png" width="500" />
+<img src="./assets/TrainingProgression.png" width="750" />
 
 </div>
 
 
 #### Cross-net strength
 
-| Generation     | Match        | Elo ± Error         |
-|----------------|--------------|---------------------|
-| Gen 0 (random) | Net0 vs Net1 | **-349.00 ± 59.30** |
-| Gen 1          | Net0 vs Net1 | **-408.33 ± 65.87** |
-| Gen 2          | Net0 vs Net1 | **-157.03 ± 32.50** |
-| Gen 3          | Net0 vs Net1 | **-72.26 ± 19.44**  |
-| Gen 4          | Net0 vs Net1 | **-45.54 ± 15.98**  |
-| Gen 5          | Net0 vs Net1 | **21.91   ± 15.45** |
+| Generation     | Match        | Elo ± Error          |
+|----------------|--------------|----------------------|
+| Gen 0 (random) | Net0 vs Net1 | **-349.00 ± 59.30**  |
+| Gen 1          | Net0 vs Net1 | **-408.33 ± 65.87**  |
+| Gen 2          | Net0 vs Net1 | **-157.03 ± 32.50**  |
+| Gen 3          | Net0 vs Net1 | **-72.26 ± 19.44**   |
+| Gen 4          | Net0 vs Net1 | **-45.54 ± 15.98**   |
+| Gen 5          | Net0 vs Net1 | **21.91   ± 15.45**  |
+| Gen 6          | Net0 vs Net1 | **-73.68   ± 19.98** |
 ---
 
 #### Elo estimates*
 
-| Nets ↓    | Elo     |
-|-----------|---------|
-| Net0-Gen0 | Too low |
-| Net1-Gen0 | Too low |
-| Net0-Gen1 | Too low |
-| Net1-Gen1 | Too low |
-| Net0-Gen2 | 1138    |
-| Net1-Gen2 | 1257    |
-| Net0-Gen3 | 1909    |
-| Net1-Gen3 | 1981    |
-| Net0-Gen4 | 2226    |
-| Net1-Gen4 | 2271    |
-| Net0-Gen5 | 2501    |
-| Net1-Gen5 | 2430    |
-
+| Nets ↓    | Elo       |
+|-----------|-----------|
+| Net0-Gen0 | Too low   |
+| Net1-Gen0 | Too low   |
+| Net0-Gen1 | Too low   |
+| Net1-Gen1 | Too low   |
+| Net0-Gen2 | 1138      |
+| Net1-Gen2 | 1257      |
+| Net0-Gen3 | 1909      |
+| Net1-Gen3 | 1981      |
+| Net0-Gen4 | 2226      |
+| Net1-Gen4 | 2271      |
+| Net0-Gen5 | 2501      |
+| Net1-Gen5 | 2430      |
+| Net0-Gen6 | 2742 ± 13 |
+| Net1-Gen6 | 2811 ± 23 |
 *Based on match vs different Stash versions (8s+0.08).  
  
 
@@ -252,10 +254,10 @@ Training parameters for this run :
 * start WDL : 0.0
 * end WDL : 1.0
 
-### 8.2. Results vs previous generation
+### 8.1. Results vs previous generation
 
 
-#### 8.2.1. Net 0
+#### 8.1.1. Net 0
 
 ```
 Results of GEN5_NET0 vs GEN4_NET0 (8+0.08, 1t, 256MB, book.epd):
@@ -263,7 +265,7 @@ Elo: 309.24 +/- 40.38, nElo: 456.29 +/- 36.40
 Games: 350, Wins: 266, Losses: 17, Draws: 67, Points: 299.5 (85.57 %)
 ```
 
-#### 8.2.2. Net 1
+#### 8.1.2. Net 1
 
 ```
 Results of GEN5_NET1 vs GEN4_NET1 (8+0.08, 1t, 256MB, book.epd):
@@ -285,4 +287,72 @@ Last iteration Net 1 was around 45 Elo stronger than Net 0 but this generation t
 I had expected Net 0 to be 100 Elo stronger based on the results vs the previous generation.
 However, Net 1 has been trained on data from Net 0 so it might over perform against it.
 
-## 9. Generation 6 
+## 9. Generation 6 (08/04/2026)
+
+Turned the knobs on the hyperparameters a lot here. These ones seemed to give the best performance.
+Trained both Net 0 and Net 1 with the same data and parameters.
+
+Training parameters for this run :
+* Positions : 20M Net 0
+* 10k nodes per position
+* Initial LR : 0.001
+* Final LR : 0.0001 * 0.3f32.powi(5)
+* start WDL : 0.0
+* end WDL : 0.25
+
+
+
+### 9.1. Results vs previous generation
+
+
+#### 9.1.1. Net 0
+
+```
+Results of GEN6_NET0 vs GEN5_NET0 (8+0.08, 1t, 256MB, book.epd):
+Elo: 350.17 +/- 47.62, nElo: 508.27 +/- 37.15
+Games: 336, Wins: 275, Losses: 18, Draws: 43, Points: 296.5 (88.24 %)
+```
+
+#### 9.1.2. Net 1
+
+```
+Results of GEN6_NET1 vs GEN5_NET1 (8+0.08, 1t, 256MB, book.epd):
+Elo: 471.62 +/- 69.61, nElo: 752.72 +/- 38.43
+Games: 314, Wins: 286, Losses: 11, Draws: 17, Points: 294.5 (93.79 %)
+```
+
+Gains are a bit less but it was also not the best quality (Net 1) data.
+
+### 9.2. Results Net 0 vs Net 1
+
+```
+Results of GEN6_NET0 vs GEN6_NET1 (8+0.08, 1t, 256MB, book.epd):
+Elo: -73.68 +/- 19.98, nElo: -91.35 +/- 24.02
+Games: 804, Wins: 220, Losses: 388, Draws: 196, Points: 318.0 (39.55 %)
+```
+
+### 9.3. Elo estimate
+
+Estimation done vs Stash v27 ~2713 Elo.
+
+**Net 0**
+
+```
+Results of GEN6_NET0 vs STASH21-2713 (8+0.08, 1t - NULL, 256MB, book.epd):
+Elo: 29.24 +/- 12.51, nElo: 32.86 +/- 13.99
+Games: 2370, Wins: 1095, Losses: 896, Draws: 379, Points: 1284.5 (54.20 %)
+Ptnml(0-2): [157, 144, 463, 185, 236], WL/DD Ratio: 17.52
+LLR: 2.95 (100.2%) (-2.94, 2.94) [0.00, 5.00]
+```
+
+**Net 1**
+
+```
+Results of GEN6_NET1 vs STASH21-2713 (8+0.08, 1t - NULL, 256MB, book.epd):
+Elo: 98.82 +/- 23.30, nElo: 115.00 +/- 25.66
+Games: 704, Wins: 403, Losses: 208, Draws: 93, Points: 449.5 (63.85 %)
+Ptnml(0-2): [24, 23, 147, 50, 108], WL/DD Ratio: 13.70
+LLR: 2.96 (100.5%) (-2.94, 2.94) [0.00, 5.00]
+```
+
+## 10. Generation 7 

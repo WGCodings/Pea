@@ -34,7 +34,7 @@ The plot below shows the training progression over the generations with error ba
 
 <div align="center">
 
-<img src="./assets/TrainingProgression.png" width="500" />
+<img src="./assets/TrainingProgression.png" width="750" />
 
 </div>
 
