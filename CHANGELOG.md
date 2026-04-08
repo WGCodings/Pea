@@ -11,10 +11,10 @@ The results for Gen x are always vs Gen x-1. For a more detailed match result se
 
 #### Elo gain per generation
 
-| Net  | Gen 0 | Gen 1               | Gen 2           | Gen 3               | Gen 4 | 
-|------------------|-----------------|---------------------|-----------------|---------------------|--------|
-| **Net 0** | 0  | **+511.50 ± 92.45** | **+1000+ ± ?**  | **636.43 ± 109.02** | — | — |
-| **Net 1** | 0  | **+792.30 ± ?**     | **+916.01 ± ?** | **596.54 ± 106.05** | — |
+| Net  | Gen 0 | Gen 1               | Gen 2           | Gen 3               | Gen 4              | Gen 5              | 
+|------------------|-----------------|---------------------|-----------------|---------------------|--------------------|--------------------|
+| **Net 0** | 0  | **+511.50 ± 92.45** | **+1000+ ± ?**  | **636.43 ± 109.02** | **183.78 ± 32.42** | **309.24 ± 40.38** | 
+| **Net 1** | 0  | **+792.30 ± ?**     | **+916.01 ± ?** | **596.54 ± 106.05** | **198.81 ± 32.13** | **151.58 ± 28.05** |
 
 The plot below shows the training progression over the generations with error bars. 
 
@@ -33,18 +33,30 @@ The plot below shows the training progression over the generations with error ba
 | Gen 1          | Net0 vs Net1 | **-408.33 ± 65.87** |
 | Gen 2          | Net0 vs Net1 | **-157.03 ± 32.50** |
 | Gen 3          | Net0 vs Net1 | **-72.26 ± 19.44**  |
-
+| Gen 4          | Net0 vs Net1 | **-45.54 ± 15.98**  |
+| Gen 5          | Net0 vs Net1 | **21.91   ± 15.45** |
 ---
 
-#### Elo estimates
+#### Elo estimates*
 
+| Nets ↓    | Elo     |
+|-----------|---------|
+| Net0-Gen0 | Too low |
+| Net1-Gen0 | Too low |
+| Net0-Gen1 | Too low |
+| Net1-Gen1 | Too low |
+| Net0-Gen2 | 1138    |
+| Net1-Gen2 | 1257    |
+| Net0-Gen3 | 1909    |
+| Net1-Gen3 | 1981    |
+| Net0-Gen4 | 2226    |
+| Net1-Gen4 | 2271    |
+| Net0-Gen5 | 2501    |
+| Net1-Gen5 | 2430    |
 
-| CCRL Estimate ↓ / Nets → | Net0-Gen0 | Net1-Gen0 | Net0-Gen1 | Net1-Gen1 | Net0-Gen2 | Net1-Gen2 | Net0-Gen3 | Net1-Gen3 | Net0-Gen4 | Net1-Gen4 |
-|--------------------------|-----------|-----------|-----------|-----------|-----------|-----------|-----------|------------|------------|------------|
-| CCRL Elo | Too low   | Too low   | Too low   | Too low   | 1138*     | 1257*     | 1909**    | 1981** |  |  |
+*Based on match vs different Stash versions (8s+0.08).  
+ 
 
-*Based on match vs Stash 9 (~1271 Elo).  
-**Based on match vs Stash 13 (~1965 Elo).
 
 ## 3. Baseline : Random nets (29/03/2026)
 
@@ -165,7 +177,7 @@ Conclusion? => You can use data from a simpler net in a more complex net but not
 
 Another 600 ELO gain this iteration!
 
-#### 5.2.1. Net 0
+#### 6.2.1. Net 0
 
 ```
 Results of GEN3-NET0 vs GEN2-NET0 (8+0.08, 1t, 256MB, book.epd):
@@ -173,7 +185,7 @@ Elo: 636.43 +/- 109.02, nElo: 1366.59 +/- 39.32
 Games: 300, Wins: 287, Losses: 2, Draws: 11, Points: 292.5 (97.50 %)
 ```
 
-#### 5.2.2. Net 1
+#### 6.2.2. Net 1
 
 
 ```
@@ -182,7 +194,7 @@ Elo: 596.54 +/- 106.05, nElo: 1100.62 +/- 39.06
 Games: 304, Wins: 288, Losses: 3, Draws: 13, Points: 294.5 (96.88 %)
 ```
 
-### 5.3. Results Net 0 vs Net 1
+### 6.3. Results Net 0 vs Net 1
 
 ```
 Results of GEN3-NET1 vs GEN3-NET0 (8+0.08, 1t, 256MB, book.epd):
@@ -190,3 +202,87 @@ Elo: 72.26 +/- 19.44, nElo: 86.38 +/- 22.55
 Games: 912, Wins: 428, Losses: 241, Draws: 243, Points: 549.5 (60.25 %)
 ```
 
+## 7. Generation 4 (06/04/2026)
+
+Generated 73M positions with Net1. I first wanted to generate 100M positions for each net but an idea 
+came to mind to do less fresh positions per generation but do more generations in general.
+So I cut this generation session short and will start this new method from generation 5.
+
+### 7.2. Results vs previous generation
+
+
+#### 7.2.1. Net 0
+
+```
+Results of GEN4-NET0 vs GEN3-NET0 (8+0.08, 1t, 256MB, book.epd):
+Elo: 183.78 +/- 32.42, nElo: 218.00 +/- 31.96
+Games: 454, Wins: 288, Losses: 68, Draws: 98, Points: 337.0 (74.23 %)
+```
+
+#### 7.2.2. Net 1
+
+```
+Results of GEN4-NET1 vs GEN3-NET1 (8+0.08, 1t, 256MB, book.epd):
+Elo: 198.81 +/- 32.13, nElo: 257.31 +/- 33.55
+Games: 412, Wins: 262, Losses: 49, Draws: 101, Points: 312.5 (75.85 %)
+```
+
+Gains are a bit less but it was also not the best quality (Net 1) data. 
+
+### 7.3. Results Net 0 vs Net 1
+
+```
+Results of GEN4-NET0 vs GEN4-NET1 (8+0.08, 1t, 256MB, book.epd):
+Elo: -45.54 +/- 15.98, nElo: -55.20 +/- 19.14
+Games: 1266, Wins: 351, Losses: 516, Draws: 399, Points: 550.5 (43.48 %)
+```
+
+## 8. Generation 5 (07/04/2026)
+
+I was reading through the paper where they trained AlphaZero and this was done by 700.000 generations with batches of around 4096 positions.
+From now I will only be using Net 0 data and focus on more generations with less data and more quality.
+I will increase nodes per position from 6000 to 8000 and test if 5-20M fresh positions is enough to get a gradual increase in strength.
+To make sure the network does not forget what it has learned, I will experiment with different initial learning rates and let it decrease with each new generation (much like was done with AlphaZero).
+Before with each generation, I always reset the LR to a rather big value. This might undo some previous features and overfit on the newest dataset.
+
+Training parameters for this run :
+* Positions : 20M Net 0
+* Initial LR : 0.0001
+* Final LR : 0.0001 * 0.3f32.powi(5)
+* start WDL : 0.0
+* end WDL : 1.0
+
+### 8.2. Results vs previous generation
+
+
+#### 8.2.1. Net 0
+
+```
+Results of GEN5_NET0 vs GEN4_NET0 (8+0.08, 1t, 256MB, book.epd):
+Elo: 309.24 +/- 40.38, nElo: 456.29 +/- 36.40
+Games: 350, Wins: 266, Losses: 17, Draws: 67, Points: 299.5 (85.57 %)
+```
+
+#### 8.2.2. Net 1
+
+```
+Results of GEN5_NET1 vs GEN4_NET1 (8+0.08, 1t, 256MB, book.epd):
+Elo: 151.58 +/- 28.05, nElo: 188.37 +/- 30.70
+Games: 492, Wins: 284, Losses: 82, Draws: 126, Points: 347.0 (70.53 %)
+```
+
+Gains are a bit less but it was also not the best quality (Net 1) data.
+
+### 8.3. Results Net 0 vs Net 1
+
+```
+Results of GEN5_NET0 vs GEN5_NET1 (8+0.08, 1t, 256MB, book.epd):
+Elo: 21.91 +/- 15.45, nElo: 24.70 +/- 17.35
+Games: 1540, Wins: 689, Losses: 592, Draws: 259, Points: 818.5 (53.15 %)
+```
+
+Last iteration Net 1 was around 45 Elo stronger than Net 0 but this generation they seem about equal.
+I had expected Net 0 to be 100 Elo stronger based on the results vs the previous generation.
+However, Net 1 has been trained on data from Net 0 so it might over perform against it.
+
+## 9. Generation 6 

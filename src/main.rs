@@ -31,7 +31,7 @@ use crate::tuner::perturb::perturb_params;
 fn main() {
 
     // Load in nnue
-    static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/run3_net_1/run3_net_1-10/quantised.bin")) };
+    static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/run2_net_1/run2_net_1-10/quantised.bin")) };
 
     // Initialize uci state (manages commands) and engine state (manages repetition stack, TT and contains params the engine is using)
     let stdin = io::stdin();
@@ -47,7 +47,7 @@ fn main() {
 
         match cmd {
             UciCommand::Uci => {
-                println!("id name Pea 1.0");
+                println!("id name Pea 2.0");
                 println!("id author Warre G.");
                 println!("option name Hash type spin default 256 min 1 max 1024");
                 println!("option name Threads type spin default 1 min 1 max 128");

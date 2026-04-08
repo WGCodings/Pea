@@ -24,6 +24,7 @@ cargo run --release --bin bullet-utils -- convert --from text --input data/run1.
 To validate :
 
 cargo run --release --bin bullet-utils -- validate --input data/run1.data
+
 Now load in prev network .bin file.
 
 ### Train the network

@@ -87,18 +87,18 @@ The plot below shows the training progression over the generations with error ba
 
 The following UCI commands are implemented:
 
-| Command | Notes                       |
-|---|-----------------------------|
-| `uci` | Done                        |
-| `isready` | Done                        |
-| `ucinewgame` | Done                        |
-| `position <fen\|startpos> [moves ...]` | Done                        |
-| `go <wtime, btime, winc, binc, movetime, depth, ponder>` | Need to implement movestogo |
-| `ponderhit` | 90% done                    |
-| `stop` | Done                        |
-| `quit` | Done                        |
+| Command                                                       | Notes                       |
+|---------------------------------------------------------------|-----------------------------|
+| `uci`                                                         | Done                        |
+| `isready`                                                     | Done                        |
+| `ucinewgame`                                                  | Done                        |
+| `position <fen\|startpos> [moves ...]`                        | Done                        |
+| `go <wtime, btime, winc, binc, movetime, depth, ponder>`      | Need to implement movestogo |
+| `ponderhit`                                                   | 90% done                    |
+| `stop`                                                        | Done                        |
+| `quit`                                                        | Done                        |
 | `setoption name <Hash \| Threads \| Ponder \| Move Overhead>` | Done                        |
-| `perft <depth>` | Done                        |
+| `perft <depth>`                                               | Done                        |
 
 ---
 
@@ -111,9 +111,11 @@ Below is a table of Elo estimates from having the engine play against other engi
 | Version | Estimate (8/0.08) | [CCRL](https://computerchess.org.uk/ccrl/4040/) (40/15) | [CCRL Blitz](https://computerchess.org.uk/ccrl/404b/) (2/1) |
 |---------|-------------------|---------------------------------------------------------|-------------------------------------------------------------|
 | v1.0    | 500-800           | /                                                       | /                                                           |
-| v2.0    |            | /                                                       | /                                                           |
-| v3.0    |            | /                                                       | /                                                           |
-| v4.0    |           | /                                                       | /                                                           |
+| v2.0    | 1257              | /                                                       | /                                                           |
+| v3.0    | 1981              | /                                                       | /                                                           |
+| v4.0    | 2271              | /                                                       | /                                                           |
+| v5.0    | 2501              | /                                                       | /                                                           |
+| v6.0    | /                 | /                                                       | /                                                           |
 
 
 
@@ -136,14 +138,14 @@ cargo build --release
 
 **Recommended — optimized for your CPU:**
 ```bash
-# Linux / macOS
+# Linux
 RUSTFLAGS="-C target-cpu=native -C target-feature=+avx2,+bmi2" cargo build --release
 
-# Windows (PowerShell)
+# Windows 
 $env:RUSTFLAGS="-C target-cpu=native -C target-feature=+avx2,+bmi2"; cargo build --release
 ```
 
-The native build enables AVX2 and BMI2 instructions and runs noticeably faster. It is strongly recommended unless you are distributing the binary to other machines.
+The native build enables AVX2 and BMI2 instructions and runs noticeably faster. 
 
 
 ---
@@ -162,9 +164,9 @@ Running the binary directly drops you into a UCI prompt. In practice, you'll wan
 
 ## Roadmap
 
-- [X] IN PROGRESS : Solve NNUE bias towards White
+- [X] Solve NNUE bias towards White
 - [ ] IN PROGRESS : Investigate better NNUE architectures (two adversarial networks from scratch?)
-- [X] IN PROGRESS : Data generator for NNUE training
+- [X] Data generator for NNUE training
 - [ ] Self-made move generation and board representation
 - [ ] Correction history
 - [ ] Successful run of SPSA
