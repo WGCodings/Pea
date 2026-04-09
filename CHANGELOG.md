@@ -11,10 +11,10 @@ The results for Gen x are always vs Gen x-1. For a more detailed match result se
 
 #### Elo gain per generation
 
-| Net       | Gen 0 | Gen 1               | Gen 2           | Gen 3               | Gen 4              | Gen 5              | Gen 6              |
-|-----------|-------|---------------------|-----------------|---------------------|--------------------|--------------------|--------------------|
-| **Net 0** | 0     | **+511.50 ± 92.45** | **+1000+ ± ?**  | **636.43 ± 109.02** | **183.78 ± 32.42** | **309.24 ± 40.38** | **350.17 ± 47.62** | 
-| **Net 1** | 0     | **+792.30 ± ?**     | **+916.01 ± ?** | **596.54 ± 106.05** | **198.81 ± 32.13** | **151.58 ± 28.05** | **471.62 ± 69.61** |
+| Net       | Gen 0 | Gen 1               | Gen 2           | Gen 3               | Gen 4              | Gen 5              | Gen 6              | Gen 6              |
+|-----------|-------|---------------------|-----------------|---------------------|--------------------|--------------------|--------------------|--------------------|
+| **Net 0** | 0     | **+511.50 ± 92.45** | **+1000+ ± ?**  | **636.43 ± 109.02** | **183.78 ± 32.42** | **309.24 ± 40.38** | **350.17 ± 47.62** | **102.28 ± 22.59** |
+| **Net 1** | 0     | **+792.30 ± ?**     | **+916.01 ± ?** | **596.54 ± 106.05** | **198.81 ± 32.13** | **151.58 ± 28.05** | **471.62 ± 69.61** | **81.86 ± 19.71**  |
 
 The plot below shows the training progression over the generations with error bars. 
 
@@ -36,6 +36,7 @@ The plot below shows the training progression over the generations with error ba
 | Gen 4          | Net0 vs Net1 | **-45.54 ± 15.98**   |
 | Gen 5          | Net0 vs Net1 | **21.91   ± 15.45**  |
 | Gen 6          | Net0 vs Net1 | **-73.68   ± 19.98** |
+| Gen 7          | Net0 vs Net1 | **   ± **            |
 ---
 
 #### Elo estimates*
@@ -297,6 +298,7 @@ Training parameters for this run :
 * 10k nodes per position
 * Initial LR : 0.001
 * Final LR : 0.0001 * 0.3f32.powi(5)
+* ~2 epochs
 * start WDL : 0.0
 * end WDL : 0.25
 
@@ -356,3 +358,59 @@ LLR: 2.96 (100.5%) (-2.94, 2.94) [0.00, 5.00]
 ```
 
 ## 10. Generation 7 
+
+Turned the knobs on the hyperparameters a lot here. These ones seemed to give the best performance.
+Trained both Net 0 and Net 1 with the same data and parameters.
+
+Training parameters for this run :
+* Positions : 20M Net 0
+* 10k nodes per position
+* Initial LR : 0.0005
+* Final LR : 0.0001 * 0.3f32.powi(5)
+* ~2 epochs
+* start WDL : 0.0
+* end WDL : 0.15
+
+
+
+### 10.1. Results vs previous generation
+
+
+#### 10.1.1. Net 0
+
+```
+Results of GEN7_NET0 vs GEN6_NET0 (8+0.08, 1t, 256MB, book.epd):
+Elo: 102.28 +/- 22.59, nElo: 129.68 +/- 27.00
+Games: 636, Wins: 309, Losses: 127, Draws: 200, Points: 409.0 (64.31 %)
+```
+
+#### 10.1.2. Net 1
+
+```
+Results of GEN7_NET1 vs GEN6_NET1 (8+0.08, 1t, 256MB, book.epd):
+Elo: 81.65 +/- 19.71, nElo: 106.71 +/- 24.80
+Games: 754, Wins: 344, Losses: 170, Draws: 240, Points: 464.0 (61.54 %)
+```
+
+
+### 10.2. Results Net 0 vs Net 1
+
+```
+
+```
+
+### 10.3. Elo estimate
+
+
+
+**Net 0**
+
+```
+
+```
+
+**Net 1**
+
+```
+
+```
