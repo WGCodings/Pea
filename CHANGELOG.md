@@ -36,7 +36,7 @@ The plot below shows the training progression over the generations with error ba
 | Gen 4          | Net0 vs Net1 | **-45.54 ± 15.98**   |
 | Gen 5          | Net0 vs Net1 | **21.91   ± 15.45**  |
 | Gen 6          | Net0 vs Net1 | **-73.68   ± 19.98** |
-| Gen 7          | Net0 vs Net1 | **   ± **            |
+| Gen 7          | Net0 vs Net1 | **-28.33 ± 12.46**   |
 ---
 
 #### Elo estimates*
@@ -396,7 +396,9 @@ Games: 754, Wins: 344, Losses: 170, Draws: 240, Points: 464.0 (61.54 %)
 ### 10.2. Results Net 0 vs Net 1
 
 ```
-
+Results of GEN7_NET0 vs GEN7_NET1 (8+0.08, 1t, 256MB, book.epd):
+Elo: -28.33 +/- 12.46, nElo: -36.01 +/- 15.76
+Games: 1868, Wins: 563, Losses: 715, Draws: 590, Points: 858.0 (45.93 %)
 ```
 
 ### 10.3. Elo estimate

@@ -10,7 +10,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
 use std::thread;
 use std::fs;
-
+use crate::datagen::book::EpdBook;
 use crate::datagen::datagen_config::DatagenConfig;
 use crate::datagen::datagen_format::{RawDataWriter, thread_output_path};
 use crate::datagen::game::run_game;
@@ -102,6 +102,8 @@ fn run_worker(
 
     let mut game_id: u64 = 0;
 
+    let book = config.epd_path.as_ref().map(|path| EpdBook::load(path));
+
     loop {
         if (*total_positions).load(Ordering::Relaxed) >= config.target_positions {
             break;
@@ -116,6 +118,7 @@ fn run_worker(
 
         let positions = run_game(
             &config,
+            book.as_ref(),
             white_net, black_net,
             &params, &ordering,
             white_tt, black_tt,

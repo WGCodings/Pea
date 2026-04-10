@@ -28,7 +28,7 @@ Writing my own move generator is on the roadmap and maybe the start of my fourth
 
 I'm currently training two NNUEs from scratch. One with a big empty brain (768 -> 1536)x2 -> 1x8 and one small brain
 (768 -> 64)x2 -> 1. They train by constantly playing against eachother and learning from both views of the board. For more information about this progression see the CHANGELOG.md. 
-You can play the latest generations of my networks on lichess : [Big brain][lichess-link0], [Small brain][lichess-link1].
+You can play the latest generations of my networks on lichess : [Net 0][lichess-link0], [Net 1][lichess-link1].
 
 The plot below shows the training progression over the generations with error bars:
 

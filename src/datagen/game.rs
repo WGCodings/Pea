@@ -11,6 +11,7 @@ use shakmaty::zobrist::Zobrist64;
 use crate::datagen::datagen_config::DatagenConfig;
 use crate::datagen::datagen_format::RawPosition;
 use crate::datagen::adjudication::{check_adjudication, filter_position, terminal_wdl, FilterResult};
+use crate::datagen::book::EpdBook;
 use crate::engine::params::Params;
 use crate::engine::search::context::{NNUEState};
 use crate::engine::search::ordering::MoveOrdering;
@@ -23,6 +24,7 @@ const MATE_THRESHOLD: i16 = 29_500;
 
 pub fn run_game(
     config:      &DatagenConfig,
+    book:        Option<&EpdBook>,
     net_0:       &Network,
     net_1:       &Network,
     params:      &Params,
@@ -31,15 +33,21 @@ pub fn run_game(
     tt_1:        &TranspositionTable,
     rng:         &mut impl rand::Rng,
 ) -> Vec<RawPosition> {
-    let mut pos              = Chess::new();
+
+    let mut pos = match book {
+        Some(b) => b.random_position(rng).unwrap_or_else(Chess::new),
+        None    => Chess::new(),
+    };
+
     let mut repetition_stack = Vec::new();
     let mut collected: Vec<RawPosition> = Vec::new();
 
     // ---------------------------------------------------------------- //
-    // Random opening TODO add opening book                             //
+    // Random opening //
     // ---------------------------------------------------------------- //
 
-    let random_plies = rng.random_range(0..config.random_opening_plies);
+
+    let random_plies = if config.random_opening_plies > 0 {rng.random_range(0..config.random_opening_plies)} else { 0 }; ;
     let mut score_history: Vec<i32> = Vec::new(); // white-relative scores for adjudication
 
     for _ in 0..random_plies {
