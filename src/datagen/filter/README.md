@@ -9,7 +9,7 @@ cd to executable filter.exe
 cargo run --bin filter --input "/nnue/data/run1/*.txt" --output "C:/Users/warre/RustroverProjects/bullet/data/run1.txt"
 or from exe
 
-.\filter.exe --input "C:\Users\warre\RustroverProjects\FastPeaPea\nnue\data\run1\*.txt" --output "C:\Users\warre\RustroverProjects\bullet\data\run1_net_0.txt"
+.\filter.exe --input "C:\Users\warre\RustroverProjects\FastPeaPea\nnue\data\run8\*.txt" --output "C:\Users\warre\RustroverProjects\bullet\data\run8.txt"
 
 ### Convert to bullet format
 

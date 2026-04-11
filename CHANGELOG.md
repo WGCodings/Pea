@@ -323,7 +323,6 @@ Elo: 471.62 +/- 69.61, nElo: 752.72 +/- 38.43
 Games: 314, Wins: 286, Losses: 11, Draws: 17, Points: 294.5 (93.79 %)
 ```
 
-Gains are a bit less but it was also not the best quality (Net 1) data.
 
 ### 9.2. Results Net 0 vs Net 1
 
@@ -357,7 +356,7 @@ Ptnml(0-2): [24, 23, 147, 50, 108], WL/DD Ratio: 13.70
 LLR: 2.96 (100.5%) (-2.94, 2.94) [0.00, 5.00]
 ```
 
-## 10. Generation 7 
+## 10. Generation 7 (09/04/2026)
 
 Turned the knobs on the hyperparameters a lot here. These ones seemed to give the best performance.
 Trained both Net 0 and Net 1 with the same data and parameters.
@@ -405,14 +404,32 @@ Games: 1868, Wins: 563, Losses: 715, Draws: 590, Points: 858.0 (45.93 %)
 
 
 
-**Net 0**
+**Net 0 ~2813 Elo**
 
 ```
-
+Results of GEN7_NET0 vs STASH24-2880 (8+0.08, 1t, 256MB, book.epd):
+Elo: -66.59 +/- 19.62, nElo: -77.32 +/- 22.21
+Games: 940, Wins: 287, Losses: 465, Draws: 188, Points: 381.0 (40.53 %)
 ```
 
-**Net 1**
+**Net 1 ~2850 Elo**
 
 ```
-
+Results of GEN7_NET1 vs STASH24-2880 (8+0.08, 1t, 256MB, book.epd):
+Elo: -29.94 +/- 13.26, nElo: -35.52 +/- 15.64
+Games: 1896, Wins: 660, Losses: 823, Draws: 413, Points: 866.5 (45.70 %)
 ```
+
+## 10. Generation 8 (10/04/2026 - ? )
+
+Because Elo gains are getting smaller I will not release a new generation each 20 million positions. Instead I will divide one release into multiple
+training sessions that will happen every few days. 
+
+Training parameters for these runs :
+* Positions : 20M Net 0
+* 10k nodes per position
+* Initial LR : 0.0001-0.0005
+* Final LR : 0.0001 * 0.3f32.powi(5)
+* ~2 epochs
+* start WDL : 0.0
+* end WDL : 0.15
