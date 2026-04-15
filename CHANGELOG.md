@@ -27,17 +27,17 @@ The plot below shows the training progression over the generations with error ba
 
 #### Cross-net strength
 
-| Generation     | Match        | Elo ± Error          |
-|----------------|--------------|----------------------|
-| Gen 0 (random) | Net0 vs Net1 | **-349.00 ± 59.30**  |
-| Gen 1          | Net0 vs Net1 | **-408.33 ± 65.87**  |
-| Gen 2          | Net0 vs Net1 | **-157.03 ± 32.50**  |
-| Gen 3          | Net0 vs Net1 | **-72.26 ± 19.44**   |
-| Gen 4          | Net0 vs Net1 | **-45.54 ± 15.98**   |
-| Gen 5          | Net0 vs Net1 | **21.91   ± 15.45**  |
-| Gen 6          | Net0 vs Net1 | **-73.68   ± 19.98** |
-| Gen 7          | Net0 vs Net1 | **-28.33 ± 12.46**   |
-| Gen 8          | Net0 vs Net1 | **51.25 ± 15.54**    |
+| Generation     | Match        | Elo ± Error         |
+|----------------|--------------|---------------------|
+| Gen 0 (random) | Net0 vs Net1 | **-349.00 ± 59.30** |
+| Gen 1          | Net0 vs Net1 | **-408.33 ± 65.87** |
+| Gen 2          | Net0 vs Net1 | **-157.03 ± 32.50** |
+| Gen 3          | Net0 vs Net1 | **-72.26 ± 19.44**  |
+| Gen 4          | Net0 vs Net1 | **-45.54 ± 15.98**  |
+| Gen 5          | Net0 vs Net1 | **21.91   ± 15.45** |
+| Gen 6          | Net0 vs Net1 | **-73.68 ± 19.98**  |
+| Gen 7          | Net0 vs Net1 | **-28.33 ± 12.46**  |
+| Gen 8          | Net0 vs Net1 | **51.25 ± 15.54**   |
 ---
 
 #### Elo estimates*
