@@ -115,8 +115,6 @@ Below is a table of Elo estimates from having the engine play against other engi
 | v3.0    | 1981     (Net 1)  | /                                                       | /                                                           |
 | v4.0    | 2271     (Net 1)  | /                                                       | /                                                           |
 | v5.0    | 2501     (Net 0)  | /                                                       | /                                                           |
-| v6.0    | 2811     (Net 1)  | /                                                       | /                                                           |
-
 
 
 
@@ -167,6 +165,7 @@ Running the binary directly drops you into a UCI prompt. In practice, you'll wan
 - [X] Solve NNUE bias towards White
 - [ ] IN PROGRESS : Investigate better NNUE architectures (two adversarial networks from scratch?)
 - [X] Data generator for NNUE training
+- [ ] Make a make file
 - [ ] Self-made move generation and board representation
 - [ ] Correction history
 - [ ] Successful run of SPSA
