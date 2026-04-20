@@ -78,7 +78,6 @@ Games: 334, Wins: 37, Losses: 292, Draws: 5, Points: 39.5 (11.83 %)
 ```
 
 Strange observation that the big net performs a lot worse while both being random networks.
-However it kinda makes sense because the small network has 3x NPS and is 'less random' than the big empty brain.
 
 ## 4. Generation 1  (30/03/2026)
 
@@ -423,7 +422,7 @@ Elo: -29.94 +/- 13.26, nElo: -35.52 +/- 15.64
 Games: 1896, Wins: 660, Losses: 823, Draws: 413, Points: 866.5 (45.70 %)
 ```
 
-## 11. Generation 8 (10/04/2026 - ? )
+## 11. Generation 8 (10/04/2026 - 15/04/2026 )
 
 Training was done in 6 sessions of genning and training.
 
@@ -482,4 +481,55 @@ Games: 6562, Wins: 2539, Losses: 2672, Draws: 1351, Points: 3214.5 (48.99 %)
 Results of GEN8_NET1 vs STASH26 (8+0.08, 1t, 256MB, book.epd):
 Elo: -36.66 +/- 14.71, nElo: -42.79 +/- 17.03
 Games: 1598, Wins: 548, Losses: 716, Draws: 334, Points: 715.0 (44.74 %)
+```
+
+## 12. Generation 9 (15/04/2026 - ? )
+
+
+
+Training parameters for these runs :
+* Positions : 90M Net 0
+* 5k nodes per position
+* Initial LR : 0.0005
+* Final LR : 0.0005
+* ~2 epochs
+* start WDL : 0.0
+* end WDL : 0.10
+
+### 12.1. Results vs previous generation
+
+
+#### 12.1.1. Net 0
+
+```
+
+```
+
+#### 12.1.2. Net 1
+
+```
+
+```
+
+
+### 12.2. Results Net 0 vs Net 1
+
+```
+
+```
+
+### 12.3. Elo estimate 
+
+
+
+**Net 0 ~ Elo**
+
+```
+
+```
+
+**Net 1 ~ Elo**
+
+```
+
 ```

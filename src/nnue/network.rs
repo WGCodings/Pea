@@ -1,9 +1,9 @@
-const HIDDEN_SIZE: usize = 1536;
+const HIDDEN_SIZE: usize = 64;
 const SCALE: i32 = 400;
 const QA: i16 = 255;
 const QB: i16 = 64;
 
-const NUM_OUTPUT_BUCKETS : usize = 8;
+const NUM_OUTPUT_BUCKETS : usize = 1;
 
 
 use shakmaty::{Chess, Color, Position, Role};
@@ -134,6 +134,27 @@ impl Network {
         (pos.board().occupied().count() - 2) / divisor
     }
 
+    /*
+    fn queen_bucket(&self, pos: &Chess) -> usize {
+        // Non-pawn material count
+        let board = pos.board();
+        let pawn_count = board.pawns().count();
+        let npm_count = board.occupied().count() - pawn_count;
+
+        // N is NUM_OUTPUT_BUCKETS / 3
+        const N: usize = NUM_OUTPUT_BUCKETS / 3;
+        let divisor = 16usize.div_ceil(N);
+        let material_bucket = ((npm_count - 2) / divisor).min(N - 1);
+
+        // Queen bucket
+        let queen_count = board.queens().count();
+        let queen_bucket = queen_count.min(2);
+
+        material_bucket * 3 + queen_bucket
+    }
+
+
+     */
 
 }
 

@@ -64,6 +64,8 @@ pub fn run_game(
     // Game loop — play until natural game end                          //
     // ---------------------------------------------------------------- //
 
+    let mut first_move = true;
+
 
     let wdl = loop {
         let legal_moves = pos.legal_moves();
@@ -103,6 +105,16 @@ pub fn run_game(
             Some(Duration::from_secs(3600)),     // effectively infinite time
             config.nodes_per_move,
         );
+
+        // This little block makes sure the initial position from opening book + random plies is balanced.
+        // Not where one player has just blundered a piece.
+
+        if first_move && score.abs() > 150{
+            break 0.5;
+        }
+        else {
+            first_move = false;
+        }
 
         let white_relative_score = if pos.turn() == Color::White { score } else { -score };
         score_history.push(white_relative_score);

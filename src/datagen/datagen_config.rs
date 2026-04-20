@@ -44,12 +44,12 @@ impl DatagenConfig {
             random_opening_plies:  4,
             target_positions:      40_000_000,
             adjudication_score:    2000,
-            adjudication_plies:    4,
-            draw_adjudication_score: 10,
+            adjudication_plies:    8,
+            draw_adjudication_score: 5,
             epd_path:              Some("../../assets/8moves_GM_LB.epd".to_string()),
-            net_0_path:            "../../nnue/run8_6_net_0/run8_6_net_0-10/quantised.bin".to_string(),
-            net_1_path:            "../../nnue/run8_6_net_0/run8_6_net_0-10/quantised.bin".to_string(),
-            output_dir:            "C:/Users/warre/RustroverProjects/FastPeaPea/nnue/data/run9".to_string(),
+            net_0_path:            "../../nnue/qb/run9_1_net_0/run9_1_net_0-10/quantised.bin".to_string(),
+            net_1_path:            "../../nnue/qb/run9_1_net_0/run9_1_net_0-10/quantised.bin".to_string(),
+            output_dir:            "C:/Users/warre/RustroverProjects/FastPeaPea/nnue/data/run9_2".to_string(),
         }
     }
 }

@@ -13,3 +13,7 @@ glob = "0.3.3"
 [[bin]]
 name = "filter"
 path = "src/datagen/filter/main.rs"
+
+[[bin]]
+name = "Pea"
+path = "src/main.rs"

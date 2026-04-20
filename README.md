@@ -87,18 +87,18 @@ The plot below shows the training progression over the generations with error ba
 
 The following UCI commands are implemented:
 
-| Command                                                       | Notes                       |
-|---------------------------------------------------------------|-----------------------------|
-| `uci`                                                         | Done                        |
-| `isready`                                                     | Done                        |
-| `ucinewgame`                                                  | Done                        |
-| `position <fen\|startpos> [moves ...]`                        | Done                        |
-| `go <wtime, btime, winc, binc, movetime, depth, ponder>`      | Need to implement movestogo |
-| `ponderhit`                                                   | 90% done                    |
-| `stop`                                                        | Done                        |
-| `quit`                                                        | Done                        |
-| `setoption name <Hash \| Threads \| Ponder \| Move Overhead>` | Done                        |
-| `perft <depth>`                                               | Done                        |
+| Command                                                         | Notes                       |
+|-----------------------------------------------------------------|-----------------------------|
+| `uci`                                                           | Done                        |
+| `isready`                                                       | Done                        |
+| `ucinewgame`                                                    | Done                        |
+| `position <fen\|startpos> [moves ...]`                          | Done                        |
+| `go <wtime, btime, winc, binc, movetime, depth, ponder, nodes>` | Need to implement movestogo |
+| `ponderhit`                                                     | 90% done                    |
+| `stop`                                                          | Done                        |
+| `quit`                                                          | Done                        |
+| `setoption name <Hash \| Threads \| Ponder \| Move Overhead>`   | Done                        |
+| `perft <depth>`                                                 | Done                        |
 
 ---
 
@@ -108,14 +108,14 @@ Below is a table of Elo estimates from having the engine play against other engi
 [Stash][Stash] (and all its versions) have been used to estimate the rating of this engine.
 
 
-| Version | Estimate (8/0.08) | [CCRL](https://computerchess.org.uk/ccrl/4040/) (40/15) | [CCRL Blitz](https://computerchess.org.uk/ccrl/404b/) (2/1) |
-|---------|-------------------|---------------------------------------------------------|-------------------------------------------------------------|
-| v1.0    | 500-800  (Net 1)  | /                                                       | /                                                           |
-| v2.0    | 1257     (Net 1)  | /                                                       | /                                                           |
-| v3.0    | 1981     (Net 1)  | /                                                       | /                                                           |
-| v4.0    | 2271     (Net 1)  | /                                                       | /                                                           |
-| v5.0    | 2501     (Net 0)  | /                                                       | /                                                           |
-
+| Version        | Estimate (8/0.08) | [CCI STC](https://computer-chess-index.github.io/cci/Pea.html) (8/0.08) | [CCI LTC](https://computer-chess-index.github.io/cci/Pea.html) (60/0.6) | [CCI VLTC](https://computer-chess-index.github.io/cci/Pea.html) (2m24s/1.12) | [CCRL Blitz](https://computerchess.org.uk/ccrl/404/) (120/1) |
+|----------------|-------------------|-------------------------------------------------------------------------|-------------------------------------------------------------------------|------------------------------------------------------------------------------|--------------------------------------------------------------|
+| v1.0   (Net 1) | 500-800           | 747                                                                     | 822                                                                     | 923                                                                          | /                                                            |
+| v2.0  (Net 1)  | 1257              | 1122                                                                    | 1346                                                                    | 1581                                                                         | 1331                                                         |
+| v3.0  (Net 1)  | 1981              | 1746                                                                    | 2103                                                                    | 2256                                                                         | /                                                            |
+| v4.0 (Net 1)   | 2271              | 1974                                                                    | 2275                                                                    | 2437                                                                         | /                                                            |
+| v5.0 (Net 0)   | 2501              | 2024                                                                    | 2456                                                                    | 2603                                                                         | /                                                            |
+| v6.0 (Net 1)   | 2811              |                                                                         |                                                                         |                                                                              |                                                              |
 
 
 ---
@@ -165,6 +165,8 @@ Running the binary directly drops you into a UCI prompt. In practice, you'll wan
 - [X] Solve NNUE bias towards White
 - [ ] IN PROGRESS : Investigate better NNUE architectures (two adversarial networks from scratch?)
 - [X] Data generator for NNUE training
+- [ ] King buckets in NNUE
+- [ ] Experiment with features for output buckets NNUE
 - [ ] Make a make file
 - [ ] Self-made move generation and board representation
 - [ ] Correction history
