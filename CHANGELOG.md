@@ -344,8 +344,6 @@ Estimation done vs Stash v27 ~2713 Elo.
 Results of GEN6_NET0 vs STASH21-2713 (8+0.08, 1t - NULL, 256MB, book.epd):
 Elo: 29.24 +/- 12.51, nElo: 32.86 +/- 13.99
 Games: 2370, Wins: 1095, Losses: 896, Draws: 379, Points: 1284.5 (54.20 %)
-Ptnml(0-2): [157, 144, 463, 185, 236], WL/DD Ratio: 17.52
-LLR: 2.95 (100.2%) (-2.94, 2.94) [0.00, 5.00]
 ```
 
 **Net 1**
@@ -354,14 +352,9 @@ LLR: 2.95 (100.2%) (-2.94, 2.94) [0.00, 5.00]
 Results of GEN6_NET1 vs STASH21-2713 (8+0.08, 1t - NULL, 256MB, book.epd):
 Elo: 98.82 +/- 23.30, nElo: 115.00 +/- 25.66
 Games: 704, Wins: 403, Losses: 208, Draws: 93, Points: 449.5 (63.85 %)
-Ptnml(0-2): [24, 23, 147, 50, 108], WL/DD Ratio: 13.70
-LLR: 2.96 (100.5%) (-2.94, 2.94) [0.00, 5.00]
 ```
 
 ## 10. Generation 7 (09/04/2026)
-
-Turned the knobs on the hyperparameters a lot here. These ones seemed to give the best performance.
-Trained both Net 0 and Net 1 with the same data and parameters.
 
 Training parameters for this run :
 * Positions : 20M Net 0
@@ -488,12 +481,12 @@ Games: 1598, Wins: 548, Losses: 716, Draws: 334, Points: 715.0 (44.74 %)
 
 
 Training parameters for these runs :
-* Positions : 90M Net 0
+* Positions : 200M Net 0
 * 5k nodes per position
 * Initial LR : 0.0005
-* Final LR : 0.0005
+* Final LR : 0.00005
 * ~2 epochs
-* start WDL : 0.0
+* start WDL : 0.05
 * end WDL : 0.10
 
 ### 12.1. Results vs previous generation

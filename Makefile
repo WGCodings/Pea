@@ -1,5 +1,5 @@
 EXE = Pea
-VER = 6.0
+VER = 7.0
 
 ifeq ($(OS),Windows_NT)
     SUFFIX := .exe

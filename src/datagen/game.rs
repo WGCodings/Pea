@@ -47,7 +47,7 @@ pub fn run_game(
     // ---------------------------------------------------------------- //
 
 
-    let random_plies = if config.random_opening_plies > 0 {rng.random_range(0..config.random_opening_plies)} else { 0 }; ;
+    let random_plies = if config.random_opening_plies > 0 {rng.random_range(0..config.random_opening_plies)} else { 0 };
     let mut score_history: Vec<i32> = Vec::new(); // white-relative scores for adjudication
 
     for _ in 0..random_plies {

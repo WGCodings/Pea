@@ -115,7 +115,7 @@ Below is a table of Elo estimates from having the engine play against other engi
 | v3.0  (Net 1)  | 1981              | 1746                                                                    | 2103                                                                    | 2256                                                                         | /                                                            |
 | v4.0 (Net 1)   | 2271              | 1974                                                                    | 2275                                                                    | 2437                                                                         | /                                                            |
 | v5.0 (Net 0)   | 2501              | 2024                                                                    | 2456                                                                    | 2603                                                                         | /                                                            |
-| v6.0 (Net 1)   | 2811              |                                                                         |                                                                         |                                                                              |                                                              |
+| v6.0 (Net 1)   | 2811              | 2342                                                                    | 2662                                                                    | 2811                                                                         | /                                                            |
 
 
 ---
@@ -134,17 +134,20 @@ git clone https://github.com/WGCodings/Pea.git
 cargo build --release
 ```
 
-**Recommended — optimized for your CPU:**
+**Optimized for your CPU:**
 ```bash
-# Linux
-RUSTFLAGS="-C target-cpu=native -C target-feature=+avx2,+bmi2" cargo build --release
-
 # Windows 
 $env:RUSTFLAGS="-C target-cpu=native -C target-feature=+avx2,+bmi2"; cargo build --release
 ```
 
 The native build enables AVX2 and BMI2 instructions and runs noticeably faster. 
 
+**Simplest — Makefile:**
+
+```bash
+# Makefile
+make release
+```
 
 ---
 

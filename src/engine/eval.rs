@@ -7,7 +7,7 @@ use crate::nnue::network::{Accumulator, Network};
 // EVALUATE NNUE + MOPUP                                                                                                //
 // =====================================================================================================================//
 pub fn evaluate(pos: &Chess, net: &Network,us: &Accumulator, them: &Accumulator) -> i32 {
-    let mut nnue_score= net.evaluate(us,them,pos);
+    let nnue_score= net.evaluate(us,them,pos);
 
 
     let mopup_score = mopup_evaluation(pos,nnue_score);
