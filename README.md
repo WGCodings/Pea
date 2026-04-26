@@ -116,6 +116,7 @@ Below is a table of Elo estimates from having the engine play against other engi
 | v4.0 (Net 1)   | 2271              | 1974                                                                    | 2275                                                                    | 2437                                                                         | /                                                            |
 | v5.0 (Net 0)   | 2501              | 2024                                                                    | 2456                                                                    | 2603                                                                         | /                                                            |
 | v6.0 (Net 1)   | 2811              | 2342                                                                    | 2662                                                                    | 2811                                                                         | /                                                            |
+| v7.0 (Net 1)   | 2850              | /                                                                       | /                                                                       | /                                                                            | /                                                            |
 
 
 ---
@@ -207,10 +208,10 @@ This project is licensed under the [GNU General Public License v3.0][license-lin
 [release-badge]: https://img.shields.io/github/v/release/WGCodings/Pea?style=for-the-badge&color=violet
 [release-link]: https://github.com/WGCodings/Pea/releases/latest
 
-[lichess-badge0]: https://img.shields.io/badge/Play-Net_0_Gen_6-green?logo=lichess&style=for-the-badge
+[lichess-badge0]: https://img.shields.io/badge/Play-Net_0_Gen_7-green?logo=lichess&style=for-the-badge
 [lichess-link0]: https://lichess.org/@/PeaNet0
 
-[lichess-badge1]: https://img.shields.io/badge/Play-Net_1_Gen_6-green?logo=lichess&style=for-the-badge
+[lichess-badge1]: https://img.shields.io/badge/Play-Net_1_Gen_7-green?logo=lichess&style=for-the-badge
 [lichess-link1]: https://lichess.org/@/PeaNet1
 
 <!-- Links -->
