@@ -18,7 +18,7 @@ use crate::datagen::game::run_game;
 use crate::engine::params::Params;
 use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::tt::TranspositionTable;
-use crate::nnue::network::Network;
+use crate::nnue::network::{load_network, Network};
 
 /// Parse and run datagen from a UCI command string.
 /// Called from your UCI loop when the command starts with "datagen".
@@ -162,30 +162,3 @@ fn print_config(config: &DatagenConfig) {
     println!("info string   output  : {}",                          config.output_dir);
 }
 
-fn load_network(path: &str) -> Box<Network> {
-    let bytes = fs::read(path)
-        .unwrap_or_else(|e| panic!("Failed to load network '{}': {}", path, e));
-
-
-    assert_eq!(
-        bytes.len(),
-        size_of::<Network>(),
-        "Network '{}': file is {} bytes but Network struct is {} bytes",
-        path, bytes.len(), size_of::<Network>()
-    );
-
-    let mut network = Box::new(unsafe { std::mem::zeroed::<Network>() });
-
-    unsafe {
-        std::ptr::copy_nonoverlapping(
-            bytes.as_ptr(),
-            (&mut *network) as *mut Network as *mut u8,
-            bytes.len(),
-        );
-        network
-    }
-
-
-
-
-}

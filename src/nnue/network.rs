@@ -6,6 +6,7 @@ const QB: i16 = 64;
 const NUM_OUTPUT_BUCKETS : usize = 8;
 
 
+use std::fs;
 use shakmaty::{Chess, Color, Position, Role};
 
 
@@ -55,7 +56,29 @@ pub fn calculate_index(mut side: usize, mut sq_idx: usize, piece_type : usize, p
     (side*6 + piece_type)*64 + sq_idx
 
 }
+pub fn load_network(path: &str) -> Box<Network> {
+    let bytes = fs::read(path)
+        .unwrap_or_else(|e| panic!("Failed to load network '{}': {}", path, e));
 
+
+    assert_eq!(
+        bytes.len(),
+        size_of::<Network>(),
+        "Network '{}': file is {} bytes but Network struct is {} bytes",
+        path, bytes.len(), size_of::<Network>()
+    );
+
+    let mut network = Box::new(unsafe { std::mem::zeroed::<Network>() });
+
+    unsafe {
+        std::ptr::copy_nonoverlapping(
+            bytes.as_ptr(),
+            (&mut *network) as *mut Network as *mut u8,
+            bytes.len(),
+        );
+        network
+    }
+}
 #[inline(always)]
 pub fn role_index(role: Role) -> usize {
     match role {

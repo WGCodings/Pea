@@ -17,8 +17,8 @@ AVX2     := $(EXE)-$(VER)-$(PLATFORM)-$(ARCH)-avx2-bmi2$(SUFFIX)
 
 rule:
 	cargo clean
-	cargo rustc --release --bin $(EXE) -- -C target-cpu=native --emit link=$(NAME)
+	cargo rustc --release --bin Pea -- -C target-cpu=native --emit link=$(NAME)
 
 release:
-	cargo rustc --release --bin $(EXE) -- --emit link=$(STANDARD)
-	cargo rustc --release --bin $(EXE) -- -C target-cpu=x86-64-v2 -C target-feature=+avx2,+bmi2 --emit link=$(AVX2)
+	cargo rustc --release --bin Pea -- --emit link=$(STANDARD)
+	cargo rustc --release --bin Pea -- -C target-cpu=x86-64-v2 -C target-feature=+avx2,+bmi2 --emit link=$(AVX2)
