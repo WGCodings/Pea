@@ -39,17 +39,17 @@ pub struct DatagenConfig {
 impl DatagenConfig {
     pub(crate) fn default() -> Self {
         Self {
-            nodes_per_move:        10_000,
+            nodes_per_move:        5_000,
             num_threads:           10,
-            random_opening_plies:  4,
+            random_opening_plies:  8,
             target_positions:      40_000_000,
             adjudication_score:    2000,
             adjudication_plies:    8,
             draw_adjudication_score: 5,
             epd_path:              Some("../../assets/8moves_GM_LB.epd".to_string()),
-            net_0_path:            "../../nnue/mb/run9_5_net_0/run9_5_net_0-10/quantised.bin".to_string(),
-            net_1_path:            "../../nnue/mb/run9_5_net_0/run9_5_net_0-10/quantised.bin".to_string(),
-            output_dir:            "C:/Users/warre/RustroverProjects/FastPeaPea/nnue/data/run9_6".to_string(),
+            net_0_path:            "../../nnue/mb/run9_6_net_0/run9_7_net_0-10/quantised.bin".to_string(),
+            net_1_path:            "../../nnue/mb/run9_6_net_0/run9_7_net_0-10/quantised.bin".to_string(),
+            output_dir:            "C:/Users/warre/RustroverProjects/FastPeaPea/nnue/data/run9_8".to_string(),
         }
     }
 }
