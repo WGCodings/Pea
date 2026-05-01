@@ -31,7 +31,7 @@ use crate::tuner::perturb::perturb_params;
 fn main() {
 
     // Load in nnue
-    static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/mb/run9_7_net_0/run9_7_net_0-10/quantised.bin")) };
+    static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../nnue/mb/run9_6_net_0/run9_6_net_0-10/quantised.bin")) };
 
     // Initialize uci state (manages commands) and engine state (manages repetition stack, TT and contains params the engine is using)
     let stdin = io::stdin();
