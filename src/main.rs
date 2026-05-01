@@ -46,7 +46,7 @@ fn main() {
 
         let (_, best_move, pv) = Threads::search(
             &position, &mut engine_state, &ordering, &NNUE,
-            64, 100_000_000, Some(Duration::from_secs(1)), uci_state.stop.clone(),
+            12, 100_000_000, Some(Duration::from_secs(100)), uci_state.stop.clone(),
         );
         return;
     }
