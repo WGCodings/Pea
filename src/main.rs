@@ -9,13 +9,13 @@ mod tuner;
 use crate::tuner::bounds::Bounds;
 use std::cmp;
 use std::io::{self, BufRead};
-
-
+use std::time::Duration;
 use shakmaty::{perft, Chess, Move, Position};
 use crate::datagen::datagen_main::run_datagen;
 use crate::uci::{parser::*, state::*};
 
 use crate::engine::params::Params;
+use crate::engine::search::context::NNUEState;
 use crate::engine::search::ordering::MoveOrdering;
 
 use crate::engine::search::threads::Threads;
@@ -37,6 +37,19 @@ fn main() {
     let stdin = io::stdin();
     let mut uci_state = UciState::new();
     let mut engine_state = EngineState::new();
+
+    // bench for OpenBench
+    if let Some("bench") = std::env::args().nth(1).as_deref() {
+
+        let ordering = MoveOrdering::new(&PIECE_VALUES);
+        let position = engine_state.position.clone();
+
+        let (_, best_move, pv) = Threads::search(
+            &position, &mut engine_state, &ordering, &NNUE,
+            15, 100_000_000, Some(Duration::from_secs(10)), uci_state.stop.clone(),
+        );
+        print_bestmove(best_move, &pv, &mut engine_state, &uci_state);
+    }
 
 
 
@@ -233,6 +246,8 @@ fn main() {
         }
     }
 }
+
+
 
 fn print_bestmove(best_move: Move, pv: &Vec<Option<Move>>, engine_state: &mut EngineState, uci_state: &UciState) {
     engine_state.ponder_move = pv.get(1).and_then(|m| *m);
