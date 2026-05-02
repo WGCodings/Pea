@@ -116,8 +116,8 @@ Below is a table of Elo estimates from having the engine play against other engi
 | v4.0 (Net 1)   | 2271              | 1974                                                                    | 2275                                                                    | 2437                                                                         | /                                                            |
 | v5.0 (Net 0)   | 2501              | 2024                                                                    | 2456                                                                    | 2603                                                                         | /                                                            |
 | v6.0 (Net 1)   | 2811              | 2342                                                                    | 2662                                                                    | 2811                                                                         | /                                                            |
-| v7.0 (Net 1)   | 2850              | /                                                                       | /                                                                       | /                                                                            | /                                                            |
-
+| v7.0 (Net 1)   | 2850              | 2392                                                                    | 2739                                                                    | 2858                                                                         | /                                                            |
+| v8.0 (Net 0)   | 2993              |                                                                         |                                                                         |                                                                              | /                                                            |
 
 ---
 
@@ -171,13 +171,13 @@ Running the binary directly drops you into a UCI prompt. In practice, you'll wan
 - [X] Data generator for NNUE training
 - [ ] King buckets in NNUE
 - [ ] Experiment with features for output buckets NNUE
-- [ ] Make a make file
+- [X] Make a make file
 - [ ] Self-made move generation and board representation
 - [ ] Correction history
 - [ ] Successful run of SPSA
 - [ ] Clean up code, especially datatypes (too many `as` casts)
 - [ ] Better time manager
-- [ ] Integration with OpenBench
+- [X] Integration with OpenBench
 - [ ] Capture history
 - [ ] Fix missing PV lines due to cutoffs
 - [ ] Store evals in TT before recursive search

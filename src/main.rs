@@ -15,7 +15,6 @@ use crate::datagen::datagen_main::run_datagen;
 use crate::uci::{parser::*, state::*};
 
 use crate::engine::params::Params;
-use crate::engine::search::context::NNUEState;
 use crate::engine::search::ordering::MoveOrdering;
 
 use crate::engine::search::threads::Threads;
