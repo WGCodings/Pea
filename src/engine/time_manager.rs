@@ -32,8 +32,8 @@ impl TimeManager {
 
     pub fn update(&mut self, score: i32, best_move: Option<Move>) {
         // Check score drop BEFORE updating prev_score
-        let score_dropped = score < self.prev_score - 30;
-        let score_jumped = score > self.prev_score + 30;
+        let score_dropped = score < self.prev_score - 50;
+        let score_jumped = score > self.prev_score + 50;
 
         if self.prev_best_move == best_move {
             self.best_move_stability += 1;
@@ -54,22 +54,22 @@ impl TimeManager {
 
         // Only reduce time if very stable for many depths
         match self.best_move_stability {
-            0 => scale *= 1.5,        // move changed, need more time
+            0 => scale *= 1.2,        // move changed, need more time
             1..=3 => scale *= 1.0,    // neutral
-            4..=6 => scale *= 0.8,    // fairly stable
-            _ => scale *= 0.5,       // very stable, safe to stop early
+            4..=6 => scale *= 0.9,    // fairly stable
+            _ => scale *= 0.75,       // very stable, safe to stop early
         }
 
         // Score instability, be conservative
         if self.score_stability == 0 {
-            scale *= 1.5;
+            scale *= 1.1;
         } else if self.score_stability >= 6 {
-            scale *= 0.5;
+            scale *= 0.9;
         }
 
         // Score dropped significantly, more time
         if score_dropped {
-            scale *= 2.0;
+            scale *= 1.4;
         }
 
         // Score jumped, we found something good, can be more confident
@@ -77,9 +77,9 @@ impl TimeManager {
             scale *= 0.9;
         }
 
-        scale = scale.clamp(0.5, 3.5);
+        scale = scale.powi(2).clamp(0.25, 3.0);
 
-        self.current_limit = Duration::from_secs_f64(self.base_time.as_secs_f64() * scale as f64).min(self.base_time * 3);
+        self.current_limit = Duration::from_secs_f64(self.base_time.as_secs_f64() * scale as f64);
     }
 
     pub fn should_stop(&self) -> bool {
