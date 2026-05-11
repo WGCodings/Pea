@@ -54,22 +54,22 @@ impl TimeManager {
 
         // Only reduce time if very stable for many depths
         match self.best_move_stability {
-            0 => scale *= 1.2,        // move changed, need more time
+            0 => scale *= 1.5,        // move changed, need more time
             1..=3 => scale *= 1.0,    // neutral
-            4..=6 => scale *= 0.9,    // fairly stable
-            _ => scale *= 0.75,       // very stable, safe to stop early
+            4..=6 => scale *= 0.8,    // fairly stable
+            _ => scale *= 0.5,       // very stable, safe to stop early
         }
 
         // Score instability, be conservative
         if self.score_stability == 0 {
-            scale *= 1.1;
+            scale *= 1.5;
         } else if self.score_stability >= 6 {
-            scale *= 0.9;
+            scale *= 0.5;
         }
 
         // Score dropped significantly, more time
         if score_dropped {
-            scale *= 1.4;
+            scale *= 2.0;
         }
 
         // Score jumped, we found something good, can be more confident
@@ -77,7 +77,7 @@ impl TimeManager {
             scale *= 0.9;
         }
 
-        scale = scale.clamp(0.6, 2.5);
+        scale = scale.clamp(0.5, 3.5);
 
         self.current_limit = Duration::from_secs_f64(self.base_time.as_secs_f64() * scale as f64).min(self.base_time * 3);
     }
