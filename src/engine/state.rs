@@ -1,71 +1,114 @@
-
 use shakmaty::{Chess, EnPassantMode, Move, Position};
-use shakmaty::zobrist::{Zobrist64};
+use shakmaty::zobrist::Zobrist64;
 use crate::engine::params::Params;
 use crate::engine::tt::TranspositionTable;
+use crate::nnue::network::Network;
 
-// =====================================================================================================================//
-// STATE OF THE ENGINE, SURVIVES DURING WHOLE GAME
-// NEEDED FOR TT THREADS PARAMS PONDERING POSITION ETC
-// INITIALISES ENGINE
-// =====================================================================================================================//
-pub struct EngineState {
-    pub position: Chess,
-    pub params : Params,
-    pub repetition_stack: Vec<u64>,
-    pub tt: TranspositionTable,
-    // uci options
-    pub overhead : u64,
-    pub threads : u8,
-    // Pondering
-    pub ponder_move:   Option<Move>,
+// ---------------------------------------------------------------------------
+// Engine options — purely configuration, no runtime state
+// ---------------------------------------------------------------------------
 
-    pub ponder_thread: Option<std::thread::JoinHandle<()>>,
-
+pub struct Options {
+    /// Hash table size in MB.
+    pub hash_mb: u32,
+    /// Number of search threads.
+    pub threads: u8,
+    /// Move overhead in milliseconds subtracted from time budget.
+    pub move_overhead: u64,
 }
 
-impl EngineState {
+impl Options {
+    fn default() -> Self {
+        Self {
+            hash_mb: 16,
+            threads: 1,
+            move_overhead: 10,
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Engine — survives the whole game, owns all persistent state
+// ---------------------------------------------------------------------------
+
+pub struct Engine {
+    pub position:         Chess,
+    pub params:           Params,
+    pub repetition_stack: Vec<u64>,
+    pub tt:               TranspositionTable,
+    pub options:          Options,
+    /// Heap-allocated so the large weight array never touches the stack.
+    pub net:               &'static Network,
+    // Pondering
+    pub ponder_move:      Option<Move>,
+    pub ponder_thread:    Option<std::thread::JoinHandle<()>>,
+}
+
+impl Engine {
     pub fn new() -> Self {
-        let params = Params::load_yaml("src/tuner/config/params_patch.yaml");
+        let params   = Params::load_yaml("src/tuner/config/params_patch.yaml");
         let position = Chess::new();
+        let net      = Self::load_network();
+
         let mut repetition_stack: Vec<u64> = Vec::with_capacity(256);
-
         let hash = position.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
-
         repetition_stack.push(hash);
 
         Self {
             position,
             repetition_stack,
-            tt: TranspositionTable::new(256), // Default 256mb
+            tt: TranspositionTable::new(16),
             params,
-            overhead: 10, // 10 ms overhead on each move
-            threads: 1,
-            ponder_move: None,
+            net,
+            ponder_move:   None,
             ponder_thread: None,
+            options:       Options::default(),
         }
     }
 
+    fn load_network() -> &'static Network {
+        Network::load()
+    }
+
+    // -----------------------------------------------------------------------
+    // History / repetition stack
+    // -----------------------------------------------------------------------
+
     pub fn init_history(&mut self) {
         self.repetition_stack.clear();
-        self.increase_history()
+        self.push_history();
     }
-    pub fn increase_history(&mut self) {
-        let hash = self.position.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
+
+    pub fn push_history(&mut self) {
+        let hash = self.position
+            .zobrist_hash::<Zobrist64>(EnPassantMode::Legal)
+            .0;
         self.repetition_stack.push(hash);
     }
-    pub fn init_tt(&mut self, tt_size: usize) {
-        self.tt = TranspositionTable::new(tt_size);
+
+    // -----------------------------------------------------------------------
+    // Setters driven by setoption
+    // -----------------------------------------------------------------------
+
+    pub fn resize_tt(&mut self, mb: usize) {
+        self.tt = TranspositionTable::new(mb);
     }
-    pub fn set_overhead(&mut self, overhead: u64) {
-        self.overhead = overhead;
+
+    pub fn set_move_overhead(&mut self, ms: u64) {
+        self.options.move_overhead = ms;
     }
-    pub fn set_threads(&mut self, threads: u8) {
-        self.threads = threads;
+
+    pub fn set_threads(&mut self, n: u8) {
+        self.options.threads = n;
     }
+
+    // -----------------------------------------------------------------------
+    // Pondering helpers
+    // -----------------------------------------------------------------------
+
     pub fn stop_ponder_thread(&mut self) {
-        if let Some(h) = self.ponder_thread.take() {
-            h.join().ok();
+        if let Some(handle) = self.ponder_thread.take() {
+            handle.join().ok();
         }
     }
 }

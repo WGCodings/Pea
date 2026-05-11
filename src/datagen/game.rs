@@ -25,8 +25,7 @@ const MATE_THRESHOLD: i16 = 29_500;
 pub fn run_game(
     config:      &DatagenConfig,
     book:        Option<&EpdBook>,
-    net_0:       &Network,
-    net_1:       &Network,
+    net:       &Network,
     params:      &Params,
     ordering:    &MoveOrdering,
     tt_0:        &TranspositionTable,
@@ -78,9 +77,9 @@ pub fn run_game(
 
         // Pick network and TT for the side to move
         let (network, tt, net_id) = if pos.turn() == Color::White {
-            (net_0, tt_0, 0u8)
+            (net, tt_0, 0u8)
         } else {
-            (net_1, tt_1, 1u8)
+            (net, tt_1, 1u8)
         };
 
 
@@ -174,7 +173,7 @@ fn pos_to_fen(pos: &Chess) -> String {
 }
 
 /// Cheap pawn-only hash for filtering training data
-fn pawn_hash(pos: &Chess) -> u64 {
+fn _pawn_hash(pos: &Chess) -> u64 {
     use shakmaty::{Role, Square};
     let mut hash: u64 = 0;
     for sq in Square::ALL {

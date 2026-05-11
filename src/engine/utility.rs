@@ -1,56 +1,72 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
-use shakmaty::{Chess, fen::Fen, CastlingMode, Move,  Position, EnPassantMode, Role};
+use shakmaty::{Chess, fen::Fen, CastlingMode, Move, Position, EnPassantMode, Role};
 use shakmaty::zobrist::Zobrist64;
+
 use crate::engine::params::Params;
 use crate::engine::search::context::{NNUEState, SearchContext, Stack};
 use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::pv::PvTable;
 use crate::engine::search::search::SearchStats;
-use crate::engine::state::EngineState;
 use crate::engine::tt::TranspositionTable;
-use crate::engine::types::{MAX_PLY_CONTINUATION_HISTORY};
+use crate::engine::types::MAX_PLY_CONTINUATION_HISTORY;
 use crate::nnue::network::Network;
 use crate::uci::parser::move_to_uci;
+use crate::uci::state::UciState;
+use crate::engine::state::Engine;
 
-// Reads a FEN string and converts it to a `Chess` position.
+// ---------------------------------------------------------------------------
+// Position helpers
+// ---------------------------------------------------------------------------
+
 pub fn read_position_from_fen(fen_str: &str) -> Option<Chess> {
-    let fen: Fen = fen_str.parse().ok()?; // Parse the FEN string
-    fen.into_position(CastlingMode::Standard).ok() // Convert to `Chess` position
+    let fen: Fen = fen_str.parse().ok()?;
+    fen.into_position(CastlingMode::Standard).ok()
 }
 
-pub fn print_search_info(ctx: &SearchContext, pos : &Chess, depth: usize, score: i32, elapsed: Duration,pv_table: PvTable) ->Vec<Option<Move>>{
-    let elapsed_millis = elapsed.as_millis();
-    let elapsed_secs = elapsed.as_secs_f64();
-    let nodes = (*ctx.node_count).load(Ordering::Relaxed);
-    let nps = if elapsed_secs > 0.0 { (nodes as f64 / elapsed_secs) as u64 } else { 0 };
-
-    let tt_occupancy = ctx.tt.tt_occupancy();
-
-    // After depth loop, extract full PV from TT
-    let tt_line = extract_pv_from_tt(pos, ctx.tt, ctx.stats.completed_depth+20,&ctx.repetition_stack.as_slice());
-
-    // Extract pv line from table
-    let pv_line = pv_table.line().to_vec();
-
-    // Pick the longest line from tt or pv table.
-    let mut pv_string = pv_to_string(&tt_line.as_slice());
-
-    if pv_line.len() >= tt_line.len() {
-        pv_string = pv_to_string(&pv_line.as_slice());
+pub fn role_from_index(idx: usize) -> Option<Role> {
+    match idx {
+        0 => Some(Role::Pawn),
+        1 => Some(Role::Knight),
+        2 => Some(Role::Bishop),
+        3 => Some(Role::Rook),
+        4 => Some(Role::Queen),
+        5 => Some(Role::King),
+        _ => None,
     }
+}
+
+// ---------------------------------------------------------------------------
+// Search output helpers
+// ---------------------------------------------------------------------------
+
+pub fn print_search_info(
+    ctx:       &SearchContext,
+    pos:       &Chess,
+    depth:     usize,
+    score:     i32,
+    elapsed:   Duration,
+    pv_table:  PvTable,
+) -> Vec<Option<Move>> {
+    let elapsed_millis = elapsed.as_millis();
+    let elapsed_secs   = elapsed.as_secs_f64();
+    let nodes          = (*ctx.node_count).load(Ordering::Relaxed);
+    let nps            = if elapsed_secs > 0.0 { (nodes as f64 / elapsed_secs) as u64 } else { 0 };
+    let tt_occupancy   = ctx.tt.tt_occupancy();
+
+    let tt_line  = extract_pv_from_tt(pos, ctx.tt, ctx.stats.completed_depth + 20, &ctx.repetition_stack);
+    let pv_line  = pv_table.line().to_vec();
+
+    let pv_string = if pv_line.len() >= tt_line.len() {
+        pv_to_string(&pv_line)
+    } else {
+        pv_to_string(&tt_line)
+    };
 
     println!(
         "info depth {} seldepth {} score cp {} nodes {} nps {} hashfull {} time {} pv {}",
-        depth,
-        ctx.stats.seldepth,
-        score,
-        nodes,
-        nps,
-        tt_occupancy,
-        elapsed_millis,
-        pv_string,
+        depth, ctx.stats.seldepth, score, nodes, nps, tt_occupancy, elapsed_millis, pv_string,
     );
     pv_line
 }
@@ -63,75 +79,13 @@ pub fn pv_to_string(line: &[Option<Move>]) -> String {
         .join(" ")
 }
 
-
-pub fn build_search_context<'a>(
-    tt: &'a TranspositionTable,
-    params: &'a Params,
-    ordering: &'a MoveOrdering,
-    network: &'a Network,
-    rep_stack: Vec<u64>,
-    nnue_state: NNUEState,
-    stop: Arc<AtomicBool>,
-    node_count : Arc<AtomicU64>,
-    is_main : bool,
-    time_limit: Option<Duration>,
-) -> SearchContext<'a> {
-    SearchContext {
-        start_time:             Instant::now(),
-        time_limit:             time_limit.unwrap_or(Duration::from_millis(100)),
-        node_limit:             u64::MAX,
-        stop,
-        node_count,
-        is_main,
-        params,
-        ordering,
-        stats:                  SearchStats::default(),
-        repetition_stack:       rep_stack,
-        tt,
-        nnue:                   nnue_state,
-        network,
-        killers:                [[None; 3]; 128],
-        history:                [[[0i16; 64]; 64]; 2],
-        capture_history:        [[[0i16; 6]; 64]; 6],
-        continuation_history:   Box::new([[[[[0i16; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]),
-        stack:                  Stack {
-                                    moves:       [None; 128],
-                                    evals:       [0; 128],
-                                    double_exts: [0; 128]},
-        excluded_move:          [None; 128],
-    }
-}
-
-pub fn build_main_context<'a>(
-    engine_state: &'a mut EngineState,
-    ordering: &'a MoveOrdering,
-    network: &'a Network,
-    stop: Arc<AtomicBool>,
-    node_count : Arc<AtomicU64>,
-    time_limit: Option<Duration>,
-) -> SearchContext<'a> {
-    let nnue_state = NNUEState::new(&engine_state.position, network);
-    build_search_context(
-        &engine_state.tt,
-        &engine_state.params,
-        ordering,
-        network,
-        engine_state.repetition_stack.clone(),
-        nnue_state,
-        stop,
-        node_count,
-        true,
-        time_limit,
-    )
-}
-
 pub fn extract_pv_from_tt(
-    pos: &Chess,
-    tt: &TranspositionTable,
-    max_depth: usize,
+    pos:              &Chess,
+    tt:               &TranspositionTable,
+    max_depth:        usize,
     repetition_stack: &[u64],
 ) -> Vec<Option<Move>> {
-    let mut pv = Vec::new();
+    let mut pv          = Vec::new();
     let mut current_pos = pos.clone();
     let mut visited: Vec<u64> = repetition_stack.to_vec();
 
@@ -139,18 +93,13 @@ pub fn extract_pv_from_tt(
         if current_pos.is_stalemate()
             || current_pos.is_insufficient_material()
             || current_pos.halfmoves() >= 100
-        {
-            break;
-        }
+        { break; }
 
-        let hash = current_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
-
+        let hash        = current_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
         let repetitions = visited.iter().filter(|&&h| h == hash).count();
         if repetitions >= 2 { break; }
 
         let legal = current_pos.legal_moves();
-
-        // Use probe_move which validates against legal moves
         if let Some(mv) = tt.probe_move(hash, &legal) {
             pv.push(Some(mv));
             visited.push(hash);
@@ -162,14 +111,63 @@ pub fn extract_pv_from_tt(
     pv
 }
 
-pub fn role_from_index(idx: usize) -> Option<Role> {
-    match idx {
-        0 => Some(Role::Pawn),
-        1 => Some(Role::Knight),
-        2 => Some(Role::Bishop),
-        3 => Some(Role::Rook),
-        4 => Some(Role::Queen),
-        5 => Some(Role::King),
-        _ => None,
+pub fn print_bestmove(
+    best_move:    Move,
+    pv:           &[Option<Move>],
+    engine_state: &mut Engine,
+    uci_state:    &UciState,
+) {
+    engine_state.ponder_move = pv.get(1).and_then(|m| *m);
+
+    match (uci_state.ponder_enabled, engine_state.ponder_move) {
+        (true, Some(pm)) =>
+            println!("bestmove {} ponder {}", move_to_uci(&best_move), move_to_uci(&pm)),
+        _ =>
+            println!("bestmove {}", move_to_uci(&best_move)),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// SearchContext constructor
+// ---------------------------------------------------------------------------
+
+/// Build a search context. Both the main thread and helper threads use this —
+/// there is no longer a separate `build_main_context` wrapper.
+pub fn build_search_context<'a>(
+    tt:           &'a TranspositionTable,
+    params:       &'a Params,
+    ordering:     &'a MoveOrdering,
+    network:      &'a Network,
+    rep_stack:    Vec<u64>,
+    nnue_state:   NNUEState,
+    stop:         Arc<AtomicBool>,
+    node_count:   Arc<AtomicU64>,
+    is_main:      bool,
+    time_limit:   Option<Duration>,
+) -> SearchContext<'a> {
+    SearchContext {
+        start_time:           Instant::now(),
+        time_limit:           time_limit.unwrap_or(Duration::from_millis(100)),
+        node_limit:           u64::MAX,
+        stop,
+        node_count,
+        is_main,
+        params,
+        ordering,
+        stats:                SearchStats::default(),
+        repetition_stack:     rep_stack,
+        tt,
+        nnue:                 nnue_state,
+        network,
+        killers:              [[None; 3]; 128],
+        history:              [[[0i16; 64]; 64]; 2],
+        capture_history:      [[[0i16; 6]; 64]; 6],
+        continuation_history: Box::new([[[[[0i16; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]),
+        stack:                Stack {
+            moves:       [None; 128],
+            evals:       [0; 128],
+            double_exts: [0; 128],
+        },
+        excluded_move:        [None; 128],
     }
 }

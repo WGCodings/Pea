@@ -1,7 +1,6 @@
 
 
 use std::fs;
-use std::io::BufRead;
 use rand::RngExt;
 use shakmaty::Chess;
 use crate::engine::utility::read_position_from_fen;

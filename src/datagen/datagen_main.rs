@@ -18,7 +18,7 @@ use crate::datagen::game::run_game;
 use crate::engine::params::Params;
 use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::tt::TranspositionTable;
-use crate::nnue::network::{load_network, Network};
+use crate::nnue::network::{Network};
 
 /// Parse and run datagen from a UCI command string.
 /// Called from your UCI loop when the command starts with "datagen".
@@ -97,8 +97,7 @@ fn run_worker(
     let mut tt_0 = TranspositionTable::new(16);
     let mut tt_1 = TranspositionTable::new(16);
 
-    let net_0 = load_network(&config.net_0_path.as_str());
-    let net_1 = load_network(&config.net_1_path.as_str());
+    let net = Network::load();
 
     let mut game_id: u64 = 0;
 
@@ -109,17 +108,17 @@ fn run_worker(
             break;
         }
 
-        let (white_net, white_tt, black_net, black_tt) = if game_id % 2 == 0 {
-            (&net_0, &tt_0, &net_1, &tt_1)
+        let (net, white_tt, black_tt) = if game_id % 2 == 0 {
+            (&net, &tt_0, &tt_1)
         } else {
-            (&net_1, &tt_1, &net_0, &tt_0)
+            (&net, &tt_1, &tt_0)
         };
 
 
         let positions = run_game(
             &config,
             book.as_ref(),
-            white_net, black_net,
+            net,
             &params, &ordering,
             white_tt, black_tt,
             &mut rng,
@@ -157,8 +156,6 @@ fn print_config(config: &DatagenConfig) {
     println!("info string   draw adjudication score : {} ",         config.draw_adjudication_score);
     println!("info string   win/loss adjudication score : {} ",     config.adjudication_score);
     println!("info string   random opening plies : {} ",            config.random_opening_plies);
-    println!("info string   net0    : {}",                          config.net_0_path);
-    println!("info string   net1    : {}",                          config.net_1_path);
     println!("info string   output  : {}",                          config.output_dir);
 }
 
