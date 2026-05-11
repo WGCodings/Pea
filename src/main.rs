@@ -21,8 +21,8 @@ fn main() {
 
         Threads::search(
             &position, &mut engine, &ordering,
-            64, 100_000_000,
-            Some(std::time::Duration::from_secs(1)),
+            13, 100_000_000,
+            Some(std::time::Duration::from_secs(100)),
             stop,
         );
         return;
