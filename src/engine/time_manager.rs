@@ -69,7 +69,7 @@ impl TimeManager {
 
         // Score dropped significantly, more time
         if score_dropped {
-            scale *= 1.4;
+            scale *= 2.0;
         }
 
         // Score jumped, we found something good, can be more confident
@@ -77,7 +77,7 @@ impl TimeManager {
             scale *= 0.9;
         }
 
-        scale = scale.powi(2).clamp(0.25, 3.0);
+        scale = scale.clamp(0.25, 3.0);
 
         self.current_limit = Duration::from_secs_f64(self.base_time.as_secs_f64() * scale as f64);
     }
