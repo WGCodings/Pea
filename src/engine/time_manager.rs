@@ -32,8 +32,8 @@ impl TimeManager {
 
     pub fn update(&mut self, score: i32, best_move: Option<Move>) {
         // Check score drop BEFORE updating prev_score
-        let score_dropped = score < self.prev_score - 100;
-        let score_jumped = score > self.prev_score + 100;
+        let score_dropped = score < self.prev_score -  30;
+        let score_jumped = score > self.prev_score + 30;
 
         if self.prev_best_move == best_move {
             self.best_move_stability += 1;
