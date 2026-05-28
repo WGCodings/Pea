@@ -118,7 +118,7 @@ Below is a table of Elo estimates from having the engine play against other engi
 | v6.0 (Net 1) | 2811              | 2342                                                                    | 2662                                                                    | 2811                                                                         | /                                                            |
 | v7.0 (Net 1) | 2850              | 2392                                                                    | 2739                                                                    | 2858                                                                         | /                                                            |
 | v8.0 (Net 0) | 2993              | 2507                                                                    | 2869                                                                    | 2996                                                                         | /                                                            |
-| v8.0 (Net 0) |                   |                                                                         |                                                                         |                                                                              | /                                                            |
+| v9.0 (Net 0) |                   |                                                                         |                                                                         |                                                                              | /                                                            |
 ---
 
 
@@ -167,7 +167,7 @@ Running the binary directly drops you into a UCI prompt. In practice, you'll wan
 ## Roadmap
 
 - [X] Solve NNUE bias towards White
-- [ ] IN PROGRESS : Investigate better NNUE architectures (two adversarial networks from scratch?)
+- [ ] Investigate better NNUE architectures
 - [X] Data generator for NNUE training
 - [ ] King buckets in NNUE
 - [ ] Experiment with features for output buckets NNUE

@@ -16,7 +16,7 @@ use crate::uci::parser::{uci_to_move, UciCommand};
 use crate::uci::state::UciState;
 
 // ---------------------------------------------------------------------------
-// UciHandler owns both protocol state and engine state.
+// UciHandler owns both uci state and engine state.
 // main() creates one instance and calls run().
 // ---------------------------------------------------------------------------
 

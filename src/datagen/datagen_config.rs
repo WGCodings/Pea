@@ -23,7 +23,7 @@ pub struct DatagenConfig {
     /// Score threshold in cp for draw adjudication
     pub draw_adjudication_score: i32,
 
-    /// Epd book path
+    /// Epd book pathg
     pub epd_path: Option<String>,
 
     /// Output directory for generated data files
