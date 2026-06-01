@@ -27,7 +27,8 @@ As a Rust beginner, I wanted to focus on search and evaluation first rather than
 Writing my own move generator is on the roadmap and maybe the start of my fourth attempt to make an engine?
 
 I'm currently training two NNUEs from scratch. One with  (768 -> 1536)x2 -> 1x8 (Net 0) and one 
-(768 -> 64)x2 -> 1 (Net 1). They train by constantly playing against eachother and learning from both views of the board. For more information about this progression see the CHANGELOG.md. 
+(768 -> 64)x2 -> 1 (Net 1). For more information about this progression see the CHANGELOG.md. 
+Net 0 will be my main network that will be used in all the future releases and Net 1 will be my experimental network.
 You can play the latest generations of my networks on lichess : [Net 0][lichess-link0], [Net 1][lichess-link1].
 
 The plot below shows the training progression over the generations with error bars:
@@ -118,7 +119,7 @@ Below is a table of Elo estimates from having the engine play against other engi
 | v6.0 (Net 1) | 2811              | 2342                                                                    | 2662                                                                    | 2811                                                                         | /                                                            |
 | v7.0 (Net 1) | 2850              | 2392                                                                    | 2739                                                                    | 2858                                                                         | /                                                            |
 | v8.0 (Net 0) | 2993              | 2507                                                                    | 2869                                                                    | 2996                                                                         | /                                                            |
-| v9.0 (Net 0) |                   |                                                                         |                                                                         |                                                                              | /                                                            |
+| v9.0 (Net 0) | 3193              |                                                                         |                                                                         |                                                                              | /                                                            |
 ---
 
 
@@ -208,10 +209,10 @@ This project is licensed under the [GNU General Public License v3.0][license-lin
 [release-badge]: https://img.shields.io/github/v/release/WGCodings/Pea?style=for-the-badge&color=violet
 [release-link]: https://github.com/WGCodings/Pea/releases/latest
 
-[lichess-badge0]: https://img.shields.io/badge/Play-Net_0_Gen_8-green?logo=lichess&style=for-the-badge
+[lichess-badge0]: https://img.shields.io/badge/Play-Net_0_Gen_9-green?logo=lichess&style=for-the-badge
 [lichess-link0]: https://lichess.org/@/PeaNet0
 
-[lichess-badge1]: https://img.shields.io/badge/Play-Net_1_Gen_8-green?logo=lichess&style=for-the-badge
+[lichess-badge1]: https://img.shields.io/badge/Play-Net_1_Gen_9-green?logo=lichess&style=for-the-badge
 [lichess-link1]: https://lichess.org/@/PeaNet1
 
 <!-- Links -->

@@ -11,10 +11,10 @@ The results for Gen x are always vs Gen x-1. For a more detailed match result se
 
 #### Elo gain per generation
 
-| Net       | Gen 0 | Gen 1               | Gen 2           | Gen 3               | Gen 4              | Gen 5              | Gen 6              | Gen 7              | Gen 8              |
-|-----------|-------|---------------------|-----------------|---------------------|--------------------|--------------------|--------------------|--------------------|--------------------|
-| **Net 0** | 0     | **+511.50 ± 92.45** | **+1000+ ± ?**  | **636.43 ± 109.02** | **183.78 ± 32.42** | **309.24 ± 40.38** | **350.17 ± 47.62** | **102.28 ± 22.59** | **199.96 ± 30.48** |
-| **Net 1** | 0     | **+792.30 ± ?**     | **+916.01 ± ?** | **596.54 ± 106.05** | **198.81 ± 32.13** | **151.58 ± 28.05** | **471.62 ± 69.61** | **81.86 ± 19.71**  | **122.91 ± 25.10** |
+| Net       | Gen 0 | Gen 1               | Gen 2           | Gen 3               | Gen 4              | Gen 5              | Gen 6              | Gen 7              | Gen 8              | Gen 9              |
+|-----------|-------|---------------------|-----------------|---------------------|--------------------|--------------------|--------------------|--------------------|--------------------|--------------------|
+| **Net 0** | 0     | **+511.50 ± 92.45** | **+1000+ ± ?**  | **636.43 ± 109.02** | **183.78 ± 32.42** | **309.24 ± 40.38** | **350.17 ± 47.62** | **102.28 ± 22.59** | **199.96 ± 30.48** | **240.00 ± 33.84** |
+| **Net 1** | 0     | **+792.30 ± ?**     | **+916.01 ± ?** | **596.54 ± 106.05** | **198.81 ± 32.13** | **151.58 ± 28.05** | **471.62 ± 69.61** | **81.86 ± 19.71**  | **122.91 ± 25.10** | **77.74 ± 19.23**  |
 
 The plot below shows the training progression over the generations with error bars. 
 
@@ -38,6 +38,7 @@ The plot below shows the training progression over the generations with error ba
 | Gen 6          | Net0 vs Net1 | **-73.68 ± 19.98**  |
 | Gen 7          | Net0 vs Net1 | **-28.33 ± 12.46**  |
 | Gen 8          | Net0 vs Net1 | **51.25 ± 15.54**   |
+| Gen 9          | Net0 vs Net1 | **210.82 ± 31.99**  |
 ---
 
 #### Elo estimates*
@@ -62,6 +63,8 @@ The plot below shows the training progression over the generations with error ba
 | Net1-Gen7 | 2850 ±  13 |
 | Net0-Gen8 | 2993 ± 7   |
 | Net1-Gen8 | 2963 ± 15  |
+| Net0-Gen9 | 3193 ± 12  |
+| Net1-Gen9 | 3013 ± 8   |
 *Based on match vs different Stash versions (8s+0.08).  
  
 
@@ -476,18 +479,18 @@ Elo: -36.66 +/- 14.71, nElo: -42.79 +/- 17.03
 Games: 1598, Wins: 548, Losses: 716, Draws: 334, Points: 715.0 (44.74 %)
 ```
 
-## 12. Generation 9 (15/04/2026 - ? )
+## 12. Generation 9 (15/04/2026 - 28/05/2026 )
 
 
 
 Training parameters for these runs :
-* Positions : 200M Net 0
-* 5k nodes per position
+* Positions : ~600M Net 0
+* 5k-20k nodes per position
 * Initial LR : 0.0005
 * Final LR : 0.00005
 * ~2 epochs
 * start WDL : 0.05
-* end WDL : 0.10
+* end WDL : 0.10 - 0.80
 
 ### 12.1. Results vs previous generation
 
@@ -495,34 +498,45 @@ Training parameters for these runs :
 #### 12.1.1. Net 0
 
 ```
-
+Results of GEN9 vs GEN8 (8+0.08, 1t, 16MB, UHO_Lichess_4852_v1.epd):
+Elo: 244.00 +/- 33.84, nElo: 346.44 +/- 35.02
+Games: 378, Wins: 255, Losses: 26, Draws: 97, Points: 303.5 (80.29 %)
 ```
 
 #### 12.1.2. Net 1
 
 ```
-
+Results of GEN9 vs GEN8 (8+0.08, 1t, 16MB, UHO_Lichess_4852_v1.epd):
+Elo: 77.74 +/- 19.23, nElo: 101.65 +/- 24.29
+Games: 786, Wins: 345, Losses: 172, Draws: 269, Points: 479.5 (61.01 %)
 ```
 
 
 ### 12.2. Results Net 0 vs Net 1
 
 ```
-
+Results of NET0 vs NET1 (8+0.08, 1t, 16MB, UHO_Lichess_4852_v1.epd):
+Elo: 210.82 +/- 31.99, nElo: 283.08 +/- 33.80
+Games: 406, Wins: 270, Losses: 50, Draws: 86, Points: 313.0 (77.09 %)
 ```
 
 ### 12.3. Elo estimate 
 
 
 
-**Net 0 ~ Elo**
+**Net 0 ~3193 Elo**
 
 ```
-
+Results of GEN9_NET0 vs STASH31-3217 (8+0.08, 1t, 16MB, UHO_Lichess_4852_v1.epd):
+Elo: -25.89 +/- 12.06, nElo: -32.15 +/- 14.92
+Games: 2084, Wins: 752, Losses: 907, Draws: 425, Points: 964.5 (46.28 %)
 ```
 
-**Net 1 ~ Elo**
+**Net 1 ~ 3013 Elo**
 
 ```
-
+Results of GEN9_NET1 vs STASH26-3000 (8+0.08, 1t, 128MB, UHO_Lichess_4852_v1.epd):
+Elo: 13.06 +/- 7.77, nElo: 15.44 +/- 9.17
+Games: 5510, Wins: 2291, Losses: 2084, Draws: 1135, Points: 2858.5 (51.88 %)
 ```
+

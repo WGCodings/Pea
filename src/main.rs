@@ -12,7 +12,8 @@ use crate::engine::types::PIECE_VALUES;
 use crate::uci::handler::UciHandler;
 
 fn main() {
-    // bench mode for OpenBench — run a fixed search and exit
+    // bench mode for OpenBench — run a fixed search
+    // Must change to proper bench suite but i am lazy
     if std::env::args().nth(1).as_deref() == Some("bench") {
         let mut engine  = Engine::new();
         let ordering    = MoveOrdering::new(&PIECE_VALUES);

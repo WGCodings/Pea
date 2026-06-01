@@ -63,8 +63,7 @@ impl UciHandler {
             UciCommand::Position { fen, moves } => self.on_position(fen, moves),
             UciCommand::Go { wtime, btime, winc, binc, movetime, depth, nodes, ponder }
             => self.on_go(wtime, btime, winc, binc, movetime, depth, nodes, ponder),
-            UciCommand::PonderHit if self.uci.ponder_enabled
-            => self.on_ponderhit(),
+            UciCommand::PonderHit if self.uci.ponder_enabled => self.on_ponderhit(),
             UciCommand::Stop        => self.on_stop(),
             UciCommand::SetOption { name, value } => self.on_setoption(name, value),
             UciCommand::Perft { depth } => self.on_perft(depth),
@@ -87,7 +86,7 @@ impl UciHandler {
     fn on_uci(&self) {
         println!("id name Pea 9.0");
         println!("id author Warre G.");
-        println!("option name Hash type spin default 256 min 1 max 1024");
+        println!("option name Hash type spin default 16 min 1 max 1024");
         println!("option name Threads type spin default 1 min 1 max 128");
         println!("option name Move Overhead type spin default 10 min 0 max 1000");
         println!("option name Ponder type check default false");

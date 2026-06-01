@@ -15,16 +15,6 @@ use crate::uci::parser::move_to_uci;
 
 pub struct Threads;
 
-// ---------------------------------------------------------------------------
-// Shared TT pointer — unsafe isolated here and nowhere else.
-//
-// Safety invariant: the TT is owned by Engine which outlives every
-// thread::scope call. Lazy SMP intentionally allows unsynchronised TT reads/writes.
-//
-// The network is &'static (embedded via include_bytes!) so it needs no
-// special treatment — it is always valid and is already Send.
-// ---------------------------------------------------------------------------
-
 struct SharedTt(*const TranspositionTable);
 unsafe impl Send for SharedTt {}
 
@@ -36,8 +26,6 @@ impl SharedTt {
 // ---------------------------------------------------------------------------
 
 impl Threads {
-    /// Blocking search using `thread::scope` — network is &'static so it
-    /// can be captured directly, no unsafe needed for it.
     pub fn search(
         pos:        &Chess,
         engine:     &mut Engine,
@@ -92,12 +80,6 @@ impl Threads {
         stop.store(true, Ordering::Relaxed);
         result
     }
-
-    // -----------------------------------------------------------------------
-    // Pondering — cannot use thread::scope because the thread intentionally
-    // outlives the call site. TT still needs SharedTt; network is &'static
-    // so it's just copied into the closure directly.
-    // -----------------------------------------------------------------------
 
     pub fn start_ponder(
         pos:          Chess,

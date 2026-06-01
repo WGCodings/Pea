@@ -131,8 +131,6 @@ pub fn print_bestmove(
 // SearchContext constructor
 // ---------------------------------------------------------------------------
 
-/// Build a search context. Both the main thread and helper threads use this —
-/// there is no longer a separate `build_main_context` wrapper.
 pub fn build_search_context<'a>(
     tt:           &'a TranspositionTable,
     params:       &'a Params,
