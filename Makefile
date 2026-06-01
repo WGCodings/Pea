@@ -17,4 +17,4 @@ rule:
 	cargo rustc --release --bin Pea -- -C target-cpu=native --emit link=$(NAME)
 
 release:
-	cargo rustc --release --bin Pea -- -C target-cpu=x86-64-v3 -C target-feature=+avx2,+bmi2 --emit link=$(NAME)
+	cargo rustc --release --bin Pea -- -C target-cpu=native -C target-feature=+avx2,+bmi2 --emit link=$(NAME)
