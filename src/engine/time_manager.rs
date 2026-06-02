@@ -115,7 +115,7 @@ fn compute_time_limit_sub(
 
     // Complexity adjustment
     let move_count = pos.legal_moves().len() as u32;
-    let complexity_factor = (move_count as f32 / 25.0).clamp(0.5, 2.0);
+    let complexity_factor = (move_count as f32 / 25.0).clamp(0.8, 1.2);
     time = time.mul_f32(complexity_factor);
 
 
