@@ -77,7 +77,7 @@ impl TimeManager {
             scale *= 0.9;
         }
 
-        if scale >= 1.0 {scale *= 2.0} else { scale *= 0.5 };
+        if scale >= 1.0 {scale *= 2.0};
 
         scale = scale.clamp(0.25, 4.0);
 
