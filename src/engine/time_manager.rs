@@ -56,15 +56,15 @@ impl TimeManager {
         match self.best_move_stability {
             0 => scale *= 1.2,        // move changed, need more time
             1..=3 => scale *= 1.0,    // neutral
-            4..=6 => scale *= 0.75,    // fairly stable
-            _ => scale *= 0.5,       // very stable, safe to stop early
+            4..=6 => scale *= 0.9,    // fairly stable
+            _ => scale *= 0.75,       // very stable, safe to stop early
         }
 
         // Score instability, be conservative
         if self.score_stability == 0 {
             scale *= 1.1;
         } else if self.score_stability >= 6 {
-            scale *= 0.75;
+            scale *= 0.9;
         }
 
         // Score dropped significantly, more time
@@ -74,7 +74,7 @@ impl TimeManager {
 
         // Score jumped, we found something good, can be more confident
         if score_jumped {
-            scale *= 0.75;
+            scale *= 0.9;
         }
 
         if scale >= 1.0 {scale *= 2.0};
