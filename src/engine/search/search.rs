@@ -396,8 +396,8 @@ pub fn negamax(
                 continue;
             }
         }
-        if depth <= ctx.params.hpp_max_depth as usize && !is_pv && !is_root && !in_check && is_quiet{
-            if (see as i32) <  0  {
+        if !is_pv && !is_root && !in_check && is_quiet{
+            if (see as i32) <  -21 * depth as i32 * depth as i32  {
                 continue;
             }
         }
