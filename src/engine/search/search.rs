@@ -390,20 +390,11 @@ pub fn negamax(
         // =====================================================================================================================//
         // From WIKI : This is usually done with a linear depth margin for captures, and a quadratic depth margin for quiets, though such details may vary.
         // TODO : try -80*depth for captures and -60*depth^2 for quiet (or try lower like -21 as sp)
-        /*
-        if depth <= ctx.params.hpp_max_depth as usize && !is_pv && !is_root && !in_check && !is_quiet{
-            if (see as i32) < -80 * depth as i32  {
+        if depth <= ctx.params.hpp_max_depth as usize && !is_pv && !is_root && !in_check {
+            if (see as i32) < !is_quiet as i32 * ctx.params.hpp_tactical_scaling as i32 * depth as i32  {
                 continue;
             }
         }
-
-        
-        if depth <= ctx.params.hpp_max_depth as usize && !is_pv && !is_root && !in_check && is_quiet{
-            if (see as i32) <  -21 * depth as i32 * depth as i32 {
-                continue;
-            }
-        }
-        */
 
         // =========================================================
         // SINGULAR EXTENSIONS (Thanks to Simbelmyne)
