@@ -367,7 +367,7 @@ pub fn negamax(
             && depth <= ctx.params.hist_prune_depth as usize
             && moves_searched > 1  // never prune first move?
         {
-            if is_quiet && false{
+            if is_quiet{
                 let hist = ctx.get_quiet_history_score(pos, mv, ply);
                 if hist < -(ctx.params.hist_prune_margin as i32 * depth as i32) {
                     continue;
