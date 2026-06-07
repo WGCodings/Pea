@@ -12,7 +12,7 @@ use crate::engine::time_manager::TimeManager;
 use crate::engine::tt::{ encode_move, score_from_tt, tt_probe, tt_store, validate_move, Bound};
 use crate::engine::types::{DRAW_SCORE, MATE_SCORE, MAX_INF, MIN_INF};
 use crate::engine::utility::{print_search_info};
-
+#[derive(Clone, Copy)]
 pub struct SearchStats {
     pub nodes: u64,
     pub depth_sum: u64,
@@ -37,7 +37,7 @@ impl SearchStats {
     }
 }
 
-pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>, max_nodes : u64) -> (i32, Move, Vec<Option<Move>>) {
+pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>, max_nodes : u64) -> (i32, Move, Vec<Option<Move>>,SearchStats) {
     let start_time = Instant::now();
     let base_time = time_remaining.unwrap();
 
@@ -88,7 +88,8 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     }
 
     ctx.stats.duration = tm.elapsed();
-    (best_score, best_move.unwrap(), tt_pv)
+
+    (best_score, best_move.unwrap(), tt_pv, ctx.stats)
 }
 
 
@@ -397,7 +398,7 @@ pub fn negamax(
             }
         }
         if !is_pv && !is_root && !in_check && is_quiet{
-            if (see as i32) <  -60 * depth as i32 * depth as i32  {
+            if (see as i32) <  -21 * depth as i32 * depth as i32  {
                 continue;
             }
         }

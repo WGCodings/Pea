@@ -5,7 +5,7 @@ use shakmaty::{Chess, Move};
 
 use crate::engine::search::context::NNUEState;
 use crate::engine::search::ordering::MoveOrdering;
-use crate::engine::search::search::search;
+use crate::engine::search::search::{search, SearchStats};
 use crate::engine::state::Engine;
 use crate::engine::tt::TranspositionTable;
 use crate::engine::types::PIECE_VALUES;
@@ -34,7 +34,8 @@ impl Threads {
         max_nodes:  u64,
         time_limit: Option<Duration>,
         stop:       Arc<AtomicBool>,
-    ) -> (i32, Move, Vec<Option<Move>>) {
+        verbose:     bool,
+    ) -> (i32, Move, Vec<Option<Move>>,SearchStats) {
         stop.store(false, Ordering::Relaxed);
 
         let num_threads     = engine.options.threads as usize;
@@ -72,7 +73,7 @@ impl Threads {
                 &engine.tt, params, ordering, network,
                 rep_stack.clone(), nnue_state,
                 stop.clone(), node_count,
-                true, time_limit,
+                verbose, time_limit,
             );
             search(pos, &mut main_ctx, max_depth, time_limit, max_nodes)
         });
@@ -133,7 +134,7 @@ impl Threads {
                 true, Some(ponder_limit),
             );
 
-            let (_, mv, _) = search(&pos, &mut ctx, 64, Some(ponder_limit), u64::MAX);
+            let (_, mv, _,_) = search(&pos, &mut ctx, 64, Some(ponder_limit), u64::MAX);
 
             if is_pondering.load(Ordering::Relaxed) {
                 println!("bestmove {}", move_to_uci(&mv));

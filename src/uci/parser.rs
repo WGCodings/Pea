@@ -29,6 +29,7 @@ pub enum UciCommand {
     Perft {
         depth: u32,
     },
+    Bench,
     // Used to load  and save params for teh SPSA
     LoadParams { path: String },
     SaveParams { path: String },
@@ -55,6 +56,7 @@ pub fn parse_command(input: &str) -> UciCommand {
         "ucinewgame" => UciCommand::UciNewGame,
         "stop" => UciCommand::Stop,
         "quit" => UciCommand::Quit,
+        "bench" => UciCommand::Bench,
         "position" => {
             let mut fen = None;
             let mut moves = Vec::new();
