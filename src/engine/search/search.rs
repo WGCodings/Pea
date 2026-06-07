@@ -398,7 +398,7 @@ pub fn negamax(
             }
         }
         if !is_pv && !is_root && !in_check && is_quiet{
-            if (see as i32) <  -21 * depth as i32 * depth as i32  {
+            if (see as i32) <  -40 * depth as i32 * depth as i32  {
                 continue;
             }
         }
