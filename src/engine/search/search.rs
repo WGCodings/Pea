@@ -393,12 +393,12 @@ pub fn negamax(
 
         // TODO : try -80*depth for captures and -60*depth^2 for quiet (or try lower like -21 as sp)
         if !is_pv && !is_root && !in_check && !is_quiet{
-            if (see as i32) <  -80 * depth as i32  {
+            if (see as i32) <  -60 * depth as i32  {
                 continue;
             }
         }
         if !is_pv && !is_root && !in_check && is_quiet{
-            if (see as i32) <  -40 * depth as i32 * depth as i32  {
+            if (see as i32) <  -21 * depth as i32 * depth as i32  {
                 continue;
             }
         }
