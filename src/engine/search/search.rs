@@ -364,6 +364,7 @@ pub fn negamax(
         // TODO FINETUNE PARAMETERS TO MAKE IT WORK ADD CAPTURE HISTORY PRUNING WITH LARGER MARGIN
         if !in_check
             && !is_pv
+            && depth <= ctx.params.hist_prune_depth as usize
             && moves_searched > 1  // never prune first move?
         {
             if is_quiet{
