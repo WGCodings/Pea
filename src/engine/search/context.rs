@@ -168,7 +168,7 @@ impl<'a> SearchContext<'a> {
                 let f = m.from().unwrap().to_usize();
                 let t = m.to().to_usize();
 
-                Self::update_history_value(&mut self.history[side][f][t], -bonus/self.params.cont_hist_malus_scaling as i32);
+                Self::update_history_value(&mut self.history[side][f][t], -(bonus/self.params.cont_hist_malus_scaling as i32));
             }
         }
     }
