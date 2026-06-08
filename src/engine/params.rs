@@ -119,7 +119,7 @@ impl Params {
             // N-PLY CONTINUATION HISTORY
             cont_hist_scaling: 150.0,
             cont_hist_base: 125.0,
-            cont_hist_malus_scaling: 2.0,
+            cont_hist_malus_scaling: 1.0,
             // hanging piece pruning
             hpp_max_depth: 3.0,
             hpp_tactical_scaling: 0.0,
