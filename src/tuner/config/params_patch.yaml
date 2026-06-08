@@ -22,7 +22,7 @@ fp_improving_margin: 0.0
 fp_min_moves_searched: 1.0
 cont_hist_scaling: 150.0
 cont_hist_base: 125.0
-cont_hist_malus_scaling: 1.0
+cont_hist_malus_scaling: 2.0
 lmp_base: 4.0
 lmp_lin_scaling: 4.0
 lmp_quad_scaling: 0.0
