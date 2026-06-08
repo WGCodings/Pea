@@ -184,7 +184,7 @@ impl<'a> SearchContext<'a> {
         // malus for continuation history
         for &m in quiets_searched {
             if m != mv {
-                self.update_continuation_value(ply,m,-bonus/(2*self.params.cont_hist_malus_scaling as i32));
+                self.update_continuation_value(ply,m,-(bonus/self.params.cont_hist_malus_scaling as i32));
             }
         }
     }
