@@ -117,8 +117,8 @@ impl Params {
             lmp_quad_scaling: 0.0,
             lmp_max_depth: 5.0,
             // N-PLY CONTINUATION HISTORY
-            cont_hist_scaling: 150.0,
-            cont_hist_base: 125.0,
+            cont_hist_scaling: 375.0,
+            cont_hist_base: 150.0,
             cont_hist_malus_scaling: 1.0,
             // hanging piece pruning
             hpp_max_depth: 3.0,
