@@ -527,17 +527,18 @@ pub fn negamax(
 
         if score >= beta {
             let bonus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
+            let malus = 400 * depth as i32 - 10;
 
             if !is_capture{
 
                 ctx.store_killer(ply, mv);
 
-                ctx.update_quiet_history(pos.turn() as usize, mv, bonus, &quiets_searched); // Update quiet history, bonus for move, malus for quiets searched
+                ctx.update_quiet_history(pos.turn() as usize, mv, bonus, malus, &quiets_searched); // Update quiet history, bonus for move, malus for quiets searched
 
-                ctx.update_continuation_history(ply, mv, bonus, &quiets_searched); // Update continuation history, bonus for move, malus for quiets searched
+                ctx.update_continuation_history(ply, mv, bonus, malus, &quiets_searched); // Update continuation history, bonus for move, malus for quiets searched
 
             }else {
-                ctx.update_capture_history(pos, mv, bonus, &tacticals_searched);
+                ctx.update_capture_history(pos, mv, bonus, malus, &tacticals_searched);
             }
 
             break;
