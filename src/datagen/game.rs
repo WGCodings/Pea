@@ -97,7 +97,7 @@ pub fn run_game(
             None);
 
 
-        let (score, best_move, _pv) = search(
+        let (score, best_move, _pv,_) = search(
             &pos,
             &mut ctx,
             128,                                 // max depth, nodes will stop it first

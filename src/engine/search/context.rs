@@ -126,7 +126,7 @@ impl<'a> SearchContext<'a> {
     // =====================================================================================================================//
 
     #[inline(always)]
-    pub fn update_capture_history(&mut self, pos: &Chess, mv: Move, bonus: i32, tacticals_searched: &[Move]) {
+    pub fn update_capture_history(&mut self, pos: &Chess, mv: Move, bonus: i32, malus : i32, tacticals_searched: &[Move]) {
 
         let board = pos.board();
 
@@ -146,7 +146,7 @@ impl<'a> SearchContext<'a> {
                 let captured_piece = board.role_at(to_sq).unwrap_or(Role::Pawn) as usize - 1;
                 let moved_piece = board.role_at(from_sq).unwrap() as usize - 1;
 
-                Self::update_history_value(&mut self.capture_history[captured_piece][to_sq.to_usize()][moved_piece], -bonus/self.params.cont_hist_malus_scaling as i32);
+                Self::update_history_value(&mut self.capture_history[captured_piece][to_sq.to_usize()][moved_piece], -malus/self.params.cont_hist_malus_scaling as i32);
             }
         }
     }
@@ -155,7 +155,7 @@ impl<'a> SearchContext<'a> {
     // UPDATE QUIET HISTORY                                                                                                 //
     // =====================================================================================================================//
     #[inline(always)]
-    pub fn update_quiet_history(&mut self, side: usize, mv: Move, bonus: i32, quiets_searched: &[Move]) {
+    pub fn update_quiet_history(&mut self, side: usize, mv: Move, bonus: i32, malus: i32, quiets_searched: &[Move]) {
 
         let from = mv.from().unwrap().to_usize();
         let to   = mv.to().to_usize();
@@ -168,7 +168,7 @@ impl<'a> SearchContext<'a> {
                 let f = m.from().unwrap().to_usize();
                 let t = m.to().to_usize();
 
-                Self::update_history_value(&mut self.history[side][f][t], -bonus/self.params.cont_hist_malus_scaling as i32);
+                Self::update_history_value(&mut self.history[side][f][t], -(malus/self.params.cont_hist_malus_scaling as i32));
             }
         }
     }
@@ -177,14 +177,14 @@ impl<'a> SearchContext<'a> {
     // UPDATE CONTINUATION HISTORY                                                                                          //
     // =====================================================================================================================//
     #[inline(always)]
-    pub fn update_continuation_history(&mut self, ply: usize, mv: Move, bonus : i32, quiets_searched: &[Move]) {
+    pub fn update_continuation_history(&mut self, ply: usize, mv: Move, bonus : i32, malus : i32, quiets_searched: &[Move]) {
 
         self.update_continuation_value(ply, mv, bonus);
 
         // malus for continuation history
         for &m in quiets_searched {
             if m != mv {
-                self.update_continuation_value(ply,m,-bonus/(2*self.params.cont_hist_malus_scaling as i32));
+                self.update_continuation_value(ply,m,-malus/(2*self.params.cont_hist_malus_scaling as i32));
             }
         }
     }

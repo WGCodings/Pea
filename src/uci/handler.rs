@@ -1,4 +1,7 @@
 use std::cmp;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::time::Duration;
 use shakmaty::{perft, Chess, Position};
 
 use crate::engine::params::Params;
@@ -14,6 +17,7 @@ use crate::tuner::perturb::perturb_params;
 use crate::datagen::datagen_main::run_datagen;
 use crate::uci::parser::{uci_to_move, UciCommand};
 use crate::uci::state::UciState;
+const BENCH_FENS: &str = include_str!("../../assets/bench.txt");
 
 // ---------------------------------------------------------------------------
 // UciHandler owns both uci state and engine state.
@@ -38,6 +42,14 @@ impl UciHandler {
     // -----------------------------------------------------------------------
 
     pub fn run(&mut self) {
+
+        // bench mode for OpenBench — run a fixed search
+        // Must change to proper bench suite but i am lazy
+        if std::env::args().nth(1).as_deref() == Some("bench") {
+            self.on_bench();
+            return;
+        }
+
         use std::io::{self, BufRead};
         let stdin = io::stdin();
 
@@ -67,6 +79,7 @@ impl UciHandler {
             UciCommand::Stop        => self.on_stop(),
             UciCommand::SetOption { name, value } => self.on_setoption(name, value),
             UciCommand::Perft { depth } => self.on_perft(depth),
+            UciCommand::Bench => self.on_bench(),
             UciCommand::Quit        => return LoopControl::Break,
             // Non-standard tuner / datagen commands
             UciCommand::LoadParams    { path }    => self.on_load_params(path),
@@ -83,8 +96,46 @@ impl UciHandler {
     // UCI command handlers
     // -----------------------------------------------------------------------
 
+    fn on_bench(&mut self) {
+        use std::time::Instant;
+
+        let ordering  = MoveOrdering::new(&PIECE_VALUES);
+        let stop      = Arc::new(AtomicBool::new(false));
+
+        let mut total_nodes: u64 = 0;
+        let mut total_time:  u128 = 0;
+
+        for fen in BENCH_FENS.lines().filter(|l| !l.trim().is_empty()) {
+            let position = match read_position_from_fen(fen) {
+                Some(p) => p,
+                None    => continue,
+            };
+
+            self.engine.position = position.clone();
+            self.engine.init_history();
+            self.engine.tt.clear();
+
+            let timer = Instant::now();
+            let (_, _, _,stats) = Threads::search(
+                &position,
+                &mut self.engine,
+                &ordering,
+                11,
+                u64::MAX,
+                Some(Duration::MAX/10),
+                stop.clone(),
+                false
+            );
+            total_time  += timer.elapsed().as_millis();
+            total_nodes += stats.nodes;
+        }
+
+        let nps = total_nodes * 1000 / (total_time as u64).max(1);
+        println!("Bench: {total_nodes} nodes {nps} nps");
+    }
+
     fn on_uci(&self) {
-        println!("id name Pea 9.0");
+        println!("id name Pea 9.1");
         println!("id author Warre G.");
         println!("option name Hash type spin default 16 min 1 max 1024");
         println!("option name Threads type spin default 1 min 1 max 128");
@@ -154,9 +205,9 @@ impl UciHandler {
                 self.engine.options.move_overhead,
             );
 
-            let (_, best_move, pv) = Threads::search(
+            let (_, best_move, pv,_) = Threads::search(
                 &position, &mut self.engine, &ordering,
-                max_depth, max_nodes, time_limit, self.uci.stop.clone(),
+                max_depth, max_nodes, time_limit, self.uci.stop.clone(),true
             );
             print_bestmove(best_move, &pv, &mut self.engine, &self.uci);
         }
@@ -178,9 +229,9 @@ impl UciHandler {
 
         let ordering = MoveOrdering::new(&PIECE_VALUES);
         let position = self.engine.position.clone();
-        let (_, best_move, pv) = Threads::search(
+        let (_, best_move, pv,_) = Threads::search(
             &position, &mut self.engine, &ordering,
-            64, u64::MAX, time_limit, self.uci.stop.clone(),
+            64, u64::MAX, time_limit, self.uci.stop.clone(),true
         );
         print_bestmove(best_move, &pv, &mut self.engine, &self.uci);
     }

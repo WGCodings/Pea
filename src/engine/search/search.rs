@@ -12,7 +12,7 @@ use crate::engine::time_manager::TimeManager;
 use crate::engine::tt::{ encode_move, score_from_tt, tt_probe, tt_store, validate_move, Bound};
 use crate::engine::types::{DRAW_SCORE, MATE_SCORE, MAX_INF, MIN_INF};
 use crate::engine::utility::{print_search_info};
-
+#[derive(Clone, Copy)]
 pub struct SearchStats {
     pub nodes: u64,
     pub depth_sum: u64,
@@ -37,7 +37,7 @@ impl SearchStats {
     }
 }
 
-pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>, max_nodes : u64) -> (i32, Move, Vec<Option<Move>>) {
+pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>, max_nodes : u64) -> (i32, Move, Vec<Option<Move>>,SearchStats) {
     let start_time = Instant::now();
     let base_time = time_remaining.unwrap();
 
@@ -88,7 +88,8 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     }
 
     ctx.stats.duration = tm.elapsed();
-    (best_score, best_move.unwrap(), tt_pv)
+
+    (best_score, best_move.unwrap(), tt_pv, ctx.stats)
 }
 
 
@@ -366,7 +367,7 @@ pub fn negamax(
             && depth <= ctx.params.hist_prune_depth as usize
             && moves_searched > 1  // never prune first move?
         {
-            if is_quiet && false{
+            if is_quiet{
                 let hist = ctx.get_quiet_history_score(pos, mv, ply);
                 if hist < -(ctx.params.hist_prune_margin as i32 * depth as i32) {
                     continue;
@@ -389,8 +390,15 @@ pub fn negamax(
         // To be tuned later.                                                                                                   //
         // =====================================================================================================================//
         // From WIKI : This is usually done with a linear depth margin for captures, and a quadratic depth margin for quiets, though such details may vary.
-        if depth <= ctx.params.hpp_max_depth as usize && !is_pv && !is_root && !in_check {
-            if (see as i32) < !is_quiet as i32 * ctx.params.hpp_tactical_scaling as i32 * depth as i32  {
+
+        // TODO : try -80*depth for captures and -60*depth^2 for quiet (or try lower like -21 as sp)
+        if !is_pv && !is_root && !in_check && !is_quiet{
+            if (see as i32) <  -80 * depth as i32  {
+                continue;
+            }
+        }
+        if !is_pv && !is_root && !in_check && is_quiet{
+            if (see as i32) <  -21 * depth as i32 * depth as i32  {
                 continue;
             }
         }
@@ -519,17 +527,18 @@ pub fn negamax(
 
         if score >= beta {
             let bonus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
+            let malus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
 
             if !is_capture{
 
                 ctx.store_killer(ply, mv);
 
-                ctx.update_quiet_history(pos.turn() as usize, mv, bonus, &quiets_searched); // Update quiet history, bonus for move, malus for quiets searched
+                ctx.update_quiet_history(pos.turn() as usize, mv, bonus, malus, &quiets_searched); // Update quiet history, bonus for move, malus for quiets searched
 
-                ctx.update_continuation_history(ply, mv, bonus, &quiets_searched); // Update continuation history, bonus for move, malus for quiets searched
+                ctx.update_continuation_history(ply, mv, bonus, malus, &quiets_searched); // Update continuation history, bonus for move, malus for quiets searched
 
             }else {
-                ctx.update_capture_history(pos, mv, bonus, &tacticals_searched);
+                ctx.update_capture_history(pos, mv, bonus, malus, &tacticals_searched);
             }
 
             break;
