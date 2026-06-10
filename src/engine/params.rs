@@ -133,7 +133,7 @@ impl Params {
             se_max_nr_dext: 8.0,
             // History pruning
             hist_prune_margin: 1024.0,
-            hist_prune_depth: 6.0,
+            hist_prune_depth: 4.0,
         }
     }
 }
