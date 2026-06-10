@@ -526,8 +526,8 @@ pub fn negamax(
         }
 
         if score >= beta {
-            let bonus = 1800.min(ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32);
-            let malus = 1200.min(ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32);
+            let bonus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
+            let malus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
 
             if !is_capture{
 
