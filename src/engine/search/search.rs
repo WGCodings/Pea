@@ -652,10 +652,11 @@ pub fn quiescence(
 // =====================================================================================================================//
 
 #[inline(always)]
-fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, mut depth: usize, prev_score: i32, pv: &mut PvTable) -> i32 {
+fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, prev_score: i32, pv: &mut PvTable) -> i32 {
     let mut window = ctx.params.aspw_window_size as i32;
     let mut alpha = prev_score - window;
     let mut beta = prev_score + window;
+    let mut depth = max_depth;
     // TODO WINDOW X+avg squared score/Y or prev_score - score scaling
     loop {
         let score = negamax(pos, ctx, depth, 0, alpha, beta, true, pv);
@@ -665,6 +666,7 @@ fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, mut depth: usize, pre
         if score <= alpha {
             beta = (alpha + beta) / 2;
             alpha = cmp::max(alpha - window, MIN_INF);
+            depth = max_depth;
         } else if score >= beta {
             beta = cmp::min(beta + window, MAX_INF);
             depth -= 1;
