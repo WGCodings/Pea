@@ -97,8 +97,8 @@ impl Params {
             lmr_red_scaling: 2.4695,
             lmr_history_divisor: 8192.0,
             // ASPIRATION WINDOW
-            aspw_min_depth: 3.0,
-            aspw_window_size: 50.0,
+            aspw_min_depth: 7.0,
+            aspw_window_size: 16.0,
             aspw_widening_factor: 2.0,
             //FUTILITY PRUNING
             fp_base: 40.0,
