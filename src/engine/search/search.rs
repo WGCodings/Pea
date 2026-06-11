@@ -54,6 +54,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     let mut pv = PvTable::new();
     let mut latest_pv;
     let mut prev_score = 0;
+    let mut avg_score = 0;
     let mut tt_pv = vec![];
 
 
@@ -63,7 +64,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
         if tm.should_stop() && depth > 1 { break; }
 
         let score = if depth >= ctx.params.aspw_min_depth as usize {
-            aspiration_search(pos, ctx, depth, prev_score, &mut pv)
+            aspiration_search(pos, ctx, depth, prev_score, avg_score, &mut pv)
         } else {
             negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, true, &mut pv)
         };
@@ -77,6 +78,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
 
         best_score = score;
         prev_score = score;
+        avg_score = (avg_score * (depth as i32-1) + score) / depth as i32;
         best_move = pv.best_move();
         latest_pv = pv; // why use pv table if we get pv from tt? verification?
         ctx.stats.completed_depth = depth;
@@ -652,8 +654,8 @@ pub fn quiescence(
 // =====================================================================================================================//
 
 #[inline(always)]
-fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, prev_score: i32, pv: &mut PvTable) -> i32 {
-    let mut window = ctx.params.aspw_window_size as i32;
+fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, prev_score: i32, avg_score : i32, pv: &mut PvTable) -> i32 {
+    let mut window = ctx.params.aspw_window_size as i32 + avg_score.abs()/50;
     let mut alpha = prev_score - window;
     let mut beta = prev_score + window;
     let mut depth = max_depth;
