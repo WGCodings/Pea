@@ -105,7 +105,7 @@ pub fn negamax(
     mut depth: usize,
     ply: usize,
     mut alpha: i32,
-    beta: i32,
+    mut beta: i32,
     do_null : bool,
     pv: &mut PvTable,
 ) -> i32 {
@@ -133,6 +133,13 @@ pub fn negamax(
     if !is_root{
         if ctx.is_threefold(pos) || ctx.is_50_moves(pos) || pos.is_stalemate() || pos.is_insufficient_material() {
             return DRAW_SCORE;
+        }
+
+        // mate distance pruning
+        alpha = alpha.max(ply as i32- MATE_SCORE);
+        beta = beta.min(MATE_SCORE - ply as i32 - 1);
+        if alpha >= beta {
+            return alpha;
         }
 
         if in_check{
