@@ -131,10 +131,11 @@ pub fn negamax(
     check_time(ctx);
 
     // TODO move this to the end of the search because this generates all legal moves and throws them away
+    /*
     if pos.is_checkmate() {
         return -MATE_SCORE + ply as i32;
     }
-
+     */
     if (ctx.is_threefold(pos) || ctx.is_50_moves(pos) || pos.is_stalemate() || pos.is_insufficient_material()) && !is_root {
         return DRAW_SCORE;
     }
@@ -576,11 +577,11 @@ pub fn negamax(
 
 
     }
-    /*
+
     if moves_searched==0{
         return i32::from(in_check) * (-MATE_SCORE + ply as i32);
     }
-    */
+
 
     if !(*ctx.stop).load(Ordering::Relaxed) && !is_excluded{
         tt_store(hash, ctx, depth, best_score, static_eval,original_alpha, beta, best_move,ply);
