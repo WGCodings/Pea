@@ -130,15 +130,16 @@ pub fn negamax(
 
     check_time(ctx);
 
-    // TODO move this to the end of the search because this generates all legal moves and throws them away
-    /*
-    if pos.is_checkmate() {
-        return -MATE_SCORE + ply as i32;
+    if !is_root{
+        if ctx.is_threefold(pos) || ctx.is_50_moves(pos) || pos.is_stalemate() || pos.is_insufficient_material() {
+            return DRAW_SCORE;
+        }
+
+        if in_check{
+            depth += 1;
+        }
     }
-     */
-    if (ctx.is_threefold(pos) || ctx.is_50_moves(pos) || pos.is_stalemate() || pos.is_insufficient_material()) && !is_root {
-        return DRAW_SCORE;
-    }
+
 
     /*
     // best we can do is mate this ply
@@ -160,9 +161,7 @@ pub fn negamax(
 
 
 
-    if in_check && ply < 63 && depth <= 2 {
-        depth += 1;
-    }
+
 
     if (*ctx.stop).load(Ordering::Relaxed){ return DRAW_SCORE; }
 
