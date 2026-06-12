@@ -131,7 +131,7 @@ pub fn negamax(
     check_time(ctx);
 
     if !is_root{
-        if ctx.is_threefold(pos) || ctx.is_50_moves(pos) || pos.is_stalemate() || pos.is_insufficient_material() {
+        if ctx.is_threefold(pos) || ctx.is_50_moves(pos)  || pos.is_insufficient_material() {
             return DRAW_SCORE;
         }
 
