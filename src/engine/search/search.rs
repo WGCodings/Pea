@@ -147,29 +147,6 @@ pub fn negamax(
         }
     }
 
-
-    /*
-    // best we can do is mate this ply
-    let mate_bound = MATE_SCORE - ply as i32;
-    // worst that can happen is get mated this ply
-    let mated_bound = -(MATE_SCORE - ply as i32);
-
-    if alpha < mated_bound {
-        alpha = mated_bound;
-        if alpha >= beta { return mated_bound; }
-    }
-
-    if beta > mate_bound {
-        beta = mate_bound;
-        if alpha >= beta { return mate_bound; }
-    }
-    TODO Check cleaner block code from Akimbo
-     */
-
-
-
-
-
     if (*ctx.stop).load(Ordering::Relaxed){ return DRAW_SCORE; }
 
 
@@ -584,7 +561,7 @@ pub fn negamax(
 
     }
 
-    if moves_searched==0{
+    if moves_searched == 0{
         return i32::from(in_check) * (-MATE_SCORE + ply as i32);
     }
 
