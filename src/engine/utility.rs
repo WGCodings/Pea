@@ -10,7 +10,7 @@ use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::pv::PvTable;
 use crate::engine::search::search::SearchStats;
 use crate::engine::tt::TranspositionTable;
-use crate::engine::types::MAX_PLY_CONTINUATION_HISTORY;
+use crate::engine::types::{MATE_SCORE, MAX_PLY_CONTINUATION_HISTORY};
 use crate::nnue::network::Network;
 use crate::uci::parser::move_to_uci;
 use crate::uci::state::UciState;
@@ -64,9 +64,17 @@ pub fn print_search_info(
         pv_to_string(&tt_line)
     };
 
+    let score_str = if score.abs() > MATE_SCORE - 200 {
+        let moves_to_mate = (MATE_SCORE - score.abs() + 1) / 2;
+        let sign = if score > 0 { 1 } else { -1 };
+        format!("mate {}", sign * moves_to_mate)
+    } else {
+        format!("cp {}", score)
+    };
+
     println!(
-        "info depth {} seldepth {} score cp {} nodes {} nps {} hashfull {} time {} pv {}",
-        depth, ctx.stats.seldepth, score, nodes, nps, tt_occupancy, elapsed_millis, pv_string,
+        "info depth {} seldepth {} score {} nodes {} nps {} hashfull {} time {} pv {}",
+        depth, ctx.stats.seldepth, score_str, nodes, nps, tt_occupancy, elapsed_millis, pv_string,
     );
     pv_line
 }

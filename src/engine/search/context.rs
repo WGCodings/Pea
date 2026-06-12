@@ -220,7 +220,7 @@ impl<'a> SearchContext<'a> {
         score
     }
     #[inline(always)]
-    pub fn get_capture_history_score(&self, pos: &Chess, mv: Move) -> i32 {
+    pub fn _get_capture_history_score(&self, pos: &Chess, mv: Move) -> i32 {
         if !mv.is_capture() {
             return 0;
         }

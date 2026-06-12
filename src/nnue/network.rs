@@ -133,7 +133,7 @@ impl Network {
         &NNUE
     }
 
-    pub fn load_from_path(path: &str) -> Box<Network> {
+    pub fn _load_from_path(path: &str) -> Box<Network> {
         let bytes = std::fs::read(path)
             .unwrap_or_else(|e| panic!("Failed to read network '{}': {}", path, e));
         assert_eq!(

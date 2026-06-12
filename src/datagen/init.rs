@@ -2,8 +2,8 @@
 use rand::{RngExt};
 use std::io::Write;
 
-const QA: i16 = 255;
-const QB: i16 = 64;
+const _QA: i16 = 255;
+const _QB: i16 = 64;
 
 pub fn _generate_random_network(
     path: &str,
@@ -21,9 +21,9 @@ pub fn _generate_random_network(
     let total = input_weights + input_biases + out_weights + out_biases;
     let mut weights: Vec<i16> = Vec::with_capacity(total);
 
-    let max_input  = 1.98 * QA as f32 / 768.0_f32.sqrt();
-    let max_output = 1.98 * QB as f32 / (hidden_size as f32 * 2.0).sqrt();
-    let max_bias_out = 1.98 * QA as f32 * QB as f32 / (hidden_size as f32 * 2.0).sqrt();
+    let max_input  = 1.98 * _QA as f32 / 768.0_f32.sqrt();
+    let max_output = 1.98 * _QB as f32 / (hidden_size as f32 * 2.0).sqrt();
+    let max_bias_out = 1.98 * _QA as f32 * _QB as f32 / (hidden_size as f32 * 2.0).sqrt();
 
     // Input weights
     for _ in 0..input_weights {

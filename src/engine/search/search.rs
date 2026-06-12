@@ -53,7 +53,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     let mut best_move = None;
     let mut pv = PvTable::new();
     let mut latest_pv;
-    let mut prev_score = 0;
+    let mut prev_score: i32 = 0;
     let mut avg_score = 0;
     let mut tt_pv = vec![];
 
@@ -63,7 +63,9 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
 
         if tm.should_stop() && depth > 1 { break; }
 
-        let score = if depth >= ctx.params.aspw_min_depth as usize {
+
+        // TODO what if score is close to mate score?
+        let score = if depth >= ctx.params.aspw_min_depth as usize{
             aspiration_search(pos, ctx, depth, prev_score, avg_score, &mut pv)
         } else {
             negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, true, &mut pv)
@@ -128,6 +130,7 @@ pub fn negamax(
 
     check_time(ctx);
 
+    // TODO move this to the end of the search because this generates all legal moves and throws them away
     if pos.is_checkmate() {
         return -MATE_SCORE + ply as i32;
     }
@@ -135,6 +138,26 @@ pub fn negamax(
     if (ctx.is_threefold(pos) || ctx.is_50_moves(pos) || pos.is_stalemate() || pos.is_insufficient_material()) && !is_root {
         return DRAW_SCORE;
     }
+
+    /*
+    // best we can do is mate this ply
+    let mate_bound = MATE_SCORE - ply as i32;
+    // worst that can happen is get mated this ply
+    let mated_bound = -(MATE_SCORE - ply as i32);
+
+    if alpha < mated_bound {
+        alpha = mated_bound;
+        if alpha >= beta { return mated_bound; }
+    }
+
+    if beta > mate_bound {
+        beta = mate_bound;
+        if alpha >= beta { return mate_bound; }
+    }
+    TODO Check cleaner block code from Akimbo
+     */
+
+
 
     if in_check && ply < 63 && depth <= 2 {
         depth += 1;
@@ -553,6 +576,11 @@ pub fn negamax(
 
 
     }
+    /*
+    if moves_searched==0{
+        return i32::from(in_check) * (-MATE_SCORE + ply as i32);
+    }
+    */
 
     if !(*ctx.stop).load(Ordering::Relaxed) && !is_excluded{
         tt_store(hash, ctx, depth, best_score, static_eval,original_alpha, beta, best_move,ply);
@@ -659,7 +687,7 @@ fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, pre
     let mut alpha = prev_score - window;
     let mut beta = prev_score + window;
     let mut depth = max_depth;
-    // TODO WINDOW X+avg squared score/Y or prev_score - score scaling
+
     loop {
         let score = negamax(pos, ctx, depth, 0, alpha, beta, true, pv);
 

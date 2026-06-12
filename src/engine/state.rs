@@ -9,8 +9,6 @@ use crate::nnue::network::Network;
 // ---------------------------------------------------------------------------
 
 pub struct Options {
-    /// Hash table size in MB.
-    pub hash_mb: u32,
     /// Number of search threads.
     pub threads: u8,
     /// Move overhead in milliseconds subtracted from time budget.
@@ -20,7 +18,6 @@ pub struct Options {
 impl Options {
     fn default() -> Self {
         Self {
-            hash_mb: 16,
             threads: 1,
             move_overhead: 10,
         }
@@ -37,7 +34,6 @@ pub struct Engine {
     pub repetition_stack: Vec<u64>,
     pub tt:               TranspositionTable,
     pub options:          Options,
-    /// Heap-allocated so the large weight array never touches the stack.
     pub net:               &'static Network,
     // Pondering
     pub ponder_move:      Option<Move>,
