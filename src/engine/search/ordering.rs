@@ -82,6 +82,11 @@ impl MoveOrdering {
         // ============================================================
         // TODO ADD CAPTURE HISTORY
         if mv.is_capture() {
+
+            if mv.is_en_passant(){
+                return 800_150
+            }
+
             let see = see(pos, *mv);
 
             if see > 0{
