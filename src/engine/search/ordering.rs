@@ -85,16 +85,14 @@ impl MoveOrdering {
 
             let see = see(pos, *mv);
 
-            let en_passant_bonus= i32::from(mv.is_en_passant());
-
             if see > 0{
-                return 800_000 + see as i32 + en_passant_bonus;
+                return 800_000 + see as i32;
             }
             else if see == 0{
-                return 750_000 + en_passant_bonus;
+                return 750_000;
             }
             else {
-                return 5000 + see as i32 + en_passant_bonus;
+                return 5000 + see as i32;
             }
 
         }
