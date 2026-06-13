@@ -7,7 +7,7 @@ use shakmaty::{
 const PIECE_VALUES: [i16; 7] = [
     100,   // Pawn
     300,   // Knight
-    300,   // Bishop
+    350,   // Bishop
     500,   // Rook
     900,   // Queen
     10000, // King (large finite value)
