@@ -83,20 +83,18 @@ impl MoveOrdering {
         // TODO ADD CAPTURE HISTORY
         if mv.is_capture() {
 
-            if mv.is_en_passant(){
-                return 800_150
-            }
-
             let see = see(pos, *mv);
 
+            let en_passant_bonus= i32::from(mv.is_en_passant());
+
             if see > 0{
-                return 800_000 + see as i32
+                return 800_000 + see as i32 + en_passant_bonus;
             }
             else if see == 0{
-                return 750_000
+                return 750_000 + en_passant_bonus;
             }
             else {
-                return 5000 + see as i32;
+                return 5000 + see as i32 + en_passant_bonus;
             }
 
         }
