@@ -132,7 +132,7 @@ pub fn negamax(
 
     if !is_root{
         if ctx.is_threefold(pos) || ctx.is_50_moves(pos)  || pos.is_insufficient_material() {
-            return DRAW_SCORE;
+            return DRAW_SCORE - ply as i32;
         }
 
         // mate distance pruning
