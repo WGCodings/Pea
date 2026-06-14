@@ -37,6 +37,16 @@ impl SearchStats {
     }
 }
 
+fn prune_factor(depth: usize, max_depth: usize) -> i32 {
+    if depth <= 10 {
+        100
+    } else if depth >= max_depth {
+        0
+    } else {
+        (100 - (depth - 100) / (max_depth - 100)) as i32
+    }
+}
+
 pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>, max_nodes : u64) -> (i32, Move, Vec<Option<Move>>,SearchStats) {
     let start_time = Instant::now();
     let base_time = time_remaining.unwrap();
@@ -57,18 +67,21 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     let mut avg_score = 0;
     let mut tt_pv = vec![];
 
+    let mut prune_scale = 100;
+
 
     for depth in 1..=max_depth {
         pv.clear();
 
         if tm.should_stop() && depth > 1 { break; }
 
+        prune_scale = prune_factor(depth, max_depth);
 
         // TODO what if score is close to mate score?
         let score = if depth >= ctx.params.aspw_min_depth as usize{
-            aspiration_search(pos, ctx, depth, prev_score, avg_score, &mut pv)
+            aspiration_search(pos, ctx, depth, prev_score, avg_score, &mut pv, prune_scale)
         } else {
-            negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, true, &mut pv)
+            negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, true, &mut pv, prune_scale)
         };
 
         if (*ctx.stop).load(Ordering::Relaxed) && depth >1 { break; }
@@ -108,6 +121,7 @@ pub fn negamax(
     mut beta: i32,
     do_null : bool,
     pv: &mut PvTable,
+    prune_scale: i32,
 ) -> i32 {
     (*ctx.node_count).fetch_add(1, Ordering::Relaxed);
     ctx.stats.nodes += 1;
@@ -205,7 +219,7 @@ pub fn negamax(
     // REVERSE FUTILITY PRUNING                                                                                             //
     // =====================================================================================================================//
     let futility = (ctx.params.rfp_scaling as usize* depth) as i32 + ctx.params.rfp_improving_scaling as i32 * !improving as i32;
-    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && !is_root && static_eval - futility   >=beta {
+    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && !is_root && (static_eval * prune_scale/100 - futility )   >= beta {
         return (static_eval + beta)/2;
     }
 
@@ -214,7 +228,7 @@ pub fn negamax(
     // =====================================================================================================================//
     if  do_pruning && !in_check && !is_pv && beta.abs() < MATE_SCORE {
         let score_margin = ctx.params.snmp_scaling as i32 * depth as i32;
-        if static_eval-score_margin >= beta {
+        if static_eval * prune_scale/100-score_margin >= beta {
             return static_eval-score_margin
         }
     }
@@ -225,7 +239,7 @@ pub fn negamax(
     let nmp_margin : i32 = -ctx.params.nmp_margin as i32 + ctx.params.nmp_scaling as i32 * depth as i32 + ctx.params.nmp_improving_scaling as i32 * improving as i32 ;
     if  do_pruning && !in_check && !is_pv && !is_root &&
         static_eval + nmp_margin >= beta &&
-        do_null && minors_or_majors(pos).count() >0 &&
+        do_null &&
         depth >=ctx.params.nmp_min_depth as usize {
 
         let mut reduction = (ctx.params.nmp_base_reduction as usize + depth/ctx.params.nmp_reduction_scaling as usize).min(depth);
@@ -241,7 +255,7 @@ pub fn negamax(
         let hash_child = child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
         ctx.increase_history(hash_child);
 
-        let score = -negamax(&child_pos, ctx, depth - reduction, ply + 1, -beta, -beta + 1, false, &mut PvTable::new());
+        let score = -negamax(&child_pos, ctx, depth - reduction, ply + 1, -beta, -beta + 1, false, &mut PvTable::new(),prune_scale);
 
         std::mem::swap(&mut ctx.nnue.us, &mut ctx.nnue.them);
         ctx.decrease_history();
@@ -429,7 +443,7 @@ pub fn negamax(
 
 
                 ctx.excluded_move[ply] = Some(mv);
-                let se_score = negamax(pos, ctx, se_depth, ply, se_beta - 1, se_beta, false, &mut se_pv);
+                let se_score = negamax(pos, ctx, se_depth, ply, se_beta - 1, se_beta, false, &mut se_pv, prune_scale);
                 ctx.excluded_move[ply] = None;
 
 
@@ -479,7 +493,7 @@ pub fn negamax(
         // START PVS SEARCH WITH FULL WINDOW FOR THE FIRST MOVE AND LMR FOR LATE MOVES                                          //
         // =====================================================================================================================//
         if moves_searched == 1{
-            score = -negamax(&child_pos, ctx, depth - 1 + extension as usize, ply + 1, -beta, -alpha, true, &mut local_pv);
+            score = -negamax(&child_pos, ctx, depth - 1 + extension as usize, ply + 1, -beta, -alpha, true, &mut local_pv, prune_scale);
         }
         else {
             let mut reduction = 0;
@@ -511,13 +525,13 @@ pub fn negamax(
                 reduction = reduction.clamp(0,depth - 1);
             }
 
-            score = -negamax(&child_pos, ctx, (depth - 1 - reduction + extension as usize).max(0) , ply + 1, -alpha-1, -alpha, true, &mut local_pv);
+            score = -negamax(&child_pos, ctx, (depth - 1 - reduction + extension as usize).max(0) , ply + 1, -alpha-1, -alpha, true, &mut local_pv, prune_scale);
 
             if score > alpha && reduction >0 {
-                score = -negamax(&child_pos, ctx, (depth - 1 + extension as usize).max(0), ply + 1, -alpha - 1, -alpha, true, &mut local_pv);
+                score = -negamax(&child_pos, ctx, (depth - 1 + extension as usize).max(0), ply + 1, -alpha - 1, -alpha, true, &mut local_pv, prune_scale);
             }
             if score > alpha && score < beta {
-                score = -negamax(&child_pos, ctx, (depth - 1 + extension as usize).max(0), ply + 1, -beta, -alpha, true, &mut local_pv);
+                score = -negamax(&child_pos, ctx, (depth - 1 + extension as usize).max(0), ply + 1, -beta, -alpha, true, &mut local_pv, prune_scale);
             }
         }
 
@@ -666,14 +680,14 @@ pub fn quiescence(
 // =====================================================================================================================//
 
 #[inline(always)]
-fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, prev_score: i32, avg_score : i32, pv: &mut PvTable) -> i32 {
+fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, prev_score: i32, avg_score : i32, pv: &mut PvTable, prune_scale : i32) -> i32 {
     let mut window = ctx.params.aspw_window_size as i32 + avg_score.abs()/50;
     let mut alpha = prev_score - window;
     let mut beta = prev_score + window;
     let mut depth = max_depth;
 
     loop {
-        let score = negamax(pos, ctx, depth, 0, alpha, beta, true, pv);
+        let score = negamax(pos, ctx, depth, 0, alpha, beta, true, pv, prune_scale);
 
         if (*ctx.stop).load(Ordering::Relaxed) { return score; }
 

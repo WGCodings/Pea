@@ -177,18 +177,18 @@ Running the binary directly drops you into a UCI prompt. In practice, you'll wan
 - [ ] Correction history
 - [ ] Successful run of SPSA
 - [ ] Clean up code, especially datatypes (too many `as` casts)
-- [ ] Better time manager
+- [x] Better time manager
 - [X] Integration with OpenBench
 - [ ] Capture history
 - [ ] Fix missing PV lines due to cutoffs
 - [ ] Store evals in TT before recursive search
-- [ ] Mate Distance Pruning
+- [x] Mate Distance Pruning
 - [ ] Threat moves and extensions in NMP
 - [ ] Probcut
 - [ ] Try improving heuristic in LMR
 - [ ] Contempt
 - [ ] WDL normalization
-- [ ] Variable window choice in Asp Window
+- [x] Variable window choice in Asp Window
 
 ## Acknowledgements
 
