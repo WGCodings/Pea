@@ -221,7 +221,7 @@ pub fn negamax(
 
     if do_pruning && !is_pv && !in_check && !is_root{
         let futility = (ctx.params.rfp_scaling as usize* depth) as i32 + ctx.params.rfp_improving_scaling as i32 * !improving as i32;
-        if depth <= ctx.params.rfp_max_depth as usize  && (static_eval - futility ) >= beta {
+        if depth <= ctx.params.rfp_max_depth as usize  && (static_eval * prune_scale / 100 - futility ) >= beta {
             return (static_eval + beta) / 2;
         }
     }
@@ -231,7 +231,7 @@ pub fn negamax(
     // =====================================================================================================================//
     if  do_pruning && !in_check && !is_pv && beta.abs() < MATE_SCORE {
         let score_margin = ctx.params.snmp_scaling as i32 * depth as i32;
-        if static_eval - score_margin >= beta {
+        if static_eval * prune_scale / 100- score_margin >= beta {
             return static_eval-score_margin
         }
     }
