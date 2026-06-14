@@ -43,7 +43,7 @@ fn prune_factor(depth: usize, max_depth: usize) -> i32 {
     } else if depth >= max_depth {
         0
     } else {
-        (100 - (depth - 10) / (max_depth - 10)) as i32
+        (100 - 100*(depth - 10) / (max_depth - 10)) as i32
     }
 }
 
