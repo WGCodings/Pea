@@ -218,9 +218,12 @@ pub fn negamax(
     // =====================================================================================================================//
     // REVERSE FUTILITY PRUNING                                                                                             //
     // =====================================================================================================================//
-    let futility = (ctx.params.rfp_scaling as usize* depth) as i32 + ctx.params.rfp_improving_scaling as i32 * !improving as i32;
-    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && !is_root && (static_eval * prune_scale/100 - futility ) >= beta {
-        return (static_eval + beta)/2;
+
+    if do_pruning && !is_pv && !in_check && !is_root{
+        let futility = (ctx.params.rfp_scaling as usize* depth) as i32 + ctx.params.rfp_improving_scaling as i32 * !improving as i32;
+        if depth <= ctx.params.rfp_max_depth as usize  && (static_eval - futility ) >= beta {
+            return (static_eval + beta) / 2;
+        }
     }
 
     // =====================================================================================================================//
@@ -228,7 +231,7 @@ pub fn negamax(
     // =====================================================================================================================//
     if  do_pruning && !in_check && !is_pv && beta.abs() < MATE_SCORE {
         let score_margin = ctx.params.snmp_scaling as i32 * depth as i32;
-        if static_eval * prune_scale/100-score_margin >= beta {
+        if static_eval - score_margin >= beta {
             return static_eval-score_margin
         }
     }
@@ -238,7 +241,7 @@ pub fn negamax(
     // =====================================================================================================================//
     let nmp_margin : i32 = -ctx.params.nmp_margin as i32 + ctx.params.nmp_scaling as i32 * depth as i32 + ctx.params.nmp_improving_scaling as i32 * improving as i32 ;
     if  do_pruning && !in_check && !is_pv && !is_root &&
-        static_eval + nmp_margin >= beta &&
+        static_eval * prune_scale / 100 + nmp_margin >= beta &&
         do_null &&
         depth >=ctx.params.nmp_min_depth as usize {
 
