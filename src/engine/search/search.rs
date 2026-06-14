@@ -43,7 +43,7 @@ fn prune_factor(depth: usize, max_depth: usize) -> i32 {
     } else if depth >= max_depth {
         0
     } else {
-        (100 - (depth - 100) / (max_depth - 100)) as i32
+        (100 - (depth - 10) / (max_depth - 10)) as i32
     }
 }
 
@@ -219,7 +219,7 @@ pub fn negamax(
     // REVERSE FUTILITY PRUNING                                                                                             //
     // =====================================================================================================================//
     let futility = (ctx.params.rfp_scaling as usize* depth) as i32 + ctx.params.rfp_improving_scaling as i32 * !improving as i32;
-    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && !is_root && (static_eval * prune_scale/100 - futility )   >= beta {
+    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && !is_root && (static_eval * prune_scale/100 - futility ) >= beta {
         return (static_eval + beta)/2;
     }
 
