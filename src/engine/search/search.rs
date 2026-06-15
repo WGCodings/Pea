@@ -626,15 +626,17 @@ pub fn quiescence(
 
         let see = see(pos, mv) as i32;
 
-        if see < -100{
+        let mut child = pos.clone();
+
+        child.play_unchecked(mv);
+
+        let gives_check = child.is_check();
+
+        if see < 0 && !gives_check {
             continue;
         }
 
         make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
-
-        let mut child = pos.clone();
-
-        child.play_unchecked(mv);
 
         let child_hash = child.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
 
