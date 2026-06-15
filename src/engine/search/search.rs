@@ -276,12 +276,13 @@ pub fn negamax(
     // =====================================================================================================================//
     // TODO ADD IMRPOVING HEURISTIC TO MARGIN
     if  do_pruning && !in_check && !is_pv
-        && depth <= ctx.params.raz_max_depth as usize
-        && static_eval + ctx.params.raz_thr as i32 *(depth as i32)  + improving as i32 * 0 < alpha * prune_scale / 100
-    {
-        let razor_score = quiescence(pos,ctx,alpha,beta,ply);
-        if razor_score <= alpha{
-            return razor_score;
+        && depth <= ctx.params.raz_max_depth as usize{
+        let margin = (static_eval + ctx.params.raz_thr as i32 * (depth as i32) + improving as i32 * 0) * (200 - prune_scale) / 100;
+        if margin < alpha{
+            let razor_score = quiescence(pos,ctx,alpha,beta,ply);
+            if razor_score <= alpha{
+                return razor_score;
+            }
         }
     }
 
