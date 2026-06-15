@@ -182,17 +182,13 @@ pub fn negamax(
         }
     }
 
-    let mut static_eval = if is_excluded {
+    let static_eval = if is_excluded {
         ctx.stack.evals[ply]
     } else if let Some(e) = &tt_entry {
         e.eval
     } else {
-        evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
+        ctx.corrhist_pawn.correct_evaluation(pos, evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them))
     };
-
-    if !is_excluded {
-        static_eval = ctx.corrhist_pawn.correct_evaluation(pos, static_eval);
-    }
 
     ctx.stack.evals[ply] = static_eval;
 
@@ -577,7 +573,7 @@ pub fn negamax(
 
     if !is_excluded && !in_check && (best_move.is_none() || !best_move.unwrap().is_capture()) {
         let diff = best_score - static_eval;
-        let bound_ok = if best_score >= beta { diff > 0 } else if best_score <= original_alpha { diff < 0 } else { true };
+        let bound_ok = if best_score >= beta { diff >= 0 } else if best_score <= original_alpha { diff < 0 } else { true };
         if bound_ok{
             ctx.corrhist_pawn.update_correction_history(pos, depth as i32, diff);
         }
@@ -622,9 +618,8 @@ pub fn quiescence(
     let static_eval = if let Some(entry) = ctx.tt.probe(hash) {
         entry.eval
     } else {
-        evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
+        ctx.corrhist_pawn.correct_evaluation(pos, evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them))
     };
-
 
     if static_eval >= beta {
         return beta;
