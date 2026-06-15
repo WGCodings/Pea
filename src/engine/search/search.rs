@@ -221,7 +221,7 @@ pub fn negamax(
 
     if do_pruning && !is_pv && !in_check && !is_root{
         let futility = (ctx.params.rfp_scaling as usize* depth) as i32 + ctx.params.rfp_improving_scaling as i32 * !improving as i32;
-        if depth <= ctx.params.rfp_max_depth as usize  && (static_eval * prune_scale / 100 - futility ) >= beta {
+        if depth <= ctx.params.rfp_max_depth as usize  && (static_eval - futility ) >= beta {
             return (static_eval + beta) / 2;
         }
     }
@@ -231,7 +231,7 @@ pub fn negamax(
     // =====================================================================================================================//
     if  do_pruning && !in_check && !is_pv && beta.abs() < MATE_SCORE {
         let score_margin = ctx.params.snmp_scaling as i32 * depth as i32;
-        if static_eval * prune_scale / 100- score_margin >= beta {
+        if static_eval - score_margin >= beta {
             return static_eval-score_margin
         }
     }
@@ -241,7 +241,7 @@ pub fn negamax(
     // =====================================================================================================================//
     let nmp_margin : i32 = -ctx.params.nmp_margin as i32 + ctx.params.nmp_scaling as i32 * depth as i32 + ctx.params.nmp_improving_scaling as i32 * improving as i32 ;
     if  do_pruning && !in_check && !is_pv && !is_root &&
-        static_eval * prune_scale / 100 + nmp_margin >= beta &&
+        static_eval + nmp_margin >= beta &&
         do_null &&
         depth >=ctx.params.nmp_min_depth as usize {
 
@@ -277,7 +277,7 @@ pub fn negamax(
     // TODO ADD IMRPOVING HEURISTIC TO MARGIN
     if  do_pruning && !in_check && !is_pv
         && depth <= ctx.params.raz_max_depth as usize
-        && static_eval + ctx.params.raz_thr as i32 *(depth as i32)  + improving as i32 * 0 < alpha
+        && static_eval + ctx.params.raz_thr as i32 *(depth as i32)  + improving as i32 * 0 < alpha * prune_scale / 100
     {
         let razor_score = quiescence(pos,ctx,alpha,beta,ply);
         if razor_score <= alpha{
