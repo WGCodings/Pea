@@ -6,3 +6,4 @@ pub(crate) mod time_manager;
 pub(crate) mod types;
 pub(crate) mod state;
 pub mod tt;
+pub mod corrhist;

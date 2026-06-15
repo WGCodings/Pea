@@ -1,5 +1,6 @@
 use shakmaty::{Chess, EnPassantMode, Move, Position};
 use shakmaty::zobrist::Zobrist64;
+use crate::engine::corrhist::{CorrectionHistoryTable, PawnKey};
 use crate::engine::params::Params;
 use crate::engine::tt::TranspositionTable;
 use crate::nnue::network::Network;
@@ -33,6 +34,7 @@ pub struct Engine {
     pub params:           Params,
     pub repetition_stack: Vec<u64>,
     pub tt:               TranspositionTable,
+    pub corrhist_pawn:    CorrectionHistoryTable<PawnKey>,
     pub options:          Options,
     pub net:               &'static Network,
     // Pondering
@@ -53,12 +55,14 @@ impl Engine {
         Self {
             position,
             repetition_stack,
-            tt: TranspositionTable::new(16),
+            tt:            TranspositionTable::new(16),
+            corrhist_pawn:      Default::default(),
             params,
             net,
             ponder_move:   None,
             ponder_thread: None,
             options:       Options::default(),
+
         }
     }
 
@@ -76,9 +80,7 @@ impl Engine {
     }
 
     pub fn push_history(&mut self) {
-        let hash = self.position
-            .zobrist_hash::<Zobrist64>(EnPassantMode::Legal)
-            .0;
+        let hash = self.position.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
         self.repetition_stack.push(hash);
     }
 

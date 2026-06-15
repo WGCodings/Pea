@@ -46,7 +46,8 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
 
     ctx.start_time = start_time;
     (*ctx.stop).store(false, Ordering::Relaxed);
-    ctx.tt.increment_age();
+
+    ctx.tt.increment_age(); // TODO put this after search has finished,no?
 
     let mut tm = TimeManager::new(base_time, start_time);
     let mut best_score = MIN_INF;
@@ -92,6 +93,10 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     }
 
     ctx.stats.duration = tm.elapsed();
+
+    // Age history tables
+    ctx.corrhist_pawn.age_entries();
+
 
     (best_score, best_move.unwrap(), tt_pv, ctx.stats)
 }
@@ -177,13 +182,17 @@ pub fn negamax(
         }
     }
 
-    let static_eval = if is_excluded {
+    let mut static_eval = if is_excluded {
         ctx.stack.evals[ply]
     } else if let Some(e) = &tt_entry {
         e.eval
     } else {
         evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
     };
+
+    if !is_excluded {
+        static_eval = ctx.corrhist_pawn.correct_evaluation(pos, static_eval);
+    }
 
     ctx.stack.evals[ply] = static_eval;
 
@@ -563,6 +572,15 @@ pub fn negamax(
 
     if moves_searched == 0{
         return i32::from(in_check) * (-MATE_SCORE + ply as i32);
+    }
+
+
+    if !is_excluded && !in_check && (best_move.is_none() || !best_move.unwrap().is_capture()) {
+        let diff = best_score - static_eval;
+        let bound_ok = if best_score >= beta { diff > 0 } else if best_score <= original_alpha { diff < 0 } else { true };
+        if bound_ok{
+            ctx.corrhist_pawn.update_correction_history(pos, depth as i32, diff);
+        }
     }
 
 
