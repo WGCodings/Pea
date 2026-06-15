@@ -16,7 +16,7 @@ pub trait CorrHistKey {
 // Shared struct - generic over the key strategy
 #[derive(Clone)]
 pub struct CorrectionHistoryTable<K: CorrHistKey> {
-    table: Box<[[i32; SIZE]; 2]>,
+    pub(crate) table: Box<[[i32; SIZE]; 2]>,
     _marker: PhantomData<K>,
 }
 
@@ -70,21 +70,17 @@ impl CorrHistKey for PawnKey {
 }
 
 
-static PAWN_ZOBRIST: [[u64; 64]; 2] = generate_pawn_zobrist();
+static PAWN_ZOBRIST: [u64; 64] = generate_pawn_zobrist();
 
-const fn generate_pawn_zobrist() -> [[u64; 64]; 2] {
-    let mut table = [[0u64; 64]; 2];
+const fn generate_pawn_zobrist() -> [u64; 64] {
+    let mut table = [0u64; 64];
     let mut seed: u64 = 0x9E3779B97F4A7C15;
 
-    let mut color = 0;
-    while color < 2 {
-        let mut sq = 0;
-        while sq < 64 {
-            seed = splitmix64(seed);
-            table[color][sq] = seed;
-            sq += 1;
-        }
-        color += 1;
+    let mut sq = 0;
+    while sq < 64 {
+        seed = splitmix64(seed);
+        table[sq] = seed;
+        sq += 1;
     }
     table
 }
@@ -105,9 +101,7 @@ fn pawnhash(pos: &Chess) -> u64 {
     while !pawns.is_empty(){
         let lsb = Bitboard(pawns.0 & pawns.0.wrapping_neg());
         let square = Square::new(lsb.0.trailing_zeros());
-        let piece= pos.board().piece_at(square).unwrap();
-        let color= piece.color;
-        hash ^= PAWN_ZOBRIST[usize::from(color)][square as usize];
+        hash ^= PAWN_ZOBRIST[square as usize];
         pawns.discard(square);
     }
 
