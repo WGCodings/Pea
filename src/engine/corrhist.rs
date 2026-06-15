@@ -1,5 +1,5 @@
 use std::marker::PhantomData;
-use shakmaty::{Chess, Position};
+use shakmaty::{Bitboard, Chess, Position, Square};
 
 // Special thanks to Jamie Whiting, author of Akimbo for inspiration and code examples. Only slight modifications were made.
 
@@ -69,16 +69,46 @@ impl CorrHistKey for PawnKey {
     }
 }
 
+
+static PAWN_ZOBRIST: [[u64; 64]; 2] = generate_pawn_zobrist();
+
+const fn generate_pawn_zobrist() -> [[u64; 64]; 2] {
+    let mut table = [[0u64; 64]; 2];
+    let mut seed: u64 = 0x9E3779B97F4A7C15;
+
+    let mut color = 0;
+    while color < 2 {
+        let mut sq = 0;
+        while sq < 64 {
+            seed = splitmix64(seed);
+            table[color][sq] = seed;
+            sq += 1;
+        }
+        color += 1;
+    }
+    table
+}
+
+const fn splitmix64(mut x: u64) -> u64 {
+    x = x.wrapping_add(0x9E3779B97F4A7C15);
+    let mut z = x;
+    z = (z ^ (z >> 30)).wrapping_mul(0xBF58476D1CE4E5B9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94D049BB133111EB);
+    z ^ (z >> 31)
+}
+
 // Helper function to calculate hashes (should be done later incrementally)
 fn pawnhash(pos: &Chess) -> u64 {
-    let board = pos.board();
+    let mut pawns = pos.board().pawns();
     let mut hash = 0u64;
 
-    for sq in board.pawns() {
-        let color = board.color_at(sq).unwrap();
-        let idx = sq as u64 * 2 + color as u64;
-        hash ^= idx.wrapping_mul(0x9E3779B97F4A7C15);
-        hash = hash.rotate_left(7);
+    while !pawns.is_empty(){
+        let lsb = Bitboard(pawns.0 & pawns.0.wrapping_neg());
+        let square = Square::new(lsb.0.trailing_zeros());
+        let piece= pos.board().piece_at(square).unwrap();
+        let color= piece.color;
+        hash ^= PAWN_ZOBRIST[usize::from(color)][square as usize];
+        pawns.discard(square);
     }
 
     hash

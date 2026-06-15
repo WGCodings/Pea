@@ -230,7 +230,7 @@ pub fn negamax(
     let nmp_margin : i32 = -ctx.params.nmp_margin as i32 + ctx.params.nmp_scaling as i32 * depth as i32 + ctx.params.nmp_improving_scaling as i32 * improving as i32 ;
     if  do_pruning && !in_check && !is_pv && !is_root &&
         static_eval + nmp_margin >= beta &&
-        do_null && minors_or_majors(pos).count() >0 &&
+        do_null &&
         depth >=ctx.params.nmp_min_depth as usize {
 
         let mut reduction = (ctx.params.nmp_base_reduction as usize + depth/ctx.params.nmp_reduction_scaling as usize).min(depth);
