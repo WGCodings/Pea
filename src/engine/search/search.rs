@@ -626,7 +626,7 @@ pub fn quiescence(
 
         let see = see(pos, mv) as i32;
 
-        if see <0{
+        if see < -100{
             continue;
         }
 
