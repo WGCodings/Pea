@@ -618,7 +618,7 @@ pub fn quiescence(
 
     let original_alpha = alpha;
 
-    let mut moves = pos.capture_moves();
+    let mut moves = pos.legal_moves();
 
     ctx.ordering.order_captures(pos, &mut moves);
 
@@ -626,15 +626,21 @@ pub fn quiescence(
 
         let see = see(pos, mv) as i32;
 
-        if see < 0 && !mv.is_promotion(){
+        if see < 0 {
             continue;
         }
 
-        make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
+
 
         let mut child = pos.clone();
 
         child.play_unchecked(mv);
+
+        if !child.is_check() && !mv.is_capture(){
+            continue;
+        }
+
+        make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
 
         let child_hash = child.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
 
