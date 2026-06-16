@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
-use shakmaty::{Bitboard, Chess, Position, Square};
-
+use shakmaty::{Chess, Position};
+use crate::engine::hash::Hash;
 // Special thanks to Jamie Whiting, author of Akimbo for inspiration and code examples. Only slight modifications were made.
 
 const SIZE: usize = 16384;
@@ -65,45 +65,7 @@ impl<K: CorrHistKey> CorrectionHistoryTable<K> {
 pub struct PawnKey;
 impl CorrHistKey for PawnKey {
     fn key(pos: &Chess) -> usize {
-        (pawnhash(pos) % SIZE as u64) as usize
+        (Hash::pawnhash(pos).0 % SIZE as u64) as usize
     }
 }
 
-
-static PAWN_ZOBRIST: [u64; 64] = generate_pawn_zobrist();
-
-const fn generate_pawn_zobrist() -> [u64; 64] {
-    let mut table = [0u64; 64];
-    let mut seed: u64 = 0x9E3779B97F4A7C15;
-
-    let mut sq = 0;
-    while sq < 64 {
-        seed = splitmix64(seed);
-        table[sq] = seed;
-        sq += 1;
-    }
-    table
-}
-
-const fn splitmix64(mut x: u64) -> u64 {
-    x = x.wrapping_add(0x9E3779B97F4A7C15);
-    let mut z = x;
-    z = (z ^ (z >> 30)).wrapping_mul(0xBF58476D1CE4E5B9);
-    z = (z ^ (z >> 27)).wrapping_mul(0x94D049BB133111EB);
-    z ^ (z >> 31)
-}
-
-// Helper function to calculate hashes (should be done later incrementally)
-fn pawnhash(pos: &Chess) -> u64 {
-    let mut pawns = pos.board().pawns();
-    let mut hash = 0u64;
-
-    while !pawns.is_empty(){
-        let lsb = Bitboard(pawns.0 & pawns.0.wrapping_neg());
-        let square = Square::new(lsb.0.trailing_zeros());
-        hash ^= PAWN_ZOBRIST[square as usize];
-        pawns.discard(square);
-    }
-
-    hash
-}

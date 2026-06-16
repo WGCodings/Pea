@@ -181,13 +181,14 @@ pub fn negamax(
         }
     }
 
-    let static_eval = if is_excluded {
+    let raw_eval = if is_excluded {
         ctx.stack.evals[ply]
     } else if let Some(e) = &tt_entry {
         e.eval
     } else {
-        ctx.corrhist_pawn.correct_evaluation(pos, evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them))
+        evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
     };
+    let static_eval = ctx.corrhist_pawn.correct_evaluation(pos, raw_eval);
 
     ctx.stack.evals[ply] = static_eval;
 
@@ -580,7 +581,7 @@ pub fn negamax(
 
 
     if !(*ctx.stop).load(Ordering::Relaxed) && !is_excluded{
-        tt_store(hash, ctx, depth, best_score, static_eval,original_alpha, beta, best_move,ply);
+        tt_store(hash, ctx, depth, best_score, raw_eval,original_alpha, beta, best_move,ply);
     }
     best_score
 }
@@ -614,13 +615,15 @@ pub fn quiescence(
         return score;
     }
 
-    let static_eval = if let Some(entry) = ctx.tt.probe(hash) {
+    let raw_eval = if let Some(entry) = ctx.tt.probe(hash) {
         entry.eval
     } else {
-        ctx.corrhist_pawn.correct_evaluation(pos, evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them))
+        evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
     };
 
-    if static_eval >= beta {
+    let static_eval = ctx.corrhist_pawn.correct_evaluation(pos,raw_eval);
+
+   if static_eval >= beta {
         return beta;
     }
 
@@ -668,7 +671,7 @@ pub fn quiescence(
     }
 
     if !(*ctx.stop).load(Ordering::Relaxed) {
-        tt_store(hash, ctx, 0, alpha, static_eval,original_alpha, beta, None,ply);
+        tt_store(hash, ctx, 0, alpha, raw_eval,original_alpha, beta, None,ply);
     }
     alpha
 }
