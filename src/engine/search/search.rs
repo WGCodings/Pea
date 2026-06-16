@@ -95,7 +95,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     ctx.stats.duration = tm.elapsed();
 
     // Age history tables
-    //ctx.corrhist_pawn.age_entries();
+    ctx.corrhist_pawn.age_entries();
 
     (best_score, best_move.unwrap(), tt_pv, ctx.stats)
 }
@@ -124,7 +124,6 @@ pub fn negamax(
     let is_pv = beta-alpha >1;
     let is_excluded = ctx.excluded_move[ply].is_some();
 
-    let original_alpha = alpha;
     let mut best_score = MIN_INF;
     let mut best_move = None;
 
@@ -329,6 +328,7 @@ pub fn negamax(
     let mut local_pv = PvTable::new();
     let mut quiets_searched: Vec<Move> = Vec::new();
     let mut tacticals_searched: Vec<Move> = Vec::new();
+    let mut node_type = Bound::Upper;
 
     ctx.ordering.order_moves(pos, ctx,  tt_move.as_ref(), &ctx.killers[ply], ply, &mut moves);
 
@@ -543,6 +543,7 @@ pub fn negamax(
         if score >= beta {
             let bonus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
             let malus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
+            node_type = Bound::Lower;
 
             if !is_capture{
 
@@ -561,6 +562,7 @@ pub fn negamax(
         if score > alpha {
             alpha = score;
             pv.add_child_to_parent(mv,&local_pv);
+            node_type = Bound::Exact;
 
         }
 
@@ -572,17 +574,17 @@ pub fn negamax(
     }
 
 
-    if !is_excluded && !in_check && (best_move.is_none() || !best_move.unwrap().is_capture()) {
-        let diff = best_score - static_eval;
-        let bound_ok = if best_score >= beta { diff >= 0 } else if best_score <= original_alpha { diff < 0 } else { true };
-        if bound_ok{
-            ctx.corrhist_pawn.update_correction_history(pos, depth as i32, diff);
-        }
+    if !is_excluded && !in_check && !best_move.is_some_and(|mv| mv.is_capture())
+        && !(node_type == Bound::Lower && best_score <= static_eval)
+        && !(node_type == Bound::Upper && best_score >= static_eval) {
+
+        ctx.corrhist_pawn.update_correction_history(pos, depth as i32, best_score - static_eval);
+
     }
 
 
     if !(*ctx.stop).load(Ordering::Relaxed) && !is_excluded{
-        tt_store(hash, ctx, depth, best_score, raw_eval,original_alpha, beta, best_move,ply);
+        tt_store(hash, ctx, depth, best_score, raw_eval,node_type, best_move,ply);
     }
     best_score
 }
@@ -633,7 +635,7 @@ pub fn quiescence(
         alpha = static_eval;
     }
 
-    let original_alpha = alpha;
+    let mut node_type = Bound::Upper;
 
     let mut moves = pos.capture_moves();
 
@@ -664,16 +666,18 @@ pub fn quiescence(
         unmake_move_nnue(ctx.network, &mut ctx.nnue);
 
         if score >= beta {
+            node_type = Bound::Lower;
             return beta;
         }
 
         if score > alpha {
+            node_type = Bound::Exact;
             alpha = score;
         }
     }
 
     if !(*ctx.stop).load(Ordering::Relaxed) {
-        tt_store(hash, ctx, 0, alpha, raw_eval,original_alpha, beta, None,ply);
+        tt_store(hash, ctx, 0, alpha, raw_eval,node_type, None,ply);
     }
     alpha
 }

@@ -382,13 +382,10 @@ pub(crate) fn tt_store(
     depth: usize,
     best_score: i32,
     eval: i32,
-    alpha: i32,
-    beta: i32,
+    bound: Bound,
     best_move: Option<Move>,
     ply: usize,
 ) {
-    let bound = if best_score <= alpha { Bound::Upper }
-    else if best_score >= beta { Bound::Lower }
-    else { Bound::Exact };
+
     ctx.tt.store(key, depth, score_to_tt(best_score, ply), eval, bound, best_move);
 }
