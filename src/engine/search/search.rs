@@ -95,7 +95,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     ctx.stats.duration = tm.elapsed();
 
     // Age history tables
-    ctx.corrhist_pawn.age_entries();
+    //ctx.corrhist_pawn.age_entries();
 
     (best_score, best_move.unwrap(), tt_pv, ctx.stats)
 }
@@ -186,6 +186,7 @@ pub fn negamax(
     } else if let Some(e) = &tt_entry {
         e.eval
     } else {
+        // TODO store eval here without score
         evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
     };
     let static_eval = ctx.corrhist_pawn.correct_evaluation(pos, raw_eval);
@@ -618,6 +619,7 @@ pub fn quiescence(
     let raw_eval = if let Some(entry) = ctx.tt.probe(hash) {
         entry.eval
     } else {
+        // TODO store eval here without score
         evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
     };
 

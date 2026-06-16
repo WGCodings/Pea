@@ -6,7 +6,7 @@ use crate::engine::hash::Hash;
 const SIZE: usize = 16384;
 const GRAIN: i32 = 256;
 const SCALE: i32 = 256;
-const MAX: i32 = 8192;
+const MAX: i32 = 8192; // max correction is thus 32cp TODO experiment with larger MAX
 
 // Key can be different for other kinds of corrhist tables
 pub trait CorrHistKey {
