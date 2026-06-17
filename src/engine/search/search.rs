@@ -669,13 +669,14 @@ pub fn quiescence(
             node_type = Bound::Lower;
             return beta;
         }
-
+        // TODO add best move here, similar to what simbelmyne does
         if score > alpha {
             node_type = Bound::Exact;
             alpha = score;
         }
     }
 
+    // TODO like simbelmyne try assign best score isntead of alpha for tt
     if !(*ctx.stop).load(Ordering::Relaxed) {
         tt_store(hash, ctx, 0, alpha, raw_eval,node_type, None,ply);
     }
