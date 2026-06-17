@@ -625,7 +625,8 @@ pub fn quiescence(
         evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
     };
 
-    let static_eval = ctx.corrhist_pawn.correct_evaluation(pos,raw_eval);
+    //let static_eval = ctx.corrhist_pawn.correct_evaluation(pos,raw_eval);
+    let static_eval = raw_eval;
 
    if static_eval >= beta {
         return beta;
