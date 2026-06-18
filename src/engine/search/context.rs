@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::time::{Duration, Instant};
 use shakmaty::{Chess, Color, Move, Position, Role, Square};
 use crate::engine::corrhist::{CorrectionHistoryTable, PawnKey};
+use crate::engine::hash::HashState;
 use crate::engine::params::Params;
 use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::search::SearchStats;
@@ -44,6 +45,9 @@ pub struct SearchContext<'a> {
 
     // All corrhist tables
     pub corrhist_pawn : CorrectionHistoryTable<PawnKey>,
+
+    // Contains all hashes for corrhist that are incrementally updated
+    pub hash_state: HashState,
 
     pub stack : Stack,
 

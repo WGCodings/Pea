@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 use shakmaty::{Bitboard, Chess, EnPassantMode, Move, Position};
 use shakmaty::zobrist::{Zobrist64};
 use crate::engine::eval::evaluate;
+use crate::engine::hash::Hash;
 use crate::engine::search::context::{make_move_nnue, unmake_move_nnue, SearchContext};
 use crate::engine::search::pv::PvTable;
 use crate::engine::search::see::see;
@@ -95,7 +96,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     ctx.stats.duration = tm.elapsed();
 
     // Age history tables
-    //ctx.corrhist_pawn.age_entries();
+    ctx.corrhist_pawn.age_entries();
 
     (best_score, best_move.unwrap(), tt_pv, ctx.stats)
 }
@@ -188,7 +189,9 @@ pub fn negamax(
         // TODO store eval here without score
         evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
     };
-    let static_eval = ctx.corrhist_pawn.correct_evaluation(pos, raw_eval);
+    
+    let pawn_hash = ctx.hash_state.pawn_hash;
+    let static_eval = ctx.corrhist_pawn.correct_evaluation(pos, &pawn_hash, raw_eval);
 
     ctx.stack.evals[ply] = static_eval;
 
@@ -473,6 +476,7 @@ pub fn negamax(
 
 
         make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
+        ctx.hash_state.make_move_hash(pos,&mv);
 
         let hash_child = child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
 
@@ -532,16 +536,15 @@ pub fn negamax(
 
         ctx.decrease_history();
         unmake_move_nnue(ctx.network, &mut ctx.nnue);
-
+        ctx.hash_state.unmake_move_hash();
 
 
         if score > best_score {
             best_score = score;
-
+            best_move = Some(mv);
         }
 
         if score >= beta {
-            best_move = Some(mv);
             let bonus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
             let malus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
             node_type = Bound::Lower;
@@ -563,7 +566,6 @@ pub fn negamax(
         if score > alpha {
             alpha = score;
             pv.add_child_to_parent(mv,&local_pv);
-            best_move = Some(mv);
             node_type = Bound::Exact;
 
         }
@@ -579,8 +581,8 @@ pub fn negamax(
     if !is_excluded && !in_check && !best_move.is_some_and(|mv| mv.is_capture())
         && !(node_type == Bound::Lower && best_score <= static_eval)
         && !(node_type == Bound::Upper && best_score >= static_eval) {
-
-        ctx.corrhist_pawn.update_correction_history(pos, depth as i32, best_score - static_eval);
+        let pawn_hash = ctx.hash_state.pawn_hash;
+        ctx.corrhist_pawn.update_correction_history(pos, &pawn_hash, depth as i32, best_score - static_eval);
 
     }
 
@@ -627,7 +629,8 @@ pub fn quiescence(
         evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
     };
 
-    let static_eval = ctx.corrhist_pawn.correct_evaluation(pos,raw_eval);
+    let pawn_hash = ctx.hash_state.pawn_hash;
+    let static_eval = ctx.corrhist_pawn.correct_evaluation(pos, &pawn_hash, raw_eval);
 
 
    if static_eval >= beta {
@@ -653,6 +656,7 @@ pub fn quiescence(
         }
 
         make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
+        ctx.hash_state.make_move_hash(pos,&mv);
 
         let mut child = pos.clone();
 
@@ -667,6 +671,7 @@ pub fn quiescence(
         ctx.decrease_history();
 
         unmake_move_nnue(ctx.network, &mut ctx.nnue);
+        ctx.hash_state.unmake_move_hash();
 
         if score >= beta {
             node_type = Bound::Lower;

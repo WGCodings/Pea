@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
 use shakmaty::{Chess, Move};
 use crate::engine::corrhist::CorrectionHistoryTable;
+use crate::engine::hash::HashState;
 use crate::engine::search::context::NNUEState;
 use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::search::{search, SearchStats};
@@ -46,6 +47,8 @@ impl Threads {
         let effective_limit = time_limit.unwrap_or(Duration::from_millis(100));
         let shared_tt       = SharedTt::from(&engine.tt);
         let corrhist_pawn = engine.corrhist_pawn.clone();
+        let mut hash_state = HashState::default();
+        hash_state.set_from_position(pos);
 
         let result = std::thread::scope(|s| {
             for thread_id in 1..num_threads {
@@ -55,6 +58,7 @@ impl Threads {
                 let ordering  = MoveOrdering::new(&PIECE_VALUES);
                 let nodes     = node_count.clone();
                 let tt_ptr    = SharedTt(shared_tt.0);
+                let hash_state = hash_state.clone();
 
                 let offset_depth = max_depth + 3 % thread_id;
 
@@ -62,7 +66,7 @@ impl Threads {
                     let tt         = unsafe { tt_ptr.get() };
                     let nnue_state = NNUEState::new(pos, network);
                     let mut ctx    = build_search_context(
-                        tt, CorrectionHistoryTable::default(), &params, &ordering, network,
+                        tt, CorrectionHistoryTable::default(), hash_state, &params, &ordering, network,
                         rep_stack, nnue_state, stop, nodes,
                         false, Some(effective_limit),
                     );
@@ -72,7 +76,7 @@ impl Threads {
 
             let nnue_state = NNUEState::new(pos, network);
             let mut main_ctx = build_search_context(
-                &engine.tt, corrhist_pawn,params, ordering, network,
+                &engine.tt, corrhist_pawn, hash_state, params, ordering, network,
                 rep_stack.clone(), nnue_state,
                 stop.clone(), node_count,
                 verbose, time_limit,
@@ -101,6 +105,8 @@ impl Threads {
         let node_count                        = Arc::new(AtomicU64::new(0));
         let ponder_limit                      = Duration::MAX / 10;
         let corrhist_pawn = engine.corrhist_pawn.clone();
+        let mut hash_state = HashState::default();
+        hash_state.set_from_position(&pos);
 
         for thread_id in 1..num_threads {
             let params    = params.clone();
@@ -111,13 +117,14 @@ impl Threads {
             let tt_ptr    = SharedTt(shared_tt.0);
             let pos       = pos.clone();
             let offset_depth = 64 + 3 % thread_id;
+            let hash_state = hash_state.clone();
 
 
             std::thread::spawn(move || {
                 let tt         = unsafe { tt_ptr.get() };
                 let nnue_state = NNUEState::new(&pos, network);
                 let mut ctx    = build_search_context(
-                    tt, CorrectionHistoryTable::default(), &params, &ordering, network,
+                    tt, CorrectionHistoryTable::default(),hash_state, &params, &ordering, network,
                     rep_stack, nnue_state, stop, nodes,
                     false, Some(ponder_limit),
                 );
@@ -132,7 +139,7 @@ impl Threads {
             let tt         = unsafe { tt_ptr.get() };
             let nnue_state = NNUEState::new(&pos, network);
             let mut ctx    = build_search_context(
-                tt, corrhist_pawn, &params, &ordering, network,
+                tt, corrhist_pawn,hash_state, &params, &ordering, network,
                 rep_stack, nnue_state,
                 stop, node_count,
                 true, Some(ponder_limit),
