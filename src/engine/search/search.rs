@@ -49,6 +49,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     (*ctx.stop).store(false, Ordering::Relaxed);
 
     ctx.tt.increment_age(); // TODO put this after search has finished,no?
+    ctx.hash_state.pawn_hash = Hash::pawnhash(pos);
 
     let mut tm = TimeManager::new(base_time, start_time);
     let mut best_score = MIN_INF;
@@ -189,7 +190,7 @@ pub fn negamax(
         // TODO store eval here without score
         evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
     };
-    
+
     let pawn_hash = ctx.hash_state.pawn_hash;
     let static_eval = ctx.corrhist_pawn.correct_evaluation(pos, &pawn_hash, raw_eval);
 
@@ -630,8 +631,10 @@ pub fn quiescence(
     };
 
     let pawn_hash = ctx.hash_state.pawn_hash;
-    let static_eval = ctx.corrhist_pawn.correct_evaluation(pos, &pawn_hash, raw_eval);
+    let mut static_eval = ctx.corrhist_pawn.correct_evaluation(pos, &pawn_hash, raw_eval);
 
+
+    static_eval = raw_eval;
 
    if static_eval >= beta {
         return beta;
