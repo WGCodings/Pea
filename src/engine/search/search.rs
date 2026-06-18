@@ -537,10 +537,11 @@ pub fn negamax(
 
         if score > best_score {
             best_score = score;
-            best_move = Some(mv);
+
         }
 
         if score >= beta {
+            best_move = Some(mv);
             let bonus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
             let malus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
             node_type = Bound::Lower;
@@ -562,6 +563,7 @@ pub fn negamax(
         if score > alpha {
             alpha = score;
             pv.add_child_to_parent(mv,&local_pv);
+            best_move = Some(mv);
             node_type = Bound::Exact;
 
         }
@@ -625,8 +627,8 @@ pub fn quiescence(
         evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
     };
 
-    //let static_eval = ctx.corrhist_pawn.correct_evaluation(pos,raw_eval);
-    let static_eval = raw_eval;
+    let static_eval = ctx.corrhist_pawn.correct_evaluation(pos,raw_eval);
+
 
    if static_eval >= beta {
         return beta;
