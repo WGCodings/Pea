@@ -191,8 +191,13 @@ pub fn negamax(
         evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
     };
 
-    let pawn_hash = ctx.hash_state.pawn_hash;
-    let static_eval = ctx.corrhist_pawn.correct_evaluation(pos, &pawn_hash, raw_eval);
+    let static_eval = if is_excluded {
+        raw_eval
+    } else {
+        let pawn_hash = ctx.hash_state.pawn_hash;
+        ctx.corrhist_pawn.correct_evaluation(pos, &pawn_hash, raw_eval)
+    };
+
 
     ctx.stack.evals[ply] = static_eval;
 
