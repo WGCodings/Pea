@@ -195,6 +195,7 @@ pub fn negamax(
         raw_eval
     } else {
         let pawn_hash = ctx.hash_state.pawn_hash;
+        let random_hash = Hash::pawnhash(pos);
         ctx.corrhist_pawn.correct_evaluation(pos, &pawn_hash, raw_eval)
     };
 
@@ -588,6 +589,7 @@ pub fn negamax(
         && !(node_type == Bound::Lower && best_score <= static_eval)
         && !(node_type == Bound::Upper && best_score >= static_eval) {
         let pawn_hash = ctx.hash_state.pawn_hash;
+        let random_hash = Hash::pawnhash(pos);
         ctx.corrhist_pawn.update_correction_history(pos, &pawn_hash, depth as i32, best_score - static_eval);
 
     }
@@ -636,6 +638,7 @@ pub fn quiescence(
     };
 
     let pawn_hash = ctx.hash_state.pawn_hash;
+    let random_hash = Hash::pawnhash(pos);
     let mut static_eval = ctx.corrhist_pawn.correct_evaluation(pos, &pawn_hash, raw_eval);
 
 
