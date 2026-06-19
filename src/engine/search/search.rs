@@ -584,7 +584,7 @@ pub fn negamax(
     }
 
 
-    if !is_excluded && !in_check && !best_move.is_some_and(|mv| mv.is_capture())
+    if !is_excluded && !in_check && !best_move.is_some_and(|mv| mv.is_capture() || mv.is_promotion())
         && !(node_type == Bound::Lower && best_score <= static_eval)
         && !(node_type == Bound::Upper && best_score >= static_eval) {
         let pawn_hash = ctx.hash_state.pawn_hash;

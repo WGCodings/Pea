@@ -7,7 +7,7 @@ use crate::engine::hash::Hash;
 const SIZE: usize = 16384;
 const GRAIN: i32 = 256;
 const SCALE: i32 = 256;
-const MAX: i32 = 32*SCALE; // max correction is thus 32cp TODO experiment with larger MAX
+const MAX: i32 = 16*SCALE; // max correction is thus 32cp TODO experiment with larger MAX
 
 // Key can be different for other kinds of corrhist tables
 pub trait CorrHistKey {
@@ -57,7 +57,7 @@ impl<K: CorrHistKey> CorrectionHistoryTable<K> {
     // If key matches, correct raw eval with correction
     pub fn correct_evaluation(&self, pos: &Chess, hash : &Hash, raw_eval: i32) -> i32 {
         let entry = self.table[usize::from(pos.turn())][K::key(hash)];
-        raw_eval + 0*entry / GRAIN
+        raw_eval + entry / GRAIN
     }
 }
 
