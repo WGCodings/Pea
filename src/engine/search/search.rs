@@ -97,7 +97,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     ctx.stats.duration = tm.elapsed();
 
     // Age history tables
-    //ctx.corrhist_pawn.age_entries();
+    ctx.corrhist_pawn.age_entries();
 
     (best_score, best_move.unwrap(), tt_pv, ctx.stats)
 }
@@ -195,7 +195,6 @@ pub fn negamax(
         raw_eval
     } else {
         let pawn_hash = ctx.hash_state.pawn_hash;
-        let random_hash = Hash::pawnhash(pos);
         ctx.corrhist_pawn.correct_evaluation(pos, &pawn_hash, raw_eval)
     };
 
@@ -589,7 +588,6 @@ pub fn negamax(
         && !(node_type == Bound::Lower && best_score <= static_eval)
         && !(node_type == Bound::Upper && best_score >= static_eval) {
         let pawn_hash = ctx.hash_state.pawn_hash;
-        let random_hash = Hash::pawnhash(pos);
         ctx.corrhist_pawn.update_correction_history(pos, &pawn_hash, depth as i32, best_score - static_eval);
 
     }
@@ -638,9 +636,7 @@ pub fn quiescence(
     };
 
     let pawn_hash = ctx.hash_state.pawn_hash;
-    let random_hash = Hash::pawnhash(pos);
-    let mut static_eval = ctx.corrhist_pawn.correct_evaluation(pos, &pawn_hash, raw_eval);
-
+    let static_eval = ctx.corrhist_pawn.correct_evaluation(pos, &pawn_hash, raw_eval);
 
    if static_eval >= beta {
         return beta;
@@ -736,6 +732,22 @@ fn check_time(ctx: &SearchContext) {
         if (ctx.start_time.elapsed() >= ctx.time_limit) || (ctx.stats.nodes >= ctx.node_limit) {
             (*ctx.stop).store(true, Ordering::Relaxed);
         }
+
+        /*
+
+        let nonzero: Vec<i32> = ctx.corrhist_pawn.table.iter()
+            .flatten()
+            .filter(|&&x| x != 0)
+            .copied()
+            .collect();
+        eprintln!("nonzero: {}, max_abs: {}, mean_abs: {}",
+                  nonzero.len(),
+                  nonzero.iter().map(|x| x.abs()).max().unwrap_or(0),
+                  nonzero.iter().map(|x| x.abs()).sum::<i32>() / nonzero.len().max(1) as i32
+        );
+
+         */
+
     }
 }
 
