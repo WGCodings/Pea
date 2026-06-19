@@ -97,7 +97,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     ctx.stats.duration = tm.elapsed();
 
     // Age history tables
-    ctx.corrhist_pawn.age_entries();
+    //ctx.corrhist_pawn.age_entries();
 
     (best_score, best_move.unwrap(), tt_pv, ctx.stats)
 }
@@ -641,8 +641,6 @@ pub fn quiescence(
     let random_hash = Hash::pawnhash(pos);
     let mut static_eval = ctx.corrhist_pawn.correct_evaluation(pos, &pawn_hash, raw_eval);
 
-
-    static_eval = raw_eval;
 
    if static_eval >= beta {
         return beta;
