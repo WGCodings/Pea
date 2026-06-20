@@ -18,3 +18,4 @@ path = "src/datagen/filter/main.rs"
 [[bin]]
 name = "Pea"
 path = "src/main.rs"
+rust-version = "1.93.1"
