@@ -2,7 +2,6 @@
 name = "FastPeaPea"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.93.1"
 
 [dependencies]
 shakmaty = "=0.30.0"
@@ -18,4 +17,3 @@ path = "src/datagen/filter/main.rs"
 [[bin]]
 name = "Pea"
 path = "src/main.rs"
-rust-version = "1.93.1"
