@@ -49,7 +49,6 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     (*ctx.stop).store(false, Ordering::Relaxed);
 
     ctx.tt.increment_age(); // TODO put this after search has finished,no?
-    ctx.hash_state.pawn_hash = Hash::pawnhash(pos);
 
     let mut tm = TimeManager::new(base_time, start_time);
     let mut best_score = MIN_INF;

@@ -1,6 +1,3 @@
-// game.rs
-// Runs a single game and returns filtered positions with WDL set.
-
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
@@ -13,7 +10,6 @@ use crate::datagen::datagen_format::RawPosition;
 use crate::datagen::adjudication::{check_adjudication, filter_position, terminal_wdl, FilterResult};
 use crate::datagen::book::EpdBook;
 use crate::engine::corrhist::CorrectionHistoryTable;
-use crate::engine::hash::HashState;
 use crate::engine::params::Params;
 use crate::engine::search::context::{NNUEState};
 use crate::engine::search::ordering::MoveOrdering;
@@ -27,7 +23,7 @@ const MATE_THRESHOLD: i16 = 29_500;
 pub fn run_game(
     config:      &DatagenConfig,
     book:        Option<&EpdBook>,
-    net:       &Network,
+    net:         &Network,
     params:      &Params,
     ordering:    &MoveOrdering,
     tt_0:        &TranspositionTable,
@@ -42,8 +38,6 @@ pub fn run_game(
 
     let mut repetition_stack = Vec::new();
     let mut collected: Vec<RawPosition> = Vec::new();
-    let mut hash_state = HashState::default();
-    hash_state.set_from_position(&pos);
 
     // ---------------------------------------------------------------- //
     // Random opening //
@@ -91,7 +85,6 @@ pub fn run_game(
         let mut ctx = build_search_context(
             tt,
             CorrectionHistoryTable::default(),
-            hash_state.clone(),
             params,
             ordering,
             network,

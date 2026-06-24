@@ -3,7 +3,6 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
 use shakmaty::{Chess, Move};
 use crate::engine::corrhist::CorrectionHistoryTable;
-use crate::engine::hash::HashState;
 use crate::engine::search::context::NNUEState;
 use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::search::{search, SearchStats};
@@ -63,7 +62,7 @@ impl Threads {
                     let tt         = unsafe { tt_ptr.get() };
                     let nnue_state = NNUEState::new(pos, network);
                     let mut ctx    = build_search_context(
-                        tt, CorrectionHistoryTable::default(), HashState::default(), &params, &ordering, network,
+                        tt, CorrectionHistoryTable::default(), &params, &ordering, network,
                         rep_stack, nnue_state, stop, nodes,
                         false, Some(effective_limit),
                     );
@@ -73,7 +72,7 @@ impl Threads {
 
             let nnue_state = NNUEState::new(pos, network);
             let mut main_ctx = build_search_context(
-                &engine.tt, corrhist_pawn, HashState::default(), params, ordering, network,
+                &engine.tt, corrhist_pawn, params, ordering, network,
                 rep_stack.clone(), nnue_state,
                 stop.clone(), node_count,
                 verbose, time_limit,
@@ -118,7 +117,7 @@ impl Threads {
                 let tt         = unsafe { tt_ptr.get() };
                 let nnue_state = NNUEState::new(&pos, network);
                 let mut ctx    = build_search_context(
-                    tt, CorrectionHistoryTable::default(),HashState::default(), &params, &ordering, network,
+                    tt, CorrectionHistoryTable::default(), &params, &ordering, network,
                     rep_stack, nnue_state, stop, nodes,
                     false, Some(ponder_limit),
                 );
@@ -133,7 +132,7 @@ impl Threads {
             let tt         = unsafe { tt_ptr.get() };
             let nnue_state = NNUEState::new(&pos, network);
             let mut ctx    = build_search_context(
-                tt, corrhist_pawn, HashState::default(), &params, &ordering, network,
+                tt, corrhist_pawn, &params, &ordering, network,
                 rep_stack, nnue_state,
                 stop, node_count,
                 true, Some(ponder_limit),

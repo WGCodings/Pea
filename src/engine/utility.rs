@@ -4,7 +4,6 @@ use std::time::{Duration, Instant};
 use shakmaty::{Chess, fen::Fen, CastlingMode, Move, Position, EnPassantMode, Role};
 use shakmaty::zobrist::Zobrist64;
 use crate::engine::corrhist::{CorrectionHistoryTable, PawnKey};
-use crate::engine::hash::HashState;
 use crate::engine::params::Params;
 use crate::engine::search::context::{NNUEState, SearchContext, Stack};
 use crate::engine::search::ordering::MoveOrdering;
@@ -143,7 +142,6 @@ pub fn print_bestmove(
 pub fn build_search_context<'a>(
     tt:           &'a TranspositionTable,
     corrhist_pawn: CorrectionHistoryTable<PawnKey>,
-    hash_state: HashState,
     params:       &'a Params,
     ordering:     &'a MoveOrdering,
     network:      &'a Network,
@@ -173,7 +171,6 @@ pub fn build_search_context<'a>(
         capture_history:      [[[0i16; 6]; 64]; 6],
         continuation_history: Box::new([[[[[0i16; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]),
         corrhist_pawn,
-        hash_state,
         stack:                Stack {
             moves:       [None; 128],
             evals:       [0; 128],
