@@ -46,8 +46,9 @@ impl<K: CorrHistKey> CorrectionHistoryTable<K> {
     }
 
     // Update the correction history based on the key and difference between static eval and score
-    pub fn update_correction_history(&mut self, pos: &Chess, hash : &Hash, depth: i32, eval_diff: i32) {
-        let entry = &mut self.table[usize::from(pos.turn())][K::key(hash)];
+    pub fn update_correction_history(&mut self, pos: &Chess, depth: i32, eval_diff: i32) {
+        let hash = Hash::pawnhash(pos);
+        let entry = &mut self.table[usize::from(pos.turn())][K::key(&hash)];
         let scaled_diff = eval_diff * GRAIN;
         let new_weight = 16.min(depth + 1);
         let update = *entry * (SCALE - new_weight) + scaled_diff * new_weight;
@@ -55,8 +56,9 @@ impl<K: CorrHistKey> CorrectionHistoryTable<K> {
     }
 
     // If key matches, correct raw eval with correction
-    pub fn correct_evaluation(&self, pos: &Chess, hash : &Hash, raw_eval: i32) -> i32 {
-        let entry = self.table[usize::from(pos.turn())][K::key(hash)];
+    pub fn correct_evaluation(&self, pos: &Chess, raw_eval: i32) -> i32 {
+        let hash = Hash::pawnhash(pos);
+        let entry = self.table[usize::from(pos.turn())][K::key(&hash)];
         raw_eval + entry / GRAIN
     }
 }
