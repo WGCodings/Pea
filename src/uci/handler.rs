@@ -156,6 +156,7 @@ impl UciHandler {
         self.engine.position = Chess::new();
         self.engine.tt.clear();
         self.engine.repetition_stack.clear();
+        self.engine.corrhist_pawn.clear();
     }
 
     fn on_position(&mut self, fen: Option<String>, moves: Vec<String>) {
@@ -211,6 +212,7 @@ impl UciHandler {
             );
             print_bestmove(best_move, &pv, &mut self.engine, &self.uci);
         }
+
     }
 
     fn on_ponderhit(&mut self) {

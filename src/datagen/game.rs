@@ -12,6 +12,8 @@ use crate::datagen::datagen_config::DatagenConfig;
 use crate::datagen::datagen_format::RawPosition;
 use crate::datagen::adjudication::{check_adjudication, filter_position, terminal_wdl, FilterResult};
 use crate::datagen::book::EpdBook;
+use crate::engine::corrhist::CorrectionHistoryTable;
+use crate::engine::hash::HashState;
 use crate::engine::params::Params;
 use crate::engine::search::context::{NNUEState};
 use crate::engine::search::ordering::MoveOrdering;
@@ -40,6 +42,8 @@ pub fn run_game(
 
     let mut repetition_stack = Vec::new();
     let mut collected: Vec<RawPosition> = Vec::new();
+    let mut hash_state = HashState::default();
+    hash_state.set_from_position(&pos);
 
     // ---------------------------------------------------------------- //
     // Random opening //
@@ -86,7 +90,9 @@ pub fn run_game(
 
         let mut ctx = build_search_context(
             tt,
-            params ,
+            CorrectionHistoryTable::default(),
+            hash_state.clone(),
+            params,
             ordering,
             network,
             repetition_stack.clone(),

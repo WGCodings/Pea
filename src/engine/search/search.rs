@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 use shakmaty::{Bitboard, Chess, EnPassantMode, Move, Position};
 use shakmaty::zobrist::{Zobrist64};
 use crate::engine::eval::evaluate;
+use crate::engine::hash::Hash;
 use crate::engine::search::context::{make_move_nnue, unmake_move_nnue, SearchContext};
 use crate::engine::search::pv::PvTable;
 use crate::engine::search::see::see;
@@ -46,7 +47,9 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
 
     ctx.start_time = start_time;
     (*ctx.stop).store(false, Ordering::Relaxed);
-    ctx.tt.increment_age();
+
+    ctx.tt.increment_age(); // TODO put this after search has finished,no?
+    ctx.hash_state.pawn_hash = Hash::pawnhash(pos);
 
     let mut tm = TimeManager::new(base_time, start_time);
     let mut best_score = MIN_INF;
@@ -93,6 +96,9 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
 
     ctx.stats.duration = tm.elapsed();
 
+    // Age history tables
+    ctx.corrhist_pawn.age_entries();
+
     (best_score, best_move.unwrap(), tt_pv, ctx.stats)
 }
 
@@ -120,7 +126,6 @@ pub fn negamax(
     let is_pv = beta-alpha >1;
     let is_excluded = ctx.excluded_move[ply].is_some();
 
-    let original_alpha = alpha;
     let mut best_score = MIN_INF;
     let mut best_move = None;
 
@@ -177,13 +182,22 @@ pub fn negamax(
         }
     }
 
-    let static_eval = if is_excluded {
+    let raw_eval = if is_excluded {
         ctx.stack.evals[ply]
     } else if let Some(e) = &tt_entry {
         e.eval
     } else {
+        // TODO store eval here without score
         evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
     };
+
+    let static_eval = if is_excluded {
+        raw_eval
+    } else {
+        let pawn_hash = ctx.hash_state.pawn_hash;
+        ctx.corrhist_pawn.correct_evaluation(pos, &pawn_hash, raw_eval)
+    };
+
 
     ctx.stack.evals[ply] = static_eval;
 
@@ -225,7 +239,7 @@ pub fn negamax(
     let nmp_margin : i32 = -ctx.params.nmp_margin as i32 + ctx.params.nmp_scaling as i32 * depth as i32 + ctx.params.nmp_improving_scaling as i32 * improving as i32 ;
     if  do_pruning && !in_check && !is_pv && !is_root &&
         static_eval + nmp_margin >= beta &&
-        do_null && minors_or_majors(pos).count() >0 &&
+        do_null &&
         depth >=ctx.params.nmp_min_depth as usize {
 
         let mut reduction = (ctx.params.nmp_base_reduction as usize + depth/ctx.params.nmp_reduction_scaling as usize).min(depth);
@@ -323,6 +337,7 @@ pub fn negamax(
     let mut local_pv = PvTable::new();
     let mut quiets_searched: Vec<Move> = Vec::new();
     let mut tacticals_searched: Vec<Move> = Vec::new();
+    let mut node_type = Bound::Upper;
 
     ctx.ordering.order_moves(pos, ctx,  tt_move.as_ref(), &ctx.killers[ply], ply, &mut moves);
 
@@ -467,6 +482,7 @@ pub fn negamax(
 
 
         make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
+        ctx.hash_state.make_move_hash(pos,&mv);
 
         let hash_child = child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
 
@@ -526,7 +542,7 @@ pub fn negamax(
 
         ctx.decrease_history();
         unmake_move_nnue(ctx.network, &mut ctx.nnue);
-
+        ctx.hash_state.unmake_move_hash();
 
 
         if score > best_score {
@@ -537,6 +553,7 @@ pub fn negamax(
         if score >= beta {
             let bonus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
             let malus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
+            node_type = Bound::Lower;
 
             if !is_capture{
 
@@ -555,6 +572,7 @@ pub fn negamax(
         if score > alpha {
             alpha = score;
             pv.add_child_to_parent(mv,&local_pv);
+            node_type = Bound::Exact;
 
         }
 
@@ -566,8 +584,17 @@ pub fn negamax(
     }
 
 
+    if !is_excluded && !in_check && !best_move.is_some_and(|mv| mv.is_capture() || mv.is_promotion())
+        && !(node_type == Bound::Lower && best_score <= static_eval)
+        && !(node_type == Bound::Upper && best_score >= static_eval) {
+        let pawn_hash = ctx.hash_state.pawn_hash;
+        ctx.corrhist_pawn.update_correction_history(pos, &pawn_hash, depth as i32, best_score - static_eval);
+
+    }
+
+
     if !(*ctx.stop).load(Ordering::Relaxed) && !is_excluded{
-        tt_store(hash, ctx, depth, best_score, static_eval,original_alpha, beta, best_move,ply);
+        tt_store(hash, ctx, depth, best_score, raw_eval,node_type, best_move,ply);
     }
     best_score
 }
@@ -601,14 +628,17 @@ pub fn quiescence(
         return score;
     }
 
-    let static_eval = if let Some(entry) = ctx.tt.probe(hash) {
+    let raw_eval = if let Some(entry) = ctx.tt.probe(hash) {
         entry.eval
     } else {
+        // TODO store eval here without score
         evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
     };
 
+    let pawn_hash = ctx.hash_state.pawn_hash;
+    let static_eval = ctx.corrhist_pawn.correct_evaluation(pos, &pawn_hash, raw_eval);
 
-    if static_eval >= beta {
+   if static_eval >= beta {
         return beta;
     }
 
@@ -616,7 +646,7 @@ pub fn quiescence(
         alpha = static_eval;
     }
 
-    let original_alpha = alpha;
+    let mut node_type = Bound::Upper;
 
     let mut moves = pos.capture_moves();
 
@@ -631,6 +661,7 @@ pub fn quiescence(
         }
 
         make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
+        ctx.hash_state.make_move_hash(pos,&mv);
 
         let mut child = pos.clone();
 
@@ -645,18 +676,22 @@ pub fn quiescence(
         ctx.decrease_history();
 
         unmake_move_nnue(ctx.network, &mut ctx.nnue);
+        ctx.hash_state.unmake_move_hash();
 
         if score >= beta {
+            node_type = Bound::Lower;
             return beta;
         }
-
+        // TODO add best move here, similar to what simbelmyne does
         if score > alpha {
+            node_type = Bound::Exact;
             alpha = score;
         }
     }
 
+    // TODO like simbelmyne try assign best score isntead of alpha for tt
     if !(*ctx.stop).load(Ordering::Relaxed) {
-        tt_store(hash, ctx, 0, alpha, static_eval,original_alpha, beta, None,ply);
+        tt_store(hash, ctx, 0, alpha, raw_eval,node_type, None,ply);
     }
     alpha
 }
@@ -697,6 +732,22 @@ fn check_time(ctx: &SearchContext) {
         if (ctx.start_time.elapsed() >= ctx.time_limit) || (ctx.stats.nodes >= ctx.node_limit) {
             (*ctx.stop).store(true, Ordering::Relaxed);
         }
+
+        /*
+
+        let nonzero: Vec<i32> = ctx.corrhist_pawn.table.iter()
+            .flatten()
+            .filter(|&&x| x != 0)
+            .copied()
+            .collect();
+        eprintln!("nonzero: {}, max_abs: {}, mean_abs: {}",
+                  nonzero.len(),
+                  nonzero.iter().map(|x| x.abs()).max().unwrap_or(0),
+                  nonzero.iter().map(|x| x.abs()).sum::<i32>() / nonzero.len().max(1) as i32
+        );
+
+         */
+
     }
 }
 

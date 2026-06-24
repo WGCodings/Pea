@@ -2,7 +2,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::time::{Duration, Instant};
 use shakmaty::{Chess, Color, Move, Position, Role, Square};
-
+use crate::engine::corrhist::{CorrectionHistoryTable, PawnKey};
+use crate::engine::hash::HashState;
 use crate::engine::params::Params;
 use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::search::SearchStats;
@@ -16,7 +17,7 @@ pub struct Stack {
     pub evals: [i32; 128],
     pub double_exts: [i32; 128],
 }
-// The searchcontext or searchrunner is passed on during the search and contains parameters, time management, history, tt tables etc
+// The searchcontext is passed on during the search and contains parameters, time management, history, tt tables etc
 pub struct SearchContext<'a> {
     pub start_time: Instant,
     pub time_limit: Duration,
@@ -41,6 +42,12 @@ pub struct SearchContext<'a> {
     pub history: [[[i16; 64]; 64]; 2], // [side][from][to]
     pub capture_history: [[[i16; 6]; 64]; 6],// [moved_piece][to_square][captured_piece_type]
     pub continuation_history: Box<[[[[[i16; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]>,
+
+    // All corrhist tables
+    pub corrhist_pawn : CorrectionHistoryTable<PawnKey>,
+
+    // Contains all hashes for corrhist that are incrementally updated
+    pub hash_state: HashState,
 
     pub stack : Stack,
 
