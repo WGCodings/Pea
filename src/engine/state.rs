@@ -1,6 +1,6 @@
 use shakmaty::{Chess, EnPassantMode, Move, Position};
 use shakmaty::zobrist::Zobrist64;
-use crate::engine::corrhist::{CorrectionHistoryTable, KingNonPawnKey, PawnKey};
+use crate::engine::corrhist::{CorrectionHistoryTable, MaterialKey, PawnKey};
 use crate::engine::params::Params;
 use crate::engine::tt::TranspositionTable;
 use crate::nnue::network::Network;
@@ -35,7 +35,7 @@ pub struct Engine {
     pub repetition_stack: Vec<u64>,
     pub tt:               TranspositionTable,
     pub corrhist_pawn:    CorrectionHistoryTable<PawnKey>,
-    pub corrhist_non_king_pawn:   CorrectionHistoryTable<KingNonPawnKey>,
+    pub corrhist_material:   CorrectionHistoryTable<MaterialKey>,
     pub options:          Options,
     pub net:               &'static Network,
     // Pondering
@@ -58,7 +58,7 @@ impl Engine {
             repetition_stack,
             tt:            TranspositionTable::new(16),
             corrhist_pawn:      Default::default(),
-            corrhist_non_king_pawn:      Default::default(),
+            corrhist_material:      Default::default(),
             params,
             net,
             ponder_move:   None,

@@ -74,10 +74,10 @@ impl CorrHistKey for PawnKey {
 
 // King bucket and non-pawn correction history
 #[derive(Clone)]
-pub struct KingNonPawnKey;
-impl CorrHistKey for KingNonPawnKey {
+pub struct MaterialKey;
+impl CorrHistKey for MaterialKey {
     fn key(pos: &Chess) -> usize {
-        let hash = Hash::king_non_pawnhash(pos);
+        let hash = Hash::materialhash(pos);
         hash.0 as usize % SIZE
     }
 }

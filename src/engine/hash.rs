@@ -21,31 +21,19 @@ impl Hash {
     }
 
     #[inline]
-    pub fn king_non_pawnhash(pos: &Chess) -> Hash {
+    pub fn materialhash(pos: &Chess) -> Hash {
         let mut hash = Hash(0);
         let board = pos.board();
-        // All non-pawn, non-king pieces
-        let non_pawns = board.bishops() & board.knights() & board.kings();
 
-        for sq in non_pawns {
-            let piece = board.piece_at(sq).unwrap();
-            hash.toggle_piece(piece.role, sq, piece.color);
+        for color in [Color::White, Color::Black] {
+            for role in [Role::Pawn, Role::Knight, Role::Bishop, Role::Rook, Role::Queen] {
+                let count = (board.by_color(color) & board.by_role(role)).count();
+                hash.0 ^= PIECE_HASHES[color as usize][role as usize][count];
+            }
         }
         hash
     }
-
-
 }
-const KING_BUCKET: [usize; 64] = [
-    0, 0, 0, 1, 1, 2, 0, 0,
-    0, 0, 1, 1, 2, 2, 0, 0,
-    3, 3, 3, 3, 3, 3, 3, 3,
-    3, 3, 3, 3, 3, 3, 3, 3,
-    4, 4, 4, 4, 4, 4, 4, 4,
-    4, 4, 4, 4, 4, 4, 4, 4,
-    0, 0, 1, 1, 2, 2, 0, 0,
-    0, 0, 0, 1, 1, 2, 0, 0,
-];
 // Precomputed hashes for all squares/roles/color combos
 static PIECE_HASHES: [[[u64; 64]; 6]; 2] = generate_piece_hashes();
 
