@@ -24,21 +24,13 @@ impl Hash {
     pub fn king_non_pawnhash(pos: &Chess) -> Hash {
         let mut hash = Hash(0);
         let board = pos.board();
-
-        let kings = board.kings();
         // All non-pawn, non-king pieces
-        let non_pawns = board.occupied() & !board.pawns() & !kings;
+        let non_pawns = board.bishops() & board.knights() & board.kings();
 
         for sq in non_pawns {
             let piece = board.piece_at(sq).unwrap();
             hash.toggle_piece(piece.role, sq, piece.color);
         }
-        for sq in kings{
-            let piece = board.piece_at(sq).unwrap();
-            let bucket = KING_BUCKET[sq as usize];
-            hash.0 ^= PIECE_HASHES[piece.color as usize][0][bucket];
-        }
-
         hash
     }
 
