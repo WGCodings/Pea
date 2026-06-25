@@ -195,7 +195,6 @@ pub fn negamax(
     } else {
         raw_eval
             + ctx.corrhist_pawn.correct_evaluation(pos)
-            + ctx.corrhist_king_non_pawn.correct_evaluation(pos)
     };
 
 
@@ -585,7 +584,6 @@ pub fn negamax(
         && !(node_type == Bound::Lower && best_score <= static_eval)
         && !(node_type == Bound::Upper && best_score >= static_eval) {
         ctx.corrhist_pawn.update_correction_history(pos, depth as i32, best_score - static_eval);
-        ctx.corrhist_king_non_pawn.update_correction_history(pos, depth as i32, best_score - static_eval);
 
     }
 
@@ -633,8 +631,7 @@ pub fn quiescence(
     };
 
     let static_eval = raw_eval
-        + ctx.corrhist_pawn.correct_evaluation(pos)
-        + ctx.corrhist_king_non_pawn.correct_evaluation(pos);
+        + ctx.corrhist_pawn.correct_evaluation(pos);
 
    if static_eval >= beta {
         return beta;
