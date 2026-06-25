@@ -85,6 +85,7 @@ pub fn run_game(
         let mut ctx = build_search_context(
             tt,
             CorrectionHistoryTable::default(),
+            CorrectionHistoryTable::default(),
             params,
             ordering,
             network,

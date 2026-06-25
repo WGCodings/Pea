@@ -1,4 +1,4 @@
-use shakmaty::{Chess, Color, Move, Position, Role, Square};
+use shakmaty::{Chess, Color, Position, Role, Square};
 
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub struct Hash(pub u64);
@@ -19,8 +19,41 @@ impl Hash {
         }
         hash
     }
-}
 
+    #[inline]
+    pub fn king_non_pawnhash(pos: &Chess) -> Hash {
+        let mut hash = Hash(0);
+        let board = pos.board();
+
+        let kings = board.kings();
+        // All non-pawn, non-king pieces
+        let non_pawns = board.occupied() & !board.pawns() & !kings;
+
+        for sq in non_pawns {
+            let piece = board.piece_at(sq).unwrap();
+            hash.toggle_piece(piece.role, sq, piece.color);
+        }
+        for sq in kings{
+            let piece = board.piece_at(sq).unwrap();
+            let bucket = KING_BUCKET[sq as usize];
+            hash.0 ^= PIECE_HASHES[piece.color as usize][0][bucket];
+        }
+
+        hash
+    }
+
+
+}
+const KING_BUCKET: [usize; 64] = [
+    0, 0, 0, 1, 1, 2, 0, 0,
+    0, 0, 1, 1, 2, 2, 0, 0,
+    3, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 3, 3, 3, 3, 3, 3,
+    4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4,
+    0, 0, 1, 1, 2, 2, 0, 0,
+    0, 0, 0, 1, 1, 2, 0, 0,
+];
 // Precomputed hashes for all squares/roles/color combos
 static PIECE_HASHES: [[[u64; 64]; 6]; 2] = generate_piece_hashes();
 

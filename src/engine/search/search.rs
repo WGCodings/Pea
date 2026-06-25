@@ -5,7 +5,6 @@ use std::time::{Duration, Instant};
 use shakmaty::{Bitboard, Chess, EnPassantMode, Move, Position};
 use shakmaty::zobrist::{Zobrist64};
 use crate::engine::eval::evaluate;
-use crate::engine::hash::Hash;
 use crate::engine::search::context::{make_move_nnue, unmake_move_nnue, SearchContext};
 use crate::engine::search::pv::PvTable;
 use crate::engine::search::see::see;
@@ -97,6 +96,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
 
     // Age history tables
     ctx.corrhist_pawn.age_entries();
+    ctx.corrhist_king_non_pawn.age_entries();
 
     (best_score, best_move.unwrap(), tt_pv, ctx.stats)
 }
@@ -193,7 +193,9 @@ pub fn negamax(
     let static_eval = if is_excluded {
         raw_eval
     } else {
-        ctx.corrhist_pawn.correct_evaluation(pos, raw_eval)
+        raw_eval
+            + ctx.corrhist_pawn.correct_evaluation(pos)
+            + ctx.corrhist_king_non_pawn.correct_evaluation(pos)
     };
 
 
@@ -583,6 +585,7 @@ pub fn negamax(
         && !(node_type == Bound::Lower && best_score <= static_eval)
         && !(node_type == Bound::Upper && best_score >= static_eval) {
         ctx.corrhist_pawn.update_correction_history(pos, depth as i32, best_score - static_eval);
+        ctx.corrhist_king_non_pawn.update_correction_history(pos, depth as i32, best_score - static_eval);
 
     }
 
@@ -629,7 +632,9 @@ pub fn quiescence(
         evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
     };
 
-    let static_eval = ctx.corrhist_pawn.correct_evaluation(pos, raw_eval);
+    let static_eval = raw_eval
+        + ctx.corrhist_pawn.correct_evaluation(pos)
+        + ctx.corrhist_king_non_pawn.correct_evaluation(pos);
 
    if static_eval >= beta {
         return beta;

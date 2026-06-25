@@ -11,7 +11,7 @@ const MAX: i32 = 32*SCALE; // max correction is thus 32cp TODO experiment with l
 
 // Key can be different for other kinds of corrhist tables
 pub trait CorrHistKey {
-    fn key(hash: &Hash) -> usize;
+    fn key(pos: &Chess) -> usize;
 }
 
 // Shared struct - generic over the key strategy
@@ -47,8 +47,8 @@ impl<K: CorrHistKey> CorrectionHistoryTable<K> {
 
     // Update the correction history based on the key and difference between static eval and score
     pub fn update_correction_history(&mut self, pos: &Chess, depth: i32, eval_diff: i32) {
-        let hash = Hash::pawnhash(pos);
-        let entry = &mut self.table[usize::from(pos.turn())][K::key(&hash)];
+
+        let entry = &mut self.table[usize::from(pos.turn())][K::key(pos)];
         let scaled_diff = eval_diff * GRAIN;
         let new_weight = 16.min(depth + 1);
         let update = *entry * (SCALE - new_weight) + scaled_diff * new_weight;
@@ -56,10 +56,9 @@ impl<K: CorrHistKey> CorrectionHistoryTable<K> {
     }
 
     // If key matches, correct raw eval with correction
-    pub fn correct_evaluation(&self, pos: &Chess, raw_eval: i32) -> i32 {
-        let hash = Hash::pawnhash(pos);
-        let entry = self.table[usize::from(pos.turn())][K::key(&hash)];
-        raw_eval + entry / GRAIN
+    pub fn correct_evaluation(&self, pos: &Chess) -> i32 {
+        let entry = self.table[usize::from(pos.turn())][K::key(pos)];
+        entry / GRAIN
     }
 }
 
@@ -67,6 +66,18 @@ impl<K: CorrHistKey> CorrectionHistoryTable<K> {
 #[derive(Clone)]
 pub struct PawnKey;
 impl CorrHistKey for PawnKey {
-    fn key(hash: &Hash) -> usize { hash.0 as usize % SIZE }
+    fn key(pos: &Chess) -> usize {
+        let hash = Hash::pawnhash(pos);
+        hash.0 as usize % SIZE
+    }
 }
 
+// King bucket and non-pawn correction history
+#[derive(Clone)]
+pub struct KingNonPawnKey;
+impl CorrHistKey for KingNonPawnKey {
+    fn key(pos: &Chess) -> usize {
+        let hash = Hash::king_non_pawnhash(pos);
+        hash.0 as usize % SIZE
+    }
+}
