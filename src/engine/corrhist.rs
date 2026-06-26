@@ -6,8 +6,6 @@ use crate::engine::hash::Hash;
 
 const SIZE: usize = 16384;
 const GRAIN: i32 = 256;
-const SCALE: i32 = 256;
-const MAX: i32 = 32*SCALE; // max correction is thus 32cp TODO experiment with larger MAX
 
 // Key can be different for other kinds of corrhist tables
 pub trait CorrHistKey {
@@ -18,16 +16,20 @@ pub trait CorrHistKey {
 #[derive(Clone)]
 pub struct CorrectionHistoryTable<K: CorrHistKey> {
     pub(crate) table: Box<[[i32; SIZE]; 2]>,
+    pub scale: i32,
+    pub max: i32,
     _marker: PhantomData<K>,
 }
 
-impl<K: CorrHistKey> Default for CorrectionHistoryTable<K> {
-    fn default() -> Self {
+impl<K: CorrHistKey> CorrectionHistoryTable<K>{
+    pub(crate) fn new(scale : i32, max_cp : i32) -> Self {
         Self {
             table: vec![[0i32; SIZE]; 2]
                 .into_boxed_slice()
                 .try_into()
                 .unwrap(),
+            scale,
+            max: max_cp*scale,
             _marker: PhantomData
         }
     }
@@ -51,8 +53,8 @@ impl<K: CorrHistKey> CorrectionHistoryTable<K> {
         let entry = &mut self.table[usize::from(pos.turn())][K::key(pos)];
         let scaled_diff = eval_diff * GRAIN;
         let new_weight = 16.min(depth + 1);
-        let update = *entry * (SCALE - new_weight) + scaled_diff * new_weight;
-        *entry = i32::clamp(update / SCALE, -MAX, MAX);
+        let update = *entry * (self.scale - new_weight) + scaled_diff * new_weight;
+        *entry = i32::clamp(update / self.scale, -self.max, self.max);
     }
 
     // If key matches, correct raw eval with correction
