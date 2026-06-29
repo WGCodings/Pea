@@ -37,7 +37,7 @@ impl Hash {
     pub fn minors_and_kings_hash(pos: &Chess) -> Hash {
         let mut hash = Hash(0);
         let board = pos.board();
-        for sq in  board.knights() | board.bishops()  {
+        for sq in  board.knights() | board.bishops() | board.kings()   {
             let piece = board.piece_at(sq).unwrap();
             let role = board.role_at(sq).unwrap();
 
