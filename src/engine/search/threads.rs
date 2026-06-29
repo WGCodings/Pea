@@ -47,6 +47,7 @@ impl Threads {
         let shared_tt       = SharedTt::from(&engine.tt);
         let corrhist_pawn = engine.corrhist_pawn.clone();
         let corrhist_material = engine.corrhist_material.clone();
+        let corrhist_minor = engine.corrhist_minor.clone();
 
         let result = std::thread::scope(|s| {
             for thread_id in 1..num_threads {
@@ -63,7 +64,9 @@ impl Threads {
                     let tt         = unsafe { tt_ptr.get() };
                     let nnue_state = NNUEState::new(pos, network);
                     let mut ctx    = build_search_context(
-                        tt, CorrectionHistoryTable::new(256,32), CorrectionHistoryTable::new(256,32), &params, &ordering, network,
+                        tt, CorrectionHistoryTable::new(256,32), CorrectionHistoryTable::new(256,32),
+                        CorrectionHistoryTable::new(256,32),
+                        &params, &ordering, network,
                         rep_stack, nnue_state, stop, nodes,
                         false, Some(effective_limit),
                     );
@@ -73,7 +76,7 @@ impl Threads {
 
             let nnue_state = NNUEState::new(pos, network);
             let mut main_ctx = build_search_context(
-                &engine.tt, corrhist_pawn, corrhist_material, params, ordering, network,
+                &engine.tt, corrhist_pawn, corrhist_material, corrhist_minor, params, ordering, network,
                 rep_stack.clone(), nnue_state,
                 stop.clone(), node_count,
                 verbose, time_limit,
@@ -103,6 +106,7 @@ impl Threads {
         let ponder_limit                      = Duration::MAX / 10;
         let corrhist_pawn = engine.corrhist_pawn.clone();
         let corrhist_material = engine.corrhist_material.clone();
+        let corrhist_minor = engine.corrhist_minor.clone();
 
         for thread_id in 1..num_threads {
             let params    = params.clone();
@@ -119,7 +123,9 @@ impl Threads {
                 let tt         = unsafe { tt_ptr.get() };
                 let nnue_state = NNUEState::new(&pos, network);
                 let mut ctx    = build_search_context(
-                    tt, CorrectionHistoryTable::new(256,32), CorrectionHistoryTable::new(256,32), &params, &ordering, network,
+                    tt, CorrectionHistoryTable::new(256,32), CorrectionHistoryTable::new(256,32),
+                    CorrectionHistoryTable::new(256,32),
+                    &params, &ordering, network,
                     rep_stack, nnue_state, stop, nodes,
                     false, Some(ponder_limit),
                 );
@@ -134,7 +140,7 @@ impl Threads {
             let tt         = unsafe { tt_ptr.get() };
             let nnue_state = NNUEState::new(&pos, network);
             let mut ctx    = build_search_context(
-                tt, corrhist_pawn, corrhist_material,&params, &ordering, network,
+                tt, corrhist_pawn, corrhist_material,corrhist_minor, &params, &ordering, network,
                 rep_stack, nnue_state,
                 stop, node_count,
                 true, Some(ponder_limit),
