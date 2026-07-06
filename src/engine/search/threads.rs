@@ -65,7 +65,7 @@ impl Threads {
                     let nnue_state = NNUEState::new(pos, network);
                     let mut ctx    = build_search_context(
                         tt, CorrectionHistoryTable::new(256,32), CorrectionHistoryTable::new(256,32),
-                        CorrectionHistoryTable::new(256,32),
+                        CorrectionHistoryTable::new(256,24),
                         &params, &ordering, network,
                         rep_stack, nnue_state, stop, nodes,
                         false, Some(effective_limit),
@@ -124,7 +124,7 @@ impl Threads {
                 let nnue_state = NNUEState::new(&pos, network);
                 let mut ctx    = build_search_context(
                     tt, CorrectionHistoryTable::new(256,32), CorrectionHistoryTable::new(256,32),
-                    CorrectionHistoryTable::new(256,32),
+                    CorrectionHistoryTable::new(256,24),
                     &params, &ordering, network,
                     rep_stack, nnue_state, stop, nodes,
                     false, Some(ponder_limit),
