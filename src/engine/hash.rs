@@ -45,6 +45,20 @@ impl Hash {
         }
         hash
     }
+
+    #[inline]
+    pub fn majors_and_kings_hash(pos: &Chess) -> Hash {
+        let mut hash = Hash(0);
+        let board = pos.board();
+        for sq in  board.rooks_and_queens() | board.kings()   {
+            let piece = board.piece_at(sq).unwrap();
+            let role = board.role_at(sq).unwrap();
+
+            hash.toggle_piece(role, sq, piece.color);
+        }
+        hash
+    }
+    
 }
 // Precomputed hashes for all squares/roles/color combos
 static PIECE_HASHES: [[[u64; 64]; 6]; 2] = generate_piece_hashes();

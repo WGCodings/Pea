@@ -98,6 +98,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     ctx.corrhist_pawn.age_entries();
     ctx.corrhist_material.age_entries();
     ctx.corrhist_minor.age_entries();
+    ctx.corrhist_major.age_entries();
     (best_score, best_move.unwrap(), tt_pv, ctx.stats)
 }
 
@@ -197,6 +198,7 @@ pub fn negamax(
             + ctx.corrhist_pawn.correct_evaluation(pos)
             + ctx.corrhist_material.correct_evaluation(pos)
             + ctx.corrhist_minor.correct_evaluation(pos)
+            + ctx.corrhist_major.correct_evaluation(pos)
     };
 
 
@@ -588,6 +590,7 @@ pub fn negamax(
         ctx.corrhist_pawn.update_correction_history(pos, depth as i32, best_score - static_eval);
         ctx.corrhist_material.update_correction_history(pos, depth as i32, best_score - static_eval);
         ctx.corrhist_minor.update_correction_history(pos, depth as i32, best_score - static_eval);
+        ctx.corrhist_major.update_correction_history(pos, depth as i32, best_score - static_eval);
     }
 
 
@@ -636,7 +639,8 @@ pub fn quiescence(
     let static_eval = raw_eval
         + ctx.corrhist_pawn.correct_evaluation(pos)
         + ctx.corrhist_material.correct_evaluation(pos)
-        + ctx.corrhist_minor.correct_evaluation(pos);
+        + ctx.corrhist_minor.correct_evaluation(pos)
+        + ctx.corrhist_major.correct_evaluation(pos);
 
    if static_eval >= beta {
         return beta;

@@ -92,3 +92,12 @@ impl CorrHistKey for MinorsAndKingsKey {
         hash.0 as usize % SIZE
     }
 }
+
+#[derive(Clone)]
+pub struct MajorsAndKingsKey;
+impl CorrHistKey for MajorsAndKingsKey {
+    fn key(pos: &Chess) -> usize {
+        let hash = Hash::majors_and_kings_hash(pos);
+        hash.0 as usize % SIZE
+    }
+}

@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 use shakmaty::{Chess, fen::Fen, CastlingMode, Move, Position, EnPassantMode, Role};
 use shakmaty::zobrist::Zobrist64;
-use crate::engine::corrhist::{CorrectionHistoryTable, MaterialKey, MinorsAndKingsKey, PawnKey};
+use crate::engine::corrhist::{CorrectionHistoryTable, MajorsAndKingsKey, MaterialKey, MinorsAndKingsKey, PawnKey};
 use crate::engine::params::Params;
 use crate::engine::search::context::{NNUEState, SearchContext, Stack};
 use crate::engine::search::ordering::MoveOrdering;
@@ -144,6 +144,7 @@ pub fn build_search_context<'a>(
     corrhist_pawn: CorrectionHistoryTable<PawnKey>,
     corrhist_material: CorrectionHistoryTable<MaterialKey>,
     corrhist_minor: CorrectionHistoryTable<MinorsAndKingsKey>,
+    corrhist_major: CorrectionHistoryTable<MajorsAndKingsKey>,
     params:       &'a Params,
     ordering:     &'a MoveOrdering,
     network:      &'a Network,
@@ -175,6 +176,7 @@ pub fn build_search_context<'a>(
         corrhist_pawn,
         corrhist_material,
         corrhist_minor,
+        corrhist_major,
         stack:                Stack {
             moves:       [None; 128],
             evals:       [0; 128],

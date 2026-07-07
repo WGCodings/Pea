@@ -87,6 +87,7 @@ pub fn run_game(
             CorrectionHistoryTable::new(256,32),
             CorrectionHistoryTable::new(256,32),
             CorrectionHistoryTable::new(256,24),
+            CorrectionHistoryTable::new(256,24),
             params,
             ordering,
             network,
