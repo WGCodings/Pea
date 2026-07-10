@@ -61,7 +61,7 @@ impl Engine {
             tt:            TranspositionTable::new(16),
             corrhist_pawn:      CorrectionHistoryTable::new(256,32),
             corrhist_material:      CorrectionHistoryTable::new(256,32),
-            corrhist_minor:      CorrectionHistoryTable::new(256,32),
+            corrhist_minor:      CorrectionHistoryTable::new(256,0),
             corrhist_major:      CorrectionHistoryTable::new(256,0),
             params,
             net,

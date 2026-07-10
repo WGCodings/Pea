@@ -38,9 +38,8 @@ impl Hash {
         let mut hash = Hash(0);
         let board = pos.board();
         let minors = board.knights() | board.bishops();
-        let majors = board.rooks_and_queens();
 
-        for sq in  minors | majors |board.kings()   {
+        for sq in  minors | board.kings()   {
             let piece = board.piece_at(sq).unwrap();
             let role = board.role_at(sq).unwrap();
 

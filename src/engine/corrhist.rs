@@ -60,10 +60,6 @@ impl<K: CorrHistKey> CorrectionHistoryTable<K> {
     // If key matches, correct raw eval with correction
     pub fn correct_evaluation(&self, pos: &Chess) -> i32 {
         let hash = K::key(&pos);
-        
-        if hash == 0_usize{
-            return 0;
-        }
         let entry = self.table[usize::from(pos.turn())][hash];
         entry / GRAIN
     }
