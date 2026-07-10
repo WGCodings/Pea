@@ -38,12 +38,9 @@ impl Hash {
         let mut hash = Hash(0);
         let board = pos.board();
         let minors = board.knights() | board.bishops();
+        let majors = board.rooks_and_queens();
 
-        if minors.is_empty(){
-            return hash
-        }
-
-        for sq in  minors | board.kings()   {
+        for sq in  minors | majors |board.kings()   {
             let piece = board.piece_at(sq).unwrap();
             let role = board.role_at(sq).unwrap();
 
@@ -56,7 +53,10 @@ impl Hash {
     pub fn majors_and_kings_hash(pos: &Chess) -> Hash {
         let mut hash = Hash(0);
         let board = pos.board();
-        for sq in  board.rooks_and_queens() | board.kings()   {
+
+        let majors = board.rooks_and_queens();
+
+        for sq in  majors | board.kings()   {
             let piece = board.piece_at(sq).unwrap();
             let role = board.role_at(sq).unwrap();
 
