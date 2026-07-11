@@ -7,13 +7,13 @@ use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::state::Engine;
 use crate::engine::time_manager::compute_time_limit;
 use crate::engine::types::PIECE_VALUES;
-use crate::engine::utility::{print_bestmove, read_position_from_fen};
+use crate::engine::utility::{read_position_from_fen};
 use crate::engine::search::threads::Threads;
 use crate::tuner::bounds::Bounds;
 use crate::tuner::main::run_spsa;
 use crate::tuner::perturb::perturb_params;
 use crate::datagen::datagen_main::run_datagen;
-use crate::uci::parser::{uci_to_move, UciCommand};
+use crate::uci::parser::{move_to_uci, uci_to_move, UciCommand};
 use crate::uci::state::UciState;
 const BENCH_FENS: &str = include_str!("../../assets/bench.txt");
 
@@ -147,7 +147,6 @@ impl UciHandler {
 
     fn on_ucinewgame(&mut self) {
         self.uci.stop();
-        self.engine.stop_ponder_thread();
         self.uci.reset_stop();
 
         self.engine.position = Chess::new();
@@ -194,11 +193,12 @@ impl UciHandler {
             self.engine.options.move_overhead,
         );
 
-        let (_, best_move, pv,_) = Threads::search(
+        let (_, best_move, _,_) = Threads::search(
             &position, &mut self.engine, &ordering,
             max_depth, max_nodes, time_limit, &self.uci,true
         );
-        print_bestmove(best_move, &pv, &mut self.engine);
+
+        println!("bestmove {}", move_to_uci(&best_move));
     }
 
     fn on_stop(&mut self) {

@@ -14,9 +14,6 @@ use crate::engine::types::{MATE_SCORE, MAX_PLY_CONTINUATION_HISTORY, MOM, P_A, P
 use crate::nnue::network::Network;
 use crate::uci::parser::move_to_uci;
 use crate::uci::state::UciState;
-use crate::engine::state::Engine;
-
-
 
 // ---------------------------------------------------------------------------
 // Position helpers
@@ -176,16 +173,6 @@ pub fn extract_pv_from_tt(
     pv
 }
 
-pub fn print_bestmove(
-    best_move:    Move,
-    pv:           &[Option<Move>],
-    engine_state: &mut Engine,
-) {
-    engine_state.ponder_move = pv.get(1).and_then(|m| *m);
-
-    println!("bestmove {}", move_to_uci(&best_move));
-
-}
 
 // ---------------------------------------------------------------------------
 // SearchContext constructor
