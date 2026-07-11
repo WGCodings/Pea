@@ -9,6 +9,13 @@ pub const MAX_PLY_CONTINUATION_HISTORY: usize = 4;
 
 pub const PIECE_VALUES: [i32;6] = [100, 320, 330, 500, 900, 0]; // P, N, B, R, Q, K
 
+// Normalization constants from Stockfish WDL model, rounded down
+pub const P_A : [i32;4] = [-125,571,-890,806];
+pub const P_B : [i32;4] = [-20,80,-75,115];
+pub const MOM : i32 = 32;
+
+// PSQT to help KBN mate finding
+
 pub const KBN_TABLE_DARK: [i32; 64] = [
     0,  40,  70, 100, 120, 140, 150, 170,
     40,  70, 100, 130, 210, 190, 180, 150,

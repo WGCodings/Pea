@@ -10,11 +10,13 @@ use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::pv::PvTable;
 use crate::engine::search::search::SearchStats;
 use crate::engine::tt::TranspositionTable;
-use crate::engine::types::{MATE_SCORE, MAX_PLY_CONTINUATION_HISTORY};
+use crate::engine::types::{MATE_SCORE, MAX_PLY_CONTINUATION_HISTORY, MOM, P_A, P_B};
 use crate::nnue::network::Network;
 use crate::uci::parser::move_to_uci;
 use crate::uci::state::UciState;
 use crate::engine::state::Engine;
+
+
 
 // ---------------------------------------------------------------------------
 // Position helpers
@@ -37,15 +39,26 @@ pub fn role_from_index(idx: usize) -> Option<Role> {
     }
 }
 
+fn material_count(chess: &Chess) -> i32 {
+    let board = chess.board();
+
+    (board.pawns()).count() as i32 * 1
+        + (board.knights()).count() as i32 * 3
+        + (board.bishops()).count() as i32 * 3
+        + (board.rooks()).count() as i32 * 5
+        + (board.queens()).count() as i32 * 9
+}
+
 // ---------------------------------------------------------------------------
 // Search output helpers
 // ---------------------------------------------------------------------------
 
 pub fn print_search_info(
     ctx:       &SearchContext,
+    uci:       &UciState,
     pos:       &Chess,
     depth:     usize,
-    score:     i32,
+    mut score:     i32,
     elapsed:   Duration,
     pv_table:  PvTable,
 ) -> Vec<Option<Move>> {
@@ -64,20 +77,64 @@ pub fn print_search_info(
         pv_to_string(&tt_line)
     };
 
+    let mom = material_count(pos);
+
+    let wdl_str = if uci.uci_show_wdl{
+        format!("wdl {} {} {} ", win_rate(score,mom),loss_rate(score,mom),draw_rate(score,mom))
+    } else {
+        "".to_string()
+    };
+
     let score_str = if score.abs() > MATE_SCORE - 200 {
         let moves_to_mate = (MATE_SCORE - score.abs() + 1) / 2;
         let sign = if score > 0 { 1 } else { -1 };
         format!("mate {}", sign * moves_to_mate)
     } else {
+        if uci.normalize_score{
+            score = normalize_score(score,mom);
+        }
         format!("cp {}", score)
     };
 
+
+
     println!(
-        "info depth {} seldepth {} score {} nodes {} nps {} hashfull {} time {} pv {}",
-        depth, ctx.stats.seldepth, score_str, nodes, nps, tt_occupancy, elapsed_millis, pv_string,
+        "info depth {} seldepth {} score {} {}nodes {} nps {} hashfull {} time {} pv {}",
+        depth, ctx.stats.seldepth, score_str,wdl_str, nodes, nps, tt_occupancy, elapsed_millis, pv_string,
     );
     pv_line
 }
+
+// ---------------------------------------------------------------------------
+// Everything for the normalization of the eval and WDL scores
+// ---------------------------------------------------------------------------
+
+/// This function normalizes the raw eval based on parameters found from the Stockfish WDL tool
+fn normalize_score(score : i32, mom : i32) -> i32{
+    100*score/(((P_A[0]*mom/MOM + P_A[1])*mom/MOM + P_A[2])*mom/MOM + P_A[3])
+}
+/// Winrate in WDL model, pass as promille
+pub fn win_rate(score: i32, mom: i32) -> i32 {
+    let a = ((P_A[0]  * mom/MOM + P_A[1]) * mom/MOM + P_A[2]) * mom/MOM + P_A[3];
+    let b = ((P_B[0]  * mom/MOM + P_B[1]) * mom/MOM + P_B[2]) * mom/MOM + P_B[3];
+
+    (1.0 / (1.0 + ((-(score - a) / b) as f32).exp())*1000.0).round() as i32
+}
+
+/// Loss rate in WDL model
+pub fn loss_rate(score: i32, mom: i32) -> i32 {
+    win_rate(-score, mom)
+}
+
+/// Draw rate in WDL model
+pub fn draw_rate(score: i32, mom: i32) -> i32 {
+    1000 - win_rate(score, mom) - loss_rate(score, mom)
+}
+
+// ---------------------------------------------------------------------------
+// Functions to extract pv and stuff
+// ---------------------------------------------------------------------------
+
 
 pub fn pv_to_string(line: &[Option<Move>]) -> String {
     line.iter()
@@ -123,16 +180,11 @@ pub fn print_bestmove(
     best_move:    Move,
     pv:           &[Option<Move>],
     engine_state: &mut Engine,
-    uci_state:    &UciState,
 ) {
     engine_state.ponder_move = pv.get(1).and_then(|m| *m);
 
-    match (uci_state.ponder_enabled, engine_state.ponder_move) {
-        (true, Some(pm)) =>
-            println!("bestmove {} ponder {}", move_to_uci(&best_move), move_to_uci(&pm)),
-        _ =>
-            println!("bestmove {}", move_to_uci(&best_move)),
-    }
+    println!("bestmove {}", move_to_uci(&best_move));
+
 }
 
 // ---------------------------------------------------------------------------

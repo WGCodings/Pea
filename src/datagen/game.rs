@@ -17,6 +17,7 @@ use crate::engine::search::search::search;
 use crate::engine::tt::TranspositionTable;
 use crate::engine::utility::build_search_context;
 use crate::nnue::network::Network;
+use crate::uci::state::UciState;
 
 const MATE_THRESHOLD: i16 = 29_500;
 
@@ -102,8 +103,9 @@ pub fn run_game(
         let (score, best_move, _pv,_) = search(
             &pos,
             &mut ctx,
-            128,                                 // max depth, nodes will stop it first
-            Some(Duration::from_secs(3600)),     // effectively infinite time
+            &UciState::new(),
+            128,
+            Some(Duration::from_secs(3600)),
             config.nodes_per_move,
         );
 

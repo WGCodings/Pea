@@ -1,6 +1,4 @@
 use std::cmp;
-use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 use shakmaty::{perft, Chess, Position};
 
@@ -73,9 +71,8 @@ impl UciHandler {
             UciCommand::IsReady     => self.on_isready(),
             UciCommand::UciNewGame  => self.on_ucinewgame(),
             UciCommand::Position { fen, moves } => self.on_position(fen, moves),
-            UciCommand::Go { wtime, btime, winc, binc, movetime, depth, nodes, ponder }
-            => self.on_go(wtime, btime, winc, binc, movetime, depth, nodes, ponder),
-            UciCommand::PonderHit if self.uci.ponder_enabled => self.on_ponderhit(),
+            UciCommand::Go { wtime, btime, winc, binc, movetime, depth, nodes }
+            => self.on_go(wtime, btime, winc, binc, movetime, depth, nodes),
             UciCommand::Stop        => self.on_stop(),
             UciCommand::SetOption { name, value } => self.on_setoption(name, value),
             UciCommand::Perft { depth } => self.on_perft(depth),
@@ -100,7 +97,6 @@ impl UciHandler {
         use std::time::Instant;
 
         let ordering  = MoveOrdering::new(&PIECE_VALUES);
-        let stop      = Arc::new(AtomicBool::new(false));
 
         let mut total_nodes: u64 = 0;
         let mut total_time:  u128 = 0;
@@ -123,7 +119,7 @@ impl UciHandler {
                 11,
                 u64::MAX,
                 Some(Duration::MAX/10),
-                stop.clone(),
+                &self.uci,
                 false
             );
             total_time  += timer.elapsed().as_millis();
@@ -140,7 +136,8 @@ impl UciHandler {
         println!("option name Hash type spin default 16 min 1 max 1024");
         println!("option name Threads type spin default 1 min 1 max 128");
         println!("option name Move Overhead type spin default 10 min 0 max 1000");
-        println!("option name Ponder type check default false");
+        println!("option name UCI_ShowWDL type check default true");
+        println!("option name NormalizeScore type check default true");
         println!("uciok");
     }
 
@@ -180,7 +177,7 @@ impl UciHandler {
         wtime: Option<u64>, btime: Option<u64>,
         winc:  Option<u64>, binc:  Option<u64>,
         movetime: Option<u64>, depth: Option<u32>,
-        nodes: Option<u64>, ponder: bool,
+        nodes: Option<u64>,
     ) {
         self.uci.save_time(wtime, btime, winc, binc);
         self.uci.reset_stop();
@@ -190,58 +187,22 @@ impl UciHandler {
         let ordering  = MoveOrdering::new(&PIECE_VALUES);
         let position  = self.engine.position.clone();
 
-        if ponder && self.uci.ponder_enabled {
-            self.uci.set_pondering(true);
-            self.engine.ponder_thread = Some(Threads::start_ponder(
-                position,
-                &self.engine,
-                self.uci.stop.clone(),
-                self.uci.is_pondering.clone(),
-            ));
-        } else {
-            let time_limit = compute_time_limit(
-                &self.engine.position,
-                wtime, btime, winc, binc,
-                movetime, depth,
-                self.engine.options.move_overhead,
-            );
-
-            let (_, best_move, pv,_) = Threads::search(
-                &position, &mut self.engine, &ordering,
-                max_depth, max_nodes, time_limit, self.uci.stop.clone(),true
-            );
-            print_bestmove(best_move, &pv, &mut self.engine, &self.uci);
-        }
-
-    }
-
-    fn on_ponderhit(&mut self) {
-        self.uci.set_pondering(false);
-        self.uci.stop();
-        self.engine.stop_ponder_thread();
-        self.uci.reset_stop();
-
         let time_limit = compute_time_limit(
             &self.engine.position,
-            self.uci.last_wtime, self.uci.last_btime,
-            self.uci.last_winc,  self.uci.last_binc,
-            None, None,
+            wtime, btime, winc, binc,
+            movetime, depth,
             self.engine.options.move_overhead,
         );
 
-        let ordering = MoveOrdering::new(&PIECE_VALUES);
-        let position = self.engine.position.clone();
         let (_, best_move, pv,_) = Threads::search(
             &position, &mut self.engine, &ordering,
-            64, u64::MAX, time_limit, self.uci.stop.clone(),true
+            max_depth, max_nodes, time_limit, &self.uci,true
         );
-        print_bestmove(best_move, &pv, &mut self.engine, &self.uci);
+        print_bestmove(best_move, &pv, &mut self.engine);
     }
 
     fn on_stop(&mut self) {
         self.uci.stop();
-        self.engine.stop_ponder_thread();
-        self.uci.set_pondering(false);
     }
 
     fn on_setoption(&mut self, name: String, value: String) {
@@ -264,8 +225,11 @@ impl UciHandler {
             if let Ok(t) = v.parse::<u8>() {
                 self.engine.set_threads(cmp::min(cmp::max(t, 1), 128));
             }
-        } else if n.eq_ignore_ascii_case("ponder") {
-            self.uci.ponder_enabled = v.eq_ignore_ascii_case("true");
+        } else if n.eq_ignore_ascii_case("normalizescore") {
+            self.uci.normalize_score = v.eq_ignore_ascii_case("true");
+        }
+        else if n.eq_ignore_ascii_case("uci_showwdl") {
+            self.uci.uci_show_wdl = v.eq_ignore_ascii_case("true");
         }
     }
 
