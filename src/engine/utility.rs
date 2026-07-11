@@ -77,7 +77,7 @@ pub fn print_search_info(
     let mom = material_count(pos);
 
     let wdl_str = if uci.uci_show_wdl{
-        format!("wdl {} {} {} ", win_rate(score,mom),loss_rate(score,mom),draw_rate(score,mom))
+        format!("wdl {} {} {} ", win_rate(score,mom),draw_rate(score,mom),loss_rate(score,mom))
     } else {
         "".to_string()
     };
