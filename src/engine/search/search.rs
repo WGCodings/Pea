@@ -653,13 +653,15 @@ pub fn quiescence(
     }
 
     let mut node_type = Bound::Upper;
-    let mut best_move: Option<Move> = None;
+    let mut moves_searched = 0;
 
     let mut moves = pos.capture_moves();
 
     ctx.ordering.order_captures(pos, &mut moves);
 
     for mv in moves {
+
+        moves_searched+=1;
 
         let see = see(pos, mv) as i32;
 
@@ -683,7 +685,6 @@ pub fn quiescence(
 
         unmake_move_nnue(ctx.network, &mut ctx.nnue);
 
-
         if score >= beta {
             node_type = Bound::Lower;
             return beta;
@@ -691,14 +692,16 @@ pub fn quiescence(
         // TODO add best move here, similar to what simbelmyne does
         if score > alpha {
             node_type = Bound::Exact;
-            best_move = Some(mv);
             alpha = score;
         }
+    }
+    if in_check && moves_searched==0{
+        return -MATE_SCORE+ply as i32;
     }
     
     // TODO like simbelmyne try assign best score isntead of alpha for tt
     if !(*ctx.stop).load(Ordering::Relaxed) {
-        tt_store(hash, ctx, 0, alpha, raw_eval,node_type, best_move,ply);
+        tt_store(hash, ctx, 0, alpha, raw_eval,node_type,None,ply);
     }
     alpha
 }
