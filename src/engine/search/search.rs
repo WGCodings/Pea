@@ -653,6 +653,7 @@ pub fn quiescence(
     }
 
     let mut node_type = Bound::Upper;
+    let mut best_move: Option<Move> = None;
 
     let mut moves = pos.capture_moves();
 
@@ -690,13 +691,14 @@ pub fn quiescence(
         // TODO add best move here, similar to what simbelmyne does
         if score > alpha {
             node_type = Bound::Exact;
+            best_move = Some(mv);
             alpha = score;
         }
     }
     
     // TODO like simbelmyne try assign best score isntead of alpha for tt
     if !(*ctx.stop).load(Ordering::Relaxed) {
-        tt_store(hash, ctx, 0, alpha, raw_eval,node_type, None,ply);
+        tt_store(hash, ctx, 0, alpha, raw_eval,node_type, best_move,ply);
     }
     alpha
 }
