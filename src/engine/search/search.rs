@@ -12,6 +12,8 @@ use crate::engine::time_manager::TimeManager;
 use crate::engine::tt::{ encode_move, score_from_tt, tt_probe, tt_store, validate_move, Bound};
 use crate::engine::types::{DRAW_SCORE, MATE_SCORE, MAX_INF, MIN_INF};
 use crate::engine::utility::{print_search_info};
+use crate::uci::state::UciState;
+
 #[derive(Clone, Copy)]
 pub struct SearchStats {
     pub nodes: u64,
@@ -37,7 +39,7 @@ impl SearchStats {
     }
 }
 
-pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remaining: Option<Duration>, max_nodes : u64) -> (i32, Move, Vec<Option<Move>>,SearchStats) {
+pub fn search(pos: &Chess, ctx: &mut SearchContext, uci : &UciState, max_depth: usize, time_remaining: Option<Duration>, max_nodes : u64) -> (i32, Move, Vec<Option<Move>>,SearchStats) {
     let start_time = Instant::now();
     let base_time = time_remaining.unwrap();
 
@@ -63,9 +65,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
         pv.clear();
 
         if tm.should_stop() && depth > 1 { break; }
-
-
-        // TODO what if score is close to mate score?
+        
         let score = if depth >= ctx.params.aspw_min_depth as usize{
             aspiration_search(pos, ctx, depth, prev_score, avg_score, &mut pv)
         } else {
@@ -75,8 +75,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
         if (*ctx.stop).load(Ordering::Relaxed) && depth >1 { break; }
 
         tm.update(score, pv.best_move());
-
-
+        
         ctx.time_limit = tm.current_limit;
 
         best_score = score;
@@ -87,7 +86,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
         ctx.stats.completed_depth = depth;
 
         if ctx.is_main{
-            tt_pv = print_search_info(ctx, pos, depth, best_score, tm.elapsed(),latest_pv);
+            tt_pv = print_search_info(ctx, uci, pos, depth, best_score, tm.elapsed(), latest_pv);
         }
 
     }
@@ -99,6 +98,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     ctx.corrhist_material.age_entries();
     ctx.corrhist_minor.age_entries();
     ctx.corrhist_major.age_entries();
+    
     (best_score, best_move.unwrap(), tt_pv, ctx.stats)
 }
 

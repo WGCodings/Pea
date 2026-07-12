@@ -95,12 +95,13 @@ The following UCI commands are implemented:
 | `ucinewgame`                                                    | Done                        |
 | `position <fen\|startpos> [moves ...]`                          | Done                        |
 | `go <wtime, btime, winc, binc, movetime, depth, ponder, nodes>` | Need to implement movestogo |
-| `ponderhit`                                                     | 90% done                    |
+| `ponderhit`                                                     | removed                     |
 | `stop`                                                          | Done                        |
 | `quit`                                                          | Done                        |
 | `setoption name <Hash \| Threads \| Ponder \| Move Overhead>`   | Done                        |
 | `perft <depth>`                                                 | Done                        |
-
+| `normalizescore`                                                | Done                        |
+| `UCI_ShowWDL`                                                   | Done                        |
 ---
 
 ## Rating
@@ -109,17 +110,17 @@ Below is a table of Elo estimates from having the engine play against other engi
 [Stash][Stash] (and all its versions) have been used to estimate the rating of this engine.
 
 
-| Version      | Estimate (8/0.08) | [CCI STC](https://computer-chess-index.github.io/cci/Pea.html) (8/0.08) | [CCI LTC](https://computer-chess-index.github.io/cci/Pea.html) (60/0.6) | [CCI VLTC](https://computer-chess-index.github.io/cci/Pea.html) (2m24s/1.12) | [CCRL Blitz](https://computerchess.org.uk/ccrl/404/) (120/1) |
-|--------------|-------------------|-------------------------------------------------------------------------|-------------------------------------------------------------------------|------------------------------------------------------------------------------|--------------------------------------------------------------|
-| v1.0 (Net 1) | 500-800           | 747                                                                     | 822                                                                     | 923                                                                          | /                                                            |
-| v2.0 (Net 1) | 1257              | 1122                                                                    | 1346                                                                    | 1581                                                                         | 1331                                                         |
-| v3.0 (Net 1) | 1981              | 1746                                                                    | 2103                                                                    | 2256                                                                         | /                                                            |
-| v4.0 (Net 1) | 2271              | 1974                                                                    | 2275                                                                    | 2437                                                                         | /                                                            |
-| v5.0 (Net 0) | 2501              | 2024                                                                    | 2456                                                                    | 2603                                                                         | /                                                            |
-| v6.0 (Net 1) | 2811              | 2342                                                                    | 2662                                                                    | 2811                                                                         | /                                                            |
-| v7.0 (Net 1) | 2850              | 2392                                                                    | 2739                                                                    | 2858                                                                         | /                                                            |
-| v8.0 (Net 0) | 2993              | 2507                                                                    | 2869                                                                    | 2996                                                                         | /                                                            |
-| v9.0 (Net 0) | 3193              |                                                                         |                                                                         |                                                                              | /                                                            |
+| Version      | Estimate (8/0.08) | [CCI STC](https://computer-chess-index.github.io/cci/Pea.html) (8/0.08) | [CCI LTC](https://computer-chess-index.github.io/cci/Pea.html) (60/0.6) | [CCI VLTC](https://computer-chess-index.github.io/cci/Pea.html) (2m24s/1.12) | [CCRL Blitz](https://computerchess.org.uk/ccrl/404/) (120/1) | [CCRL 40/15](https://computerchess.org.uk/4040/) (40/15) |
+|--------------|-------------------|-------------------------------------------------------------------------|-------------------------------------------------------------------------|------------------------------------------------------------------------------|--------------------------------------------------------------|----------------------------------------------------------|
+| v1.0 (Net 1) | 500-800           | 747                                                                     | 822                                                                     | 923                                                                          | /                                                            | /                                                        |
+| v2.0 (Net 1) | 1257              | 1122                                                                    | 1346                                                                    | 1581                                                                         | 1331                                                         | /                                                        |
+| v3.0 (Net 1) | 1981              | 1746                                                                    | 2103                                                                    | 2256                                                                         | /                                                            | /                                                        |
+| v4.0 (Net 1) | 2271              | 1974                                                                    | 2275                                                                    | 2437                                                                         | /                                                            | /                                                        |
+| v5.0 (Net 0) | 2501              | 2024                                                                    | 2456                                                                    | 2603                                                                         | /                                                            | /                                                        |
+| v6.0 (Net 1) | 2811              | 2342                                                                    | 2662                                                                    | 2811                                                                         | /                                                            | /                                                        |
+| v7.0 (Net 1) | 2850              | 2392                                                                    | 2739                                                                    | 2858                                                                         | /                                                            | /                                                        |
+| v8.0 (Net 0) | 2993              | 2507                                                                    | 2869                                                                    | 2996                                                                         | /                                                            | /                                                        |
+| v9.0 (Net 0) | 3193              | 2691                                                                    | 3027                                                                    | 3062                                                                         | 3264                                                         | 3223                                                     |
 ---
 
 
@@ -174,7 +175,7 @@ Running the binary directly drops you into a UCI prompt. In practice, you'll wan
 - [ ] Experiment with features for output buckets NNUE
 - [X] Make a make file
 - [ ] Self-made move generation and board representation
-- [ ] Correction history
+- [x] Correction history (pawn, material done, minor/major/threats/... TODO)
 - [ ] Successful run of SPSA
 - [ ] Clean up code, especially datatypes (too many `as` casts)
 - [ ] Better time manager
@@ -182,19 +183,20 @@ Running the binary directly drops you into a UCI prompt. In practice, you'll wan
 - [ ] Capture history
 - [ ] Fix missing PV lines due to cutoffs
 - [ ] Store evals in TT before recursive search
-- [ ] Mate Distance Pruning
+- [x] Mate Distance Pruning
 - [ ] Threat moves and extensions in NMP
 - [ ] Probcut
 - [ ] Try improving heuristic in LMR
 - [ ] Contempt
-- [ ] WDL normalization
+- [x] WDL normalization
 - [ ] Variable window choice in Asp Window
 
 ## Acknowledgements
 
 [Simbelmyne][simbelmyne] by Sam Roelants was a major source of inspiration and learning throughout this project. A lot of ideas and how to implement them in Rust came from there.
+Thanks to [Stockfish' WDL Model][StockFishWDLModel] I was able to normalize the eval score and provide WDL information for every position.
 
-Thanks to the communities at the **Engine Programming**  Discord servers, the Chess Programming Wiki and TalkChess forum where an enormous amount of collective knowledge lives out in the open.
+Thanks to the communities at the **Engine Programming**  Discord servers, the Chess Programming Wiki and TalkChess forum for all the ideas and information.
 
 ---
 
@@ -218,6 +220,7 @@ This project is licensed under the [GNU General Public License v3.0][license-lin
 <!-- Links -->
 [shakmaty]: https://github.com/niklasf/shakmaty
 [simbelmyne]: https://github.com/sroelants/simbelmyne
+[StockFishWDLModel]: https://github.com/official-stockfish/WDL_model
 [stash]: https://gitlab.com/mhouppin/stash-bot
 [cargo]: https://doc.rust-lang.org/cargo
 [arena]: http://www.playwitharena.de

@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 use shakmaty::{Chess, Move};
 use crate::engine::corrhist::CorrectionHistoryTable;
@@ -11,7 +11,7 @@ use crate::engine::tt::TranspositionTable;
 use crate::engine::types::PIECE_VALUES;
 use crate::engine::utility::build_search_context;
 use crate::nnue::network::Network;
-use crate::uci::parser::move_to_uci;
+use crate::uci::state::UciState;
 
 pub struct Threads;
 
@@ -33,9 +33,11 @@ impl Threads {
         max_depth:  usize,
         max_nodes:  u64,
         time_limit: Option<Duration>,
-        stop:       Arc<AtomicBool>,
+        uci:         &UciState,
         verbose:     bool,
     ) -> (i32, Move, Vec<Option<Move>>,SearchStats) {
+
+        let stop = uci.stop.clone();
         stop.store(false, Ordering::Relaxed);
 
         let num_threads     = engine.options.threads as usize;
@@ -65,13 +67,16 @@ impl Threads {
                     let tt         = unsafe { tt_ptr.get() };
                     let nnue_state = NNUEState::new(pos, network);
                     let mut ctx    = build_search_context(
-                        tt, CorrectionHistoryTable::new(256,32), CorrectionHistoryTable::new(256,32),
-                        CorrectionHistoryTable::new(256,0),CorrectionHistoryTable::new(256,0),
+                        tt,
+                        CorrectionHistoryTable::new(256,32), // Pawn correction
+                        CorrectionHistoryTable::new(256,32), // Material correction
+                        CorrectionHistoryTable::new(256,0),  // Minor piece correction
+                        CorrectionHistoryTable::new(256,0),  // Major piece correction
                         &params, &ordering, network,
                         rep_stack, nnue_state, stop, nodes,
                         false, Some(effective_limit),
                     );
-                    search(pos, &mut ctx, offset_depth, Some(effective_limit), u64::MAX);
+                    search(pos, &mut ctx, uci, offset_depth, Some(effective_limit), u64::MAX);
                 });
             }
 
@@ -82,79 +87,10 @@ impl Threads {
                 stop.clone(), node_count,
                 verbose, time_limit,
             );
-            search(pos, &mut main_ctx, max_depth, time_limit, max_nodes)
+            search(pos, &mut main_ctx, uci, max_depth, time_limit, max_nodes)
         });
 
         stop.store(true, Ordering::Relaxed);
         result
-    }
-
-    pub fn start_ponder(
-        pos:          Chess,
-        engine:       &Engine,
-        stop:         Arc<AtomicBool>,
-        is_pondering: Arc<AtomicBool>,
-    ) -> std::thread::JoinHandle<()> {
-        eprintln!("DEBUG: ponder started");
-        stop.store(false, Ordering::Relaxed);
-
-        let num_threads:    usize             = engine.options.threads as usize;
-        let shared_tt:      SharedTt          = SharedTt::from(&engine.tt);
-        let network:        &'static Network  = engine.net;
-        let params                            = engine.params.clone();
-        let rep_stack                         = engine.repetition_stack.clone();
-        let node_count                        = Arc::new(AtomicU64::new(0));
-        let ponder_limit                      = Duration::MAX / 10;
-        let corrhist_pawn = engine.corrhist_pawn.clone();
-        let corrhist_material = engine.corrhist_material.clone();
-        let corrhist_minor = engine.corrhist_minor.clone();
-        let corrhist_major = engine.corrhist_major.clone();
-
-        for thread_id in 1..num_threads {
-            let params    = params.clone();
-            let rep_stack = rep_stack.clone();
-            let stop      = stop.clone();
-            let ordering  = MoveOrdering::new(&PIECE_VALUES);
-            let nodes     = node_count.clone();
-            let tt_ptr    = SharedTt(shared_tt.0);
-            let pos       = pos.clone();
-            let offset_depth = 64 + 3 % thread_id;
-
-
-            std::thread::spawn(move || {
-                let tt         = unsafe { tt_ptr.get() };
-                let nnue_state = NNUEState::new(&pos, network);
-                let mut ctx    = build_search_context(
-                    tt, CorrectionHistoryTable::new(256,32), CorrectionHistoryTable::new(256,32),
-                    CorrectionHistoryTable::new(256,0),CorrectionHistoryTable::new(256,0),
-                    &params, &ordering, network,
-                    rep_stack, nnue_state, stop, nodes,
-                    false, Some(ponder_limit),
-                );
-                search(&pos, &mut ctx, offset_depth, Some(ponder_limit), u64::MAX);
-            });
-        }
-
-        let ordering = MoveOrdering::new(&PIECE_VALUES);
-        let tt_ptr   = SharedTt(shared_tt.0);
-
-        std::thread::spawn(move || {
-            let tt         = unsafe { tt_ptr.get() };
-            let nnue_state = NNUEState::new(&pos, network);
-            let mut ctx    = build_search_context(
-                tt, corrhist_pawn, corrhist_material,corrhist_minor, corrhist_major, &params, &ordering, network,
-                rep_stack, nnue_state,
-                stop, node_count,
-                true, Some(ponder_limit),
-            );
-
-            let (_, mv, _,_) = search(&pos, &mut ctx, 64, Some(ponder_limit), u64::MAX);
-
-            if is_pondering.load(Ordering::Relaxed) {
-                println!("bestmove {}", move_to_uci(&mv));
-            }
-
-            eprintln!("DEBUG: ponder thread stopped");
-        })
     }
 }

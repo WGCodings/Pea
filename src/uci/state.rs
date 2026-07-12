@@ -3,9 +3,10 @@ use std::sync::Arc;
 
 pub struct UciState {
     pub multipv: usize,
-    pub ponder_enabled: bool,
 
-    pub is_pondering: Arc<AtomicBool>,
+    pub uci_show_wdl : bool,
+    pub normalize_score : bool,
+
     pub stop: Arc<AtomicBool>,
 
     pub last_wtime: Option<u64>,
@@ -18,8 +19,8 @@ impl UciState {
     pub fn new() -> Self {
         Self {
             multipv: 1,
-            ponder_enabled: false,
-            is_pondering: Arc::new(AtomicBool::new(false)),
+            uci_show_wdl: true,
+            normalize_score: true,
             stop: Arc::new(AtomicBool::new(false)),
             last_wtime: None,
             last_btime: None,
@@ -41,9 +42,5 @@ impl UciState {
 
     pub fn reset_stop(&self) {
         (*self.stop).store(false, Ordering::Relaxed);
-    }
-
-    pub fn set_pondering(&self, val: bool) {
-        (*self.is_pondering).store(val, Ordering::Relaxed);
     }
 }

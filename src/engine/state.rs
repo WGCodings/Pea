@@ -1,4 +1,4 @@
-use shakmaty::{Chess, EnPassantMode, Move, Position};
+use shakmaty::{Chess, EnPassantMode,Position};
 use shakmaty::zobrist::Zobrist64;
 use crate::engine::corrhist::{CorrectionHistoryTable, MajorsAndKingsKey, MaterialKey, MinorsAndKingsKey, PawnKey};
 use crate::engine::params::Params;
@@ -40,9 +40,6 @@ pub struct Engine {
     pub corrhist_major:   CorrectionHistoryTable<MajorsAndKingsKey>,
     pub options:          Options,
     pub net:               &'static Network,
-    // Pondering
-    pub ponder_move:      Option<Move>,
-    pub ponder_thread:    Option<std::thread::JoinHandle<()>>,
 }
 
 impl Engine {
@@ -65,8 +62,6 @@ impl Engine {
             corrhist_major:      CorrectionHistoryTable::new(256,0),
             params,
             net,
-            ponder_move:   None,
-            ponder_thread: None,
             options:       Options::default(),
 
         }
@@ -106,13 +101,4 @@ impl Engine {
         self.options.threads = n;
     }
 
-    // -----------------------------------------------------------------------
-    // Pondering helpers
-    // -----------------------------------------------------------------------
-
-    pub fn stop_ponder_thread(&mut self) {
-        if let Some(handle) = self.ponder_thread.take() {
-            handle.join().ok();
-        }
-    }
 }

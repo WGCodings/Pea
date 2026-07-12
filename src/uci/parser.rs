@@ -16,8 +16,7 @@ pub enum UciCommand {
         winc: Option<u64>,
         binc: Option<u64>,
         depth: Option<u32>,
-        nodes : Option<u64>,
-        ponder : bool
+        nodes : Option<u64>
     },
     PonderHit,
     Stop,
@@ -88,13 +87,11 @@ pub fn parse_command(input: &str) -> UciCommand {
             let mut binc = None;
             let mut depth = None;
             let mut nodes = None;
-            let mut ponder = false;
 
             let mut i = 1;
 
             while i < tokens.len() {
                 match tokens[i] {
-                    "ponder" => { ponder = true; i += 1; }
                     "wtime" | "btime" | "movetime" | "winc" | "binc" | "depth" | "nodes" => {
                         if i + 1 < tokens.len() {
                             match tokens[i] {
@@ -123,8 +120,7 @@ pub fn parse_command(input: &str) -> UciCommand {
                 winc,
                 binc,
                 depth,
-                nodes,
-                ponder
+                nodes
             }
         }
         "setoption" => {
