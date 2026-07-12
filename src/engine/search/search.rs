@@ -618,6 +618,7 @@ pub fn quiescence(
         return DRAW_SCORE;
     }
 
+    let in_check = pos.is_check();
     let hash = pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
 
     // TT probe for qsearch
@@ -625,19 +626,26 @@ pub fn quiescence(
         return score;
     }
 
-    let raw_eval = if let Some(entry) = ctx.tt.probe(hash) {
+    let raw_eval = if in_check{
+        -MATE_SCORE + ply as i32
+    }
+    else if let Some(entry) = ctx.tt.probe(hash) {
         entry.eval
     } else {
         // TODO store eval here without score
         evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
     };
 
-    let static_eval = raw_eval
-        + ctx.corrhist_pawn.correct_evaluation(pos)
-        + ctx.corrhist_material.correct_evaluation(pos);
+    let static_eval = if in_check{
+        -MATE_SCORE + ply as i32
+    } else{
+        raw_eval
+            + ctx.corrhist_pawn.correct_evaluation(pos)
+            + ctx.corrhist_material.correct_evaluation(pos)
+    };
 
    if static_eval >= beta {
-        return beta;
+        return static_eval;
     }
 
     if static_eval > alpha {
@@ -685,7 +693,7 @@ pub fn quiescence(
             alpha = score;
         }
     }
-
+    
     // TODO like simbelmyne try assign best score isntead of alpha for tt
     if !(*ctx.stop).load(Ordering::Relaxed) {
         tt_store(hash, ctx, 0, alpha, raw_eval,node_type, None,ply);
