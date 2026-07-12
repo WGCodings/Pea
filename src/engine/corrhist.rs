@@ -59,7 +59,8 @@ impl<K: CorrHistKey> CorrectionHistoryTable<K> {
 
     // If key matches, correct raw eval with correction
     pub fn correct_evaluation(&self, pos: &Chess) -> i32 {
-        let entry = self.table[usize::from(pos.turn())][K::key(pos)];
+        let hash = K::key(&pos);
+        let entry = self.table[usize::from(pos.turn())][hash];
         entry / GRAIN
     }
 }
@@ -74,12 +75,30 @@ impl CorrHistKey for PawnKey {
     }
 }
 
-// King bucket and non-pawn correction history
+// material corrhistkey
 #[derive(Clone)]
 pub struct MaterialKey;
 impl CorrHistKey for MaterialKey {
     fn key(pos: &Chess) -> usize {
         let hash = Hash::materialhash(pos);
+        hash.0 as usize % SIZE
+    }
+}
+
+#[derive(Clone)]
+pub struct MinorsAndKingsKey;
+impl CorrHistKey for MinorsAndKingsKey {
+    fn key(pos: &Chess) -> usize {
+        let hash = Hash::minors_and_kings_hash(pos);
+        hash.0 as usize % SIZE
+    }
+}
+
+#[derive(Clone)]
+pub struct MajorsAndKingsKey;
+impl CorrHistKey for MajorsAndKingsKey {
+    fn key(pos: &Chess) -> usize {
+        let hash = Hash::majors_and_kings_hash(pos);
         hash.0 as usize % SIZE
     }
 }

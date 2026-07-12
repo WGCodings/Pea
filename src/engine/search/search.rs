@@ -97,6 +97,8 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, time_remai
     // Age history tables
     ctx.corrhist_pawn.age_entries();
     ctx.corrhist_material.age_entries();
+    ctx.corrhist_minor.age_entries();
+    ctx.corrhist_major.age_entries();
     (best_score, best_move.unwrap(), tt_pv, ctx.stats)
 }
 

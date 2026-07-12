@@ -6,7 +6,7 @@ pub struct Hash(pub u64);
 impl Hash {
     #[inline]
     pub fn toggle_piece(&mut self, role: Role, sq: Square, color: Color) {
-        self.0 ^= PIECE_HASHES[color as usize][role as usize][sq as usize];
+        self.0 ^= PIECE_HASHES[color as usize][role as usize-1][sq as usize];
     }
 
     #[inline]
@@ -28,11 +28,42 @@ impl Hash {
         for color in [Color::White, Color::Black] {
             for role in [Role::Pawn, Role::Knight, Role::Bishop, Role::Rook, Role::Queen] {
                 let count = (board.by_color(color) & board.by_role(role)).count();
-                hash.0 ^= PIECE_HASHES[color as usize][role as usize][count];
+                hash.0 ^= PIECE_HASHES[color as usize][role as usize-1][count];
             }
         }
         hash
     }
+    #[inline]
+    pub fn minors_and_kings_hash(pos: &Chess) -> Hash {
+        let mut hash = Hash(0);
+        let board = pos.board();
+        let minors = board.knights() | board.bishops();
+
+        for sq in  minors | board.kings()   {
+            let piece = board.piece_at(sq).unwrap();
+            let role = board.role_at(sq).unwrap();
+
+            hash.toggle_piece(role, sq, piece.color);
+        }
+        hash
+    }
+
+    #[inline]
+    pub fn majors_and_kings_hash(pos: &Chess) -> Hash {
+        let mut hash = Hash(0);
+        let board = pos.board();
+
+        let majors = board.rooks_and_queens();
+
+        for sq in  majors | board.kings()   {
+            let piece = board.piece_at(sq).unwrap();
+            let role = board.role_at(sq).unwrap();
+
+            hash.toggle_piece(role, sq, piece.color);
+        }
+        hash
+    }
+    
 }
 // Precomputed hashes for all squares/roles/color combos
 static PIECE_HASHES: [[[u64; 64]; 6]; 2] = generate_piece_hashes();
