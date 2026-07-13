@@ -187,9 +187,8 @@ pub fn negamax(
     } else if let Some(e) = &tt_entry {
         e.eval
     } else {
-        // TODO store eval here without score
         let eval = evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them);
-        tt_store(hash, ctx, depth, MIN_INF, eval, Bound::Upper, None ,ply);
+        tt_store(hash, ctx, 0, MIN_INF, eval, Bound::Upper, None ,ply);
         eval
 
     };
