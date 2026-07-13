@@ -188,7 +188,7 @@ pub fn negamax(
         e.eval
     } else {
         let eval = evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them);
-        tt_store(hash, ctx, 0, MIN_INF, eval, Bound::Upper, None ,ply);
+        tt_store(hash, ctx, depth, MIN_INF, eval, Bound::Upper, None ,ply);
         eval
 
     };
@@ -634,8 +634,9 @@ pub fn quiescence(
     else if let Some(entry) = ctx.tt.probe(hash) {
         entry.eval
     } else {
-        // TODO store eval here without score
-        evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
+        let eval = evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them);
+        tt_store(hash, ctx, 0, MIN_INF, eval, Bound::Upper, None ,ply);
+        eval
     };
 
     let static_eval = if in_check{
