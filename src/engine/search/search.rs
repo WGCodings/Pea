@@ -188,7 +188,10 @@ pub fn negamax(
         e.eval
     } else {
         // TODO store eval here without score
-        evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them)
+        let eval = evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them);
+        tt_store(hash, ctx, depth, MIN_INF, eval, Bound::Upper, None ,ply);
+        eval
+
     };
 
     let static_eval = if is_excluded {
@@ -653,12 +656,15 @@ pub fn quiescence(
     }
 
     let mut node_type = Bound::Upper;
+    //let mut moves_searched = 0;
 
     let mut moves = pos.capture_moves();
 
     ctx.ordering.order_captures(pos, &mut moves);
 
     for mv in moves {
+
+        //moves_searched+=1;
 
         let see = see(pos, mv) as i32;
 
@@ -682,9 +688,8 @@ pub fn quiescence(
 
         unmake_move_nnue(ctx.network, &mut ctx.nnue);
 
-
         if score >= beta {
-            node_type = Bound::Lower;
+            //node_type = Bound::Lower;
             return beta;
         }
         // TODO add best move here, similar to what simbelmyne does
@@ -693,10 +698,14 @@ pub fn quiescence(
             alpha = score;
         }
     }
-    
+    /*
+    if in_check && moves_searched==0{
+        return -MATE_SCORE+ply as i32;
+    }
+    */
     // TODO like simbelmyne try assign best score isntead of alpha for tt
     if !(*ctx.stop).load(Ordering::Relaxed) {
-        tt_store(hash, ctx, 0, alpha, raw_eval,node_type, None,ply);
+        tt_store(hash, ctx, 0, alpha, raw_eval,node_type,None,ply);
     }
     alpha
 }
