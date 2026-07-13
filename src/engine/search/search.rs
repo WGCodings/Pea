@@ -624,19 +624,24 @@ pub fn quiescence(
     let hash = pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
 
     // TT probe for qsearch
-    if let Some(score) = tt_probe(hash, ctx, 0, alpha, beta,ply) {
-        return score;
+    let tt_entry = ctx.tt.probe(hash);
+
+    if tt_entry.is_some() {
+        if let Some(score) = tt_entry.as_ref().and_then(|e| e.try_score(0, alpha, beta, ply)) {
+            return score;
+        }
     }
 
     let raw_eval = if in_check{
         -MATE_SCORE + ply as i32
     }
-    else if let Some(entry) = ctx.tt.probe(hash) {
+    else if let Some(entry) = &tt_entry {
         entry.eval
     } else {
         let eval = evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them);
-        tt_store(hash, ctx, 0, MIN_INF, eval, Bound::Upper, None ,ply);
+        //tt_store(hash, ctx, 0, MIN_INF, eval, Bound::Upper, None ,ply);
         eval
+
     };
 
     let static_eval = if in_check{
