@@ -165,6 +165,12 @@ Running the binary directly drops you into a UCI prompt. In practice, you'll wan
 
 ---
 
+## Contributing
+
+You can support the Pea by donating compute on my Openbench instance https://peaob.pythonanywhere.com/ 
+or if you have an interest in collaboration, you can always leave me a message.(Or fork the repo and do some pull requests.)
+For an Openbench account or other requests you can contact me by sending an email to warregevers@hotmail.com.
+
 
 ## Roadmap
 
@@ -188,13 +194,14 @@ Running the binary directly drops you into a UCI prompt. In practice, you'll wan
 - [ ] Probcut
 - [ ] Try improving heuristic in LMR
 - [ ] Contempt
-- [x] WDL normalization
+- [x] WDL normalization (#3)
 - [ ] Variable window choice in Asp Window
 
 ## Acknowledgements
 
 [Simbelmyne][simbelmyne] by Sam Roelants was a major source of inspiration and learning throughout this project. A lot of ideas and how to implement them in Rust came from there.
 Thanks to [Stockfish' WDL Model][StockFishWDLModel] I was able to normalize the eval score and provide WDL information for every position.
+Many thanks to Andy Grant for the [Openbench][Openbench] testing framework, with which testing is a real pleasure.
 
 Thanks to the communities at the **Engine Programming**  Discord servers, the Chess Programming Wiki and TalkChess forum for all the ideas and information.
 
@@ -221,6 +228,7 @@ This project is licensed under the [GNU General Public License v3.0][license-lin
 [shakmaty]: https://github.com/niklasf/shakmaty
 [simbelmyne]: https://github.com/sroelants/simbelmyne
 [StockFishWDLModel]: https://github.com/official-stockfish/WDL_model
+[Openbench]: https://github.com/AndyGrant/OpenBench
 [stash]: https://gitlab.com/mhouppin/stash-bot
 [cargo]: https://doc.rust-lang.org/cargo
 [arena]: http://www.playwitharena.de
