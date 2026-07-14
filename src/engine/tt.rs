@@ -178,7 +178,8 @@ impl TranspositionTable {
         if let Some(existing) = self.table[idx].load(key) {
             if existing.key == key
                 && existing.depth > depth as u8 + 2
-                && existing.age == current_age {
+                && existing.age == current_age
+                && (existing.bound == Bound::Exact || bound != Bound::Exact) {
                 return;
             }
         }
