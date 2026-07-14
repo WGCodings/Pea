@@ -177,10 +177,8 @@ impl TranspositionTable {
 
         if let Some(existing) = self.table[idx].load(key) {
             if existing.key == key
-                && existing.depth > depth as u8 + 2
-                && existing.age == current_age
-                && existing.best_move.is_some()
-                && (existing.bound == Bound::Exact || bound != Bound::Exact) {
+                && existing.depth > depth as u8
+                && existing.age == current_age {
                 return;
             }
         }
@@ -259,8 +257,8 @@ pub fn encode_move(mv: Option<Move>) -> u16 {
     }
 }
 
-// Decode a partial move (role and capture unknown for Normal moves)
-// Used only internally — call validate_move for full reconstruction
+// Decode a partial move
+// Used only internally
 #[inline(always)]
 pub fn decode_move_partial(encoded: u16) -> Option<Move> {
     if encoded == 0 { return None; }
