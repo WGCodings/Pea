@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 use shakmaty::{Chess, fen::Fen, CastlingMode, Move, Position, EnPassantMode, Role};
 use shakmaty::zobrist::Zobrist64;
 use crate::engine::corrhist::{CorrectionHistoryTable, MajorsAndKingsKey, MaterialKey, MinorsAndKingsKey, PawnKey};
+use crate::engine::history::HistoryTables;
 use crate::engine::params::Params;
 use crate::engine::search::context::{NNUEState, SearchContext, Stack};
 use crate::engine::search::ordering::MoveOrdering;
@@ -184,6 +185,7 @@ pub fn build_search_context<'a>(
     corrhist_material: CorrectionHistoryTable<MaterialKey>,
     corrhist_minor: CorrectionHistoryTable<MinorsAndKingsKey>,
     corrhist_major: CorrectionHistoryTable<MajorsAndKingsKey>,
+    history_tables: HistoryTables,
     params:       &'a Params,
     ordering:     &'a MoveOrdering,
     network:      &'a Network,
@@ -209,9 +211,7 @@ pub fn build_search_context<'a>(
         nnue:                 nnue_state,
         network,
         killers:              [[None; 3]; 128],
-        history:              [[[0i16; 64]; 64]; 2],
-        capture_history:      [[[0i16; 6]; 64]; 6],
-        continuation_history: Box::new([[[[[0i16; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]),
+        history:              history_tables,
         corrhist_pawn,
         corrhist_material,
         corrhist_minor,

@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 use shakmaty::{Chess, Move};
 use crate::engine::corrhist::CorrectionHistoryTable;
+use crate::engine::history::HistoryTables;
 use crate::engine::search::context::NNUEState;
 use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::search::{search, SearchStats};
@@ -52,6 +53,7 @@ impl Threads {
         let corrhist_minor = engine.corrhist_minor.clone();
         let corrhist_major = engine.corrhist_major.clone();
 
+
         let result = std::thread::scope(|s| {
             for thread_id in 1..num_threads {
                 let params    = params.clone();
@@ -72,6 +74,7 @@ impl Threads {
                         CorrectionHistoryTable::new(256,32), // Material correction
                         CorrectionHistoryTable::new(256,0),  // Minor piece correction
                         CorrectionHistoryTable::new(256,0),  // Major piece correction
+                        HistoryTables::new(),
                         &params, &ordering, network,
                         rep_stack, nnue_state, stop, nodes,
                         false, Some(effective_limit),
@@ -82,7 +85,7 @@ impl Threads {
 
             let nnue_state = NNUEState::new(pos, network);
             let mut main_ctx = build_search_context(
-                &engine.tt, corrhist_pawn, corrhist_material, corrhist_minor, corrhist_major, params, ordering, network,
+                &engine.tt, corrhist_pawn, corrhist_material, corrhist_minor, corrhist_major, HistoryTables::new(),params, ordering, network,
                 rep_stack.clone(), nnue_state,
                 stop.clone(), node_count,
                 verbose, time_limit,

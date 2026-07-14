@@ -8,3 +8,4 @@ pub(crate) mod state;
 pub mod tt;
 pub mod corrhist;
 pub mod hash;
+pub(crate) mod history;

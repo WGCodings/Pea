@@ -395,7 +395,7 @@ pub fn negamax(
             && moves_searched > 1  // never prune first move?
         {
             if is_quiet{
-                let hist = ctx.get_quiet_history_score(pos, mv, ply);
+                let hist = ctx.history.quiet.get(pos, &mv) + ctx.history.continuation.get(&mv, ply, &ctx.stack.moves);
                 if hist < -(ctx.params.hist_prune_margin as i32 * depth as i32) {
                     continue;
                 }
@@ -524,7 +524,7 @@ pub fn negamax(
                     reduction -=1;
                 }
 
-                reduction -= (ctx.get_quiet_history_score(pos, mv, ply)/ ctx.params.lmr_history_divisor as i32) as usize;
+                reduction -= ((ctx.history.quiet.get(pos, &mv) + ctx.history.continuation.get(&mv, ply, &ctx.stack.moves))/ ctx.params.lmr_history_divisor as i32) as usize;
 
                 reduction = reduction.clamp(0,depth - 1);
             }
@@ -558,13 +558,13 @@ pub fn negamax(
             if !is_capture{
 
                 ctx.store_killer(ply, mv);
-
-                ctx.update_quiet_history(pos.turn() as usize, mv, bonus, malus, &quiets_searched); // Update quiet history, bonus for move, malus for quiets searched
-
-                ctx.update_continuation_history(ply, mv, bonus, malus, &quiets_searched); // Update continuation history, bonus for move, malus for quiets searched
+                
+                ctx.history.quiet.update(pos,&mv,bonus,malus,&quiets_searched); // Update quiet history, bonus for move, malus for quiets searched
+                
+                ctx.history.continuation.update(ply, &mv, bonus, malus, &quiets_searched, &ctx.stack.moves); // Update continuation history, bonus for move, malus for quiets searched
 
             }else {
-                ctx.update_capture_history(pos, mv, bonus, malus, &tacticals_searched);
+                ctx.history.quiet.update(pos,&mv,bonus,malus,&tacticals_searched);
             }
 
             break;
