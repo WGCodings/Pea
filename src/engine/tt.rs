@@ -176,9 +176,8 @@ impl TranspositionTable {
         let current_age = self.age.load(Ordering::Relaxed);
 
         if let Some(existing) = self.table[idx].load(key) {
-            let diff = self.age.load(Ordering::Relaxed) - existing.age;
             if existing.key == key
-                && existing.depth > depth as u8 + 2*diff
+                && existing.depth > depth as u8 + 2
                 && existing.age == current_age {
                 return;
             }
