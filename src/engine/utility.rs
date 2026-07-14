@@ -11,7 +11,7 @@ use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::pv::PvTable;
 use crate::engine::search::search::SearchStats;
 use crate::engine::tt::TranspositionTable;
-use crate::engine::types::{MATE_SCORE, MAX_PLY_CONTINUATION_HISTORY, MOM, P_A, P_B};
+use crate::engine::types::{MATE_SCORE, MOM, P_A, P_B};
 use crate::nnue::network::Network;
 use crate::uci::parser::move_to_uci;
 use crate::uci::state::UciState;

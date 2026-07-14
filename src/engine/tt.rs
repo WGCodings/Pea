@@ -364,18 +364,6 @@ pub fn score_from_tt(score: i32, ply: usize) -> i32 {
 }
 
 #[inline(always)]
-pub(crate) fn tt_probe(
-    key: u64,
-    ctx: &SearchContext,
-    depth: usize,
-    alpha: i32,
-    beta: i32,
-    ply: usize,
-) -> Option<i32> {
-    ctx.tt.probe(key)?.try_score(depth, alpha, beta, ply)
-}
-
-#[inline(always)]
 pub(crate) fn tt_store(
     key: u64,
     ctx: &SearchContext,

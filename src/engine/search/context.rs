@@ -8,7 +8,6 @@ use crate::engine::params::Params;
 use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::search::SearchStats;
 use crate::engine::tt::TranspositionTable;
-use crate::engine::types::{MAX_HISTORY, MAX_PLY_CONTINUATION_HISTORY};
 use crate::nnue::network::{accumulators_from_position, calculate_index, role_index, Accumulator, Network};
 
 // Keep track of move, eval and nr of double ext per ply.
@@ -125,7 +124,7 @@ impl<'a> SearchContext<'a> {
         self.killers[ply][1] = None;
         self.killers[ply][2] = None;
     }
-    
+
 
 
     // =====================================================================================================================//

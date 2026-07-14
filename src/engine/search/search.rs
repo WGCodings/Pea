@@ -9,7 +9,7 @@ use crate::engine::search::context::{make_move_nnue, unmake_move_nnue, SearchCon
 use crate::engine::search::pv::PvTable;
 use crate::engine::search::see::see;
 use crate::engine::time_manager::TimeManager;
-use crate::engine::tt::{ encode_move, score_from_tt, tt_probe, tt_store, validate_move, Bound};
+use crate::engine::tt::{ encode_move, score_from_tt, tt_store, validate_move, Bound};
 use crate::engine::types::{DRAW_SCORE, MATE_SCORE, MAX_INF, MIN_INF};
 use crate::engine::utility::{print_search_info};
 use crate::uci::state::UciState;
@@ -558,13 +558,13 @@ pub fn negamax(
             if !is_capture{
 
                 ctx.store_killer(ply, mv);
-                
+
                 ctx.history.quiet.update(pos,&mv,bonus,malus,&quiets_searched); // Update quiet history, bonus for move, malus for quiets searched
-                
+
                 ctx.history.continuation.update(ply, &mv, bonus, malus, &quiets_searched, &ctx.stack.moves); // Update continuation history, bonus for move, malus for quiets searched
 
             }else {
-                ctx.history.quiet.update(pos,&mv,bonus,malus,&tacticals_searched);
+                ctx.history.noisy.update(pos,&mv,bonus,malus,&tacticals_searched);
             }
 
             break;
