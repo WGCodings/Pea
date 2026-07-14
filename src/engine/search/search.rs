@@ -661,7 +661,7 @@ pub fn quiescence(
     }
 
     let mut node_type = Bound::Upper;
-    let mut moves_searched = 0;
+    //let mut moves_searched = 0;
 
     let mut moves = pos.capture_moves();
 
@@ -669,7 +669,7 @@ pub fn quiescence(
 
     for mv in moves {
 
-        moves_searched+=1;
+        //moves_searched+=1;
 
         let see = see(pos, mv) as i32;
 
@@ -703,11 +703,11 @@ pub fn quiescence(
             alpha = score;
         }
     }
-
+    /*
     if in_check && moves_searched==0{
         return -MATE_SCORE+ply as i32;
     }
-
+    */
     // TODO like simbelmyne try assign best score isntead of alpha for tt
     if !(*ctx.stop).load(Ordering::Relaxed) {
         tt_store(hash, ctx, 0, alpha, raw_eval,node_type,None,ply);
