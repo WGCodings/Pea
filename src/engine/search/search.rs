@@ -502,7 +502,7 @@ pub fn negamax(
         else {
             let mut reduction = 0;
             //TODO try changing min depth to 2
-            if moves_searched >=ctx.params.lmr_min_searches as i32 && depth >= ctx.params.lmr_min_depth as usize && is_quiet && !is_pv && !in_check{
+            if moves_searched >=ctx.params.lmr_min_searches as i32 && depth >= ctx.params.lmr_min_depth as usize && is_quiet && !in_check{
 
                 // Base reduction
                 reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as usize;
