@@ -530,7 +530,9 @@ pub fn negamax(
                 reduction = reduction.clamp(0,depth as i32- 1);
             }
 
-            score = -negamax(&child_pos, ctx, (depth - 1 - reduction as usize + extension as usize).max(0) , ply + 1, -alpha-1, -alpha, true, &mut local_pv);
+            let new_depth = depth as i32 - 1 - reduction + extension;
+
+            score = -negamax(&child_pos, ctx, new_depth.max(0) as usize , ply + 1, -alpha-1, -alpha, true, &mut local_pv);
 
             if score > alpha && reduction >0 {
                 score = -negamax(&child_pos, ctx, (depth - 1 + extension as usize).max(0), ply + 1, -alpha - 1, -alpha, true, &mut local_pv);
