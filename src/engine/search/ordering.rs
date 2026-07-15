@@ -108,15 +108,16 @@ impl MoveOrdering {
             return 698_000;
         }
         // ============================================================
-        // 4. Quiet move ordering:
-        //    Continuation history + normal history
+        // 4. Quiet move ordering : Continuation history + normal history
         // ============================================================
         let side = pos.turn() as usize;
         let piece = mv.role() as usize-1;
         let from = mv.from().unwrap().to_usize();
         let to    = mv.to() as usize;
+        
+        // TODO change to getters later so that table can be private
 
-        let mut score = ctx.history[side][from][to] as i32;
+        let mut score = ctx.history.quiet.table[side][from][to] as i32;
 
 
         // onlY compare even plies ago, 1,2,2n ply continuation
@@ -127,7 +128,7 @@ impl MoveOrdering {
                     let prev_to    = prev.to() as usize;
 
 
-                    score += ctx.continuation_history[i][prev_piece][prev_to][piece][to] as i32;
+                    score += ctx.history.continuation.table[i][prev_piece][prev_to][piece][to] as i32;
                 }
             }
         }

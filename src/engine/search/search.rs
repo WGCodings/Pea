@@ -9,7 +9,7 @@ use crate::engine::search::context::{make_move_nnue, unmake_move_nnue, SearchCon
 use crate::engine::search::pv::PvTable;
 use crate::engine::search::see::see;
 use crate::engine::time_manager::TimeManager;
-use crate::engine::tt::{ encode_move, score_from_tt, tt_probe, tt_store, validate_move, Bound};
+use crate::engine::tt::{ encode_move, score_from_tt, tt_store, validate_move, Bound};
 use crate::engine::types::{DRAW_SCORE, MATE_SCORE, MAX_INF, MIN_INF};
 use crate::engine::utility::{print_search_info};
 use crate::uci::state::UciState;
@@ -395,7 +395,7 @@ pub fn negamax(
             && moves_searched > 1  // never prune first move?
         {
             if is_quiet{
-                let hist = ctx.get_quiet_history_score(pos, mv, ply);
+                let hist = ctx.history.quiet.get(pos, &mv) + ctx.history.continuation.get(&mv, ply, &ctx.stack.moves);
                 if hist < -(ctx.params.hist_prune_margin as i32 * depth as i32) {
                     continue;
                 }
@@ -501,7 +501,8 @@ pub fn negamax(
         }
         else {
             let mut reduction = 0;
-            if moves_searched >=ctx.params.lmr_min_searches as i32 &&  depth >= ctx.params.lmr_min_depth as usize && is_quiet  && !is_pv && !in_check{
+            //TODO try changing min depth to 2
+            if moves_searched >=ctx.params.lmr_min_searches as i32 && depth >= ctx.params.lmr_min_depth as usize && is_quiet && !is_pv && !in_check{
 
                 // Base reduction
                 reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as usize;
@@ -517,16 +518,16 @@ pub fn negamax(
                 if child_pos.is_check(){
                     reduction -=1;
                 }
-                if in_check{
-                    reduction -=1;
-                }
                 if is_pv{
-                    reduction -=1;
+                    reduction -= 1;
                 }
+                // TODO remove !is_pv check for lmr, but reduce if pv
+                // TODO add max .max(0) to prevent negative hist
+                let hist_red = (ctx.history.quiet.get(pos, &mv) + ctx.history.continuation.get(&mv, ply, &ctx.stack.moves))/ (ctx.params.lmr_history_divisor as i32);
 
-                reduction -= (ctx.get_quiet_history_score(pos, mv, ply)/ ctx.params.lmr_history_divisor as i32) as usize;
+                reduction -= hist_red as usize;
 
-                reduction = reduction.clamp(0,depth - 1);
+                reduction = reduction.clamp(0,depth- 1);
             }
 
             score = -negamax(&child_pos, ctx, (depth - 1 - reduction + extension as usize).max(0) , ply + 1, -alpha-1, -alpha, true, &mut local_pv);
@@ -559,12 +560,12 @@ pub fn negamax(
 
                 ctx.store_killer(ply, mv);
 
-                ctx.update_quiet_history(pos.turn() as usize, mv, bonus, malus, &quiets_searched); // Update quiet history, bonus for move, malus for quiets searched
+                ctx.history.quiet.update(pos,&mv,bonus,malus,&quiets_searched); // Update quiet history, bonus for move, malus for quiets searched
 
-                ctx.update_continuation_history(ply, mv, bonus, malus, &quiets_searched); // Update continuation history, bonus for move, malus for quiets searched
+                ctx.history.continuation.update(ply, &mv, bonus, malus, &quiets_searched, &ctx.stack.moves); // Update continuation history, bonus for move, malus for quiets searched
 
             }else {
-                ctx.update_capture_history(pos, mv, bonus, malus, &tacticals_searched);
+                ctx.history.noisy.update(pos,&mv,bonus,malus,&tacticals_searched);
             }
 
             break;

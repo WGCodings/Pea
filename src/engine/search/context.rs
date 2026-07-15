@@ -3,11 +3,11 @@ use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::time::{Duration, Instant};
 use shakmaty::{Chess, Color, Move, Position, Role, Square};
 use crate::engine::corrhist::{CorrectionHistoryTable, MajorsAndKingsKey, MaterialKey, MinorsAndKingsKey, PawnKey};
+use crate::engine::history::HistoryTables;
 use crate::engine::params::Params;
 use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::search::SearchStats;
 use crate::engine::tt::TranspositionTable;
-use crate::engine::types::{MAX_HISTORY, MAX_PLY_CONTINUATION_HISTORY};
 use crate::nnue::network::{accumulators_from_position, calculate_index, role_index, Accumulator, Network};
 
 // Keep track of move, eval and nr of double ext per ply.
@@ -38,9 +38,8 @@ pub struct SearchContext<'a> {
     pub network: &'a Network, // NNUE network
 
     pub killers: [[Option<Move>; 3]; 128],
-    pub history: [[[i16; 64]; 64]; 2], // [side][from][to]
-    pub capture_history: [[[i16; 6]; 64]; 6],// [moved_piece][to_square][captured_piece_type]
-    pub continuation_history: Box<[[[[[i16; 64]; 6]; 64]; 6]; MAX_PLY_CONTINUATION_HISTORY]>,
+    pub history: HistoryTables,
+
 
     // All corrhist tables
     pub corrhist_pawn : CorrectionHistoryTable<PawnKey>,
@@ -127,155 +126,6 @@ impl<'a> SearchContext<'a> {
     }
 
 
-    // =====================================================================================================================//
-    // UPDATE CAPTURE HISTORY                                                                                               //
-    // =====================================================================================================================//
-
-    #[inline(always)]
-    pub fn update_capture_history(&mut self, pos: &Chess, mv: Move, bonus: i32, malus : i32, tacticals_searched: &[Move]) {
-
-        let board = pos.board();
-
-        let to_sq   = mv.to();
-        let from_sq = mv.from().unwrap();
-        let captured_piece = board.role_at(to_sq).unwrap_or(Role::Pawn) as usize - 1; // If none it is en passant so captured piece is pawn
-        let moved_piece = board.role_at(from_sq).unwrap() as usize - 1;
-
-        Self::update_history_value(&mut self.capture_history[captured_piece][to_sq.to_usize()][moved_piece], bonus);
-
-        // Malus for other quiets
-        for &m in tacticals_searched {
-            if m != mv {
-
-                let to_sq   = m.to();
-                let from_sq = m.from().unwrap();
-                let captured_piece = board.role_at(to_sq).unwrap_or(Role::Pawn) as usize - 1;
-                let moved_piece = board.role_at(from_sq).unwrap() as usize - 1;
-
-                Self::update_history_value(&mut self.capture_history[captured_piece][to_sq.to_usize()][moved_piece], -malus/self.params.cont_hist_malus_scaling as i32);
-            }
-        }
-    }
-
-    // =====================================================================================================================//
-    // UPDATE QUIET HISTORY                                                                                                 //
-    // =====================================================================================================================//
-    #[inline(always)]
-    pub fn update_quiet_history(&mut self, side: usize, mv: Move, bonus: i32, malus: i32, quiets_searched: &[Move]) {
-
-        let from = mv.from().unwrap().to_usize();
-        let to   = mv.to().to_usize();
-
-        Self::update_history_value(&mut self.history[side][from][to], bonus);
-
-        // Malus for other quiets
-        for &m in quiets_searched {
-            if m != mv {
-                let f = m.from().unwrap().to_usize();
-                let t = m.to().to_usize();
-
-                Self::update_history_value(&mut self.history[side][f][t], -(malus/self.params.cont_hist_malus_scaling as i32));
-            }
-        }
-    }
-
-    // =====================================================================================================================//
-    // UPDATE CONTINUATION HISTORY                                                                                          //
-    // =====================================================================================================================//
-    #[inline(always)]
-    pub fn update_continuation_history(&mut self, ply: usize, mv: Move, bonus : i32, malus : i32, quiets_searched: &[Move]) {
-
-        self.update_continuation_value(ply, mv, bonus);
-
-        // malus for continuation history
-        for &m in quiets_searched {
-            if m != mv {
-                self.update_continuation_value(ply,m,-malus/(2*self.params.cont_hist_malus_scaling as i32));
-            }
-        }
-    }
-
-    // =====================================================================================================================//
-    // HELPERS TO UPDATE (CONTINUATION) HISTORY                                                                             //
-    // =====================================================================================================================//
-
-    #[inline(always)]
-    pub fn get_quiet_history_score(&self, pos: &Chess, mv: Move, ply: usize) -> i32 {
-        if mv.is_capture() {
-            return 0;
-        }
-
-        let side = pos.turn() as usize;
-        let from = mv.from().unwrap().to_usize();
-        let to = mv.to().to_usize();
-        let piece = mv.role() as usize - 1;
-
-        let mut score = self.history[side][from][to] as i32;
-
-        // Add continuation history from relevant plies
-        for i in 0..MAX_PLY_CONTINUATION_HISTORY {
-            if ply > i && ((i+1)%2 == 0 || i == 0) {
-                if let Some(prev) = self.stack.moves[ply - 1 - i] {
-                    let prev_piece = prev.role() as usize - 1;
-                    let prev_to = prev.to() as usize;
-                    score += self.continuation_history[i][prev_piece][prev_to][piece][to] as i32;
-                }
-            }
-        }
-
-        score
-    }
-    #[inline(always)]
-    pub fn _get_capture_history_score(&self, pos: &Chess, mv: Move) -> i32 {
-        if !mv.is_capture() {
-            return 0;
-        }
-
-        let board = pos.board();
-
-
-        let to_sq   = mv.to();
-        let from_sq = mv.from().unwrap();
-        let captured_piece = board.role_at(to_sq).unwrap_or(Role::Pawn) as usize - 1; // If none it is en passant so captured piece is pawn
-        let moved_piece = board.role_at(from_sq).unwrap() as usize - 1;
-
-
-        self.capture_history[captured_piece][to_sq.to_usize()][moved_piece] as i32
-
-    }
-
-    #[inline(always)]
-    fn update_history_value(history_value: &mut i16, bonus: i32) {
-        let clamped = bonus.clamp(-MAX_HISTORY, MAX_HISTORY);
-
-        let new = *history_value as i32
-            + clamped
-            - (*history_value as i32 * clamped.abs() / MAX_HISTORY);
-
-        *history_value = new.clamp(-MAX_HISTORY, MAX_HISTORY) as i16;
-    }
-    #[inline(always)]
-    fn update_continuation_value(&mut self, ply : usize, m : Move, bonus : i32){
-        let piece = m.role() as usize - 1;
-        let to= m.to() as usize;
-
-        for i in 0..MAX_PLY_CONTINUATION_HISTORY {
-            if ply > i && ((1+i)%2 == 0 || i==0){
-                if let Some(prev) = self.stack.moves[ply - 1 - i] {
-                    let prev_piece = prev.role() as usize - 1;
-                    let prev_to    = prev.to() as usize;
-
-                    Self::update_history_value(
-                        &mut self.continuation_history[i]
-                            [prev_piece][prev_to]
-                            [piece][to],
-                        bonus,
-                    );
-                }
-            }
-        }
-    }
-
 
     // =====================================================================================================================//
     // CHECK IF IMPROVING                                                                                                   //
@@ -290,10 +140,6 @@ impl<'a> SearchContext<'a> {
         self.stack.evals[ply] > self.stack.evals[ply - 2]
     }
 }
-
-// =====================================================================================================================//
-// EVERYTHING TO UPDATE THE NNUE ACCUMULATOR STATE IN MAKE UNMAKE MOVE                                                  //
-// =====================================================================================================================//
 
 // =====================================================================================================================//
 // KEEP TRACK OF CHANGES TO ACCUMULATOR DURING MAKE MOVE                                                                //

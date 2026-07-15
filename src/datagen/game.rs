@@ -18,6 +18,7 @@ use crate::engine::tt::TranspositionTable;
 use crate::engine::utility::build_search_context;
 use crate::nnue::network::Network;
 use crate::uci::state::UciState;
+use crate::engine::history::HistoryTables;
 
 const MATE_THRESHOLD: i16 = 29_500;
 
@@ -89,6 +90,7 @@ pub fn run_game(
             CorrectionHistoryTable::new(256,32),
             CorrectionHistoryTable::new(256,0),
             CorrectionHistoryTable::new(256,0),
+            HistoryTables::new(),
             params,
             ordering,
             network,

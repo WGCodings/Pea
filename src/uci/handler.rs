@@ -41,8 +41,7 @@ impl UciHandler {
 
     pub fn run(&mut self) {
 
-        // bench mode for OpenBench — run a fixed search
-        // Must change to proper bench suite but i am lazy
+        // bench mode for OpenBench
         if std::env::args().nth(1).as_deref() == Some("bench") {
             self.on_bench();
             return;
@@ -62,7 +61,7 @@ impl UciHandler {
     }
 
     // -----------------------------------------------------------------------
-    // Dispatch — returns Break only on `quit`
+    // Handle all commands
     // -----------------------------------------------------------------------
 
     fn handle(&mut self, cmd: UciCommand) -> LoopControl {
@@ -88,10 +87,6 @@ impl UciHandler {
         }
         LoopControl::Continue
     }
-
-    // -----------------------------------------------------------------------
-    // UCI command handlers
-    // -----------------------------------------------------------------------
 
     fn on_bench(&mut self) {
         use std::time::Instant;
@@ -246,7 +241,7 @@ impl UciHandler {
     }
 
     // -----------------------------------------------------------------------
-    // Tuner / datagen commands (non-standard)
+    // Tuner / datagen commands
     // -----------------------------------------------------------------------
 
     fn on_load_params(&mut self, path: String) {

@@ -154,13 +154,13 @@ impl TranspositionTable {
         key as usize & self.mask
     }
 
-    // Probe without move validation — use when legal moves not yet generated
+    // Probe without move validation
     #[inline(always)]
     pub fn probe(&self, key: u64) -> Option<TTEntry> {
         self.table[self.index(key)].load(key)
     }
 
-    // Probe with move validation — returns fully reconstructed Move
+    // Probe with move validation
     #[inline(always)]
     pub fn probe_move(&self, key: u64, legal_moves: &[Move]) -> Option<Move> {
         let entry = self.table[self.index(key)].load(key)?;
@@ -225,7 +225,7 @@ impl TranspositionTable {
 // Encode a Move into 16 bits. 0 = None.
 // Layout: from(6) | to(6) | extra(2) | type(2)
 // type: 0=Normal, 1=EnPassant, 2=Castle, 3=Put
-// extra for Normal: 0=no promo, 1=Q, 2=R, 3=B (knight uses type bits differently)
+// extra for Normal: 0=no promo, 1=Q, 2=R, 3=B
 #[inline(always)]
 pub fn encode_move(mv: Option<Move>) -> u16 {
     match mv {
@@ -361,18 +361,6 @@ pub fn score_from_tt(score: i32, ply: usize) -> i32 {
     if score > MATE_THRESHOLD { score - ply as i32 }
     else if score < -MATE_THRESHOLD { score + ply as i32 }
     else { score }
-}
-
-#[inline(always)]
-pub(crate) fn tt_probe(
-    key: u64,
-    ctx: &SearchContext,
-    depth: usize,
-    alpha: i32,
-    beta: i32,
-    ply: usize,
-) -> Option<i32> {
-    ctx.tt.probe(key)?.try_score(depth, alpha, beta, ply)
 }
 
 #[inline(always)]
