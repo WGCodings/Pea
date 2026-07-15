@@ -501,6 +501,7 @@ pub fn negamax(
         }
         else {
             let mut reduction = 0;
+            //TODO try changing min depth to 2
             if moves_searched >=ctx.params.lmr_min_searches as i32 &&  depth >= ctx.params.lmr_min_depth as usize && is_quiet  && !is_pv && !in_check{
 
                 // Base reduction
@@ -523,8 +524,8 @@ pub fn negamax(
                 // TODO remove !is_pv check for lmr, but reduce if pv
                 // TODO add max .max(0) to prevent negative hist
                 let hist_red = (ctx.history.quiet.get(pos, &mv) + ctx.history.continuation.get(&mv, ply, &ctx.stack.moves))/ ctx.params.lmr_history_divisor as i32;
-                
-                reduction = (reduction as i32 - hist_red).max(0) as usize;
+
+                reduction -= hist_red as usize;
 
                 reduction = reduction.clamp(0,depth - 1);
             }
