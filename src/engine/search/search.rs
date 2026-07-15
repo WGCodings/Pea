@@ -500,12 +500,12 @@ pub fn negamax(
             score = -negamax(&child_pos, ctx, depth - 1 + extension as usize, ply + 1, -beta, -alpha, true, &mut local_pv);
         }
         else {
-            let mut reduction = 0;
+            let mut reduction : i32 = 0;
             //TODO try changing min depth to 2
-            if moves_searched >=ctx.params.lmr_min_searches as i32 &&  depth >= ctx.params.lmr_min_depth as usize && is_quiet  && !is_pv && !in_check{
+            if moves_searched >=ctx.params.lmr_min_searches as i32 &&  depth >= 2 && is_quiet && !in_check{
 
                 // Base reduction
-                reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as usize;
+                reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as i32;
 
                 if see <= 0 {
                     reduction += 1;
@@ -525,12 +525,12 @@ pub fn negamax(
                 // TODO add max .max(0) to prevent negative hist
                 let hist_red = (ctx.history.quiet.get(pos, &mv) + ctx.history.continuation.get(&mv, ply, &ctx.stack.moves))/ ctx.params.lmr_history_divisor as i32;
 
-                reduction -= hist_red as usize;
+                reduction -= hist_red;
 
-                reduction = reduction.clamp(0,depth - 1);
+                reduction = reduction.clamp(0,depth as i32- 1);
             }
 
-            score = -negamax(&child_pos, ctx, (depth - 1 - reduction + extension as usize).max(0) , ply + 1, -alpha-1, -alpha, true, &mut local_pv);
+            score = -negamax(&child_pos, ctx, (depth - 1 - reduction as usize + extension as usize).max(0) , ply + 1, -alpha-1, -alpha, true, &mut local_pv);
 
             if score > alpha && reduction >0 {
                 score = -negamax(&child_pos, ctx, (depth - 1 + extension as usize).max(0), ply + 1, -alpha - 1, -alpha, true, &mut local_pv);
