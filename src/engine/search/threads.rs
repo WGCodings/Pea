@@ -52,6 +52,21 @@ impl Threads {
         let corrhist_material = engine.corrhist_material.clone();
         let corrhist_minor = engine.corrhist_minor.clone();
         let corrhist_major = engine.corrhist_major.clone();
+        let history_tables = engine.history_tables.clone();
+
+        /*
+        let nonzero: Vec<i32> = corrhist_pawn.table.iter()
+            .flatten()
+            .filter(|&&x| x != 0)
+            .copied()
+            .collect();
+        eprintln!("nonzero: {}, max_abs: {}, mean_abs: {}",
+                  nonzero.len(),
+                  nonzero.iter().map(|x| x.abs()).max().unwrap_or(0),
+                  nonzero.iter().map(|x| x.abs()).sum::<i32>() / nonzero.len().max(1) as i32
+        );
+
+         */
 
 
         let result = std::thread::scope(|s| {
@@ -85,13 +100,20 @@ impl Threads {
 
             let nnue_state = NNUEState::new(pos, network);
             let mut main_ctx = build_search_context(
-                &engine.tt, corrhist_pawn, corrhist_material, corrhist_minor, corrhist_major, HistoryTables::new(),params, ordering, network,
+                &engine.tt, corrhist_pawn, corrhist_material, corrhist_minor, corrhist_major, history_tables, params, ordering, network,
                 rep_stack.clone(), nnue_state,
                 stop.clone(), node_count,
                 verbose, time_limit,
             );
-            search(pos, &mut main_ctx, uci, max_depth, time_limit, max_nodes)
+            let result = search(pos, &mut main_ctx, uci, max_depth, time_limit, max_nodes);
+
+            // Store history tables inside engine for next search call
+            engine.history_tables = main_ctx.history;
+
+            result
         });
+
+
 
         stop.store(true, Ordering::Relaxed);
         result
