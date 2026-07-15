@@ -148,6 +148,8 @@ impl UciHandler {
         self.engine.tt.clear();
         self.engine.repetition_stack.clear();
         self.engine.corrhist_pawn.clear();
+        self.engine.corrhist_material.clear();
+        self.engine.history_tables.clear();
     }
 
     fn on_position(&mut self, fen: Option<String>, moves: Vec<String>) {
