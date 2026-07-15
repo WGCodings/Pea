@@ -517,16 +517,14 @@ pub fn negamax(
                 if child_pos.is_check(){
                     reduction -=1;
                 }
-                if in_check{
-                    reduction -=1;
-                }
                 if is_pv{
-                    reduction -=1;
+                    reduction -= 1;
                 }
+                // TODO remove !is_pv check for lmr, but reduce if pv
                 // TODO add max .max(0) to prevent negative hist
-                let hist = (ctx.history.quiet.get(pos, &mv) + ctx.history.continuation.get(&mv, ply, &ctx.stack.moves));
-
-                reduction -= (hist/ ctx.params.lmr_history_divisor as i32) as usize;
+                let hist_red = (ctx.history.quiet.get(pos, &mv) + ctx.history.continuation.get(&mv, ply, &ctx.stack.moves))/ ctx.params.lmr_history_divisor as i32;
+                
+                reduction = (reduction as i32 - hist_red).max(0) as usize;
 
                 reduction = reduction.clamp(0,depth - 1);
             }

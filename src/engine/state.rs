@@ -6,7 +6,7 @@ use crate::engine::tt::TranspositionTable;
 use crate::nnue::network::Network;
 
 // ---------------------------------------------------------------------------
-// Engine options — purely configuration, no runtime state
+// Engine options, should migrate to uci state probably
 // ---------------------------------------------------------------------------
 
 pub struct Options {
@@ -26,7 +26,7 @@ impl Options {
 }
 
 // ---------------------------------------------------------------------------
-// Engine — survives the whole game, owns all persistent state
+// Engine, things that should survive across search calls
 // ---------------------------------------------------------------------------
 
 pub struct Engine {
@@ -72,7 +72,7 @@ impl Engine {
     }
 
     // -----------------------------------------------------------------------
-    // History / repetition stack
+    // Repetition stack
     // -----------------------------------------------------------------------
 
     pub fn init_history(&mut self) {
@@ -86,7 +86,7 @@ impl Engine {
     }
 
     // -----------------------------------------------------------------------
-    // Setters driven by setoption
+    // Setters for Options stuct
     // -----------------------------------------------------------------------
 
     pub fn resize_tt(&mut self, mb: usize) {

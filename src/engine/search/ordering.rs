@@ -108,8 +108,7 @@ impl MoveOrdering {
             return 698_000;
         }
         // ============================================================
-        // 4. Quiet move ordering:
-        //    Continuation history + normal history
+        // 4. Quiet move ordering : Continuation history + normal history
         // ============================================================
         let side = pos.turn() as usize;
         let piece = mv.role() as usize-1;

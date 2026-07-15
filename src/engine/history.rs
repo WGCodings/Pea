@@ -49,13 +49,13 @@ fn update_history_value(history_value: &mut i16, bonus: i32) {
 
 #[derive(Clone)]
 pub struct QuietHistoryTable {
-    pub(crate) table: Box<[[[i16; 64]; 64]; 2]>,
+    pub(crate) table: [[[i16; 64]; 64]; 2],
 }
 
 impl QuietHistoryTable {
     pub fn new() -> Self {
         Self {
-            table: Box::new([[[0; 64]; 64]; 2]),
+            table: [[[0; 64]; 64]; 2],
         }
     }
 
@@ -119,14 +119,14 @@ impl QuietHistoryTable {
 
 #[derive(Clone)]
 pub struct NoisyHistoryTable {
-    table: Box<[[[i16; 6]; 64]; 6]>,
+    table: [[[i16; 6]; 64]; 6],
 }
 
 impl NoisyHistoryTable {
 
     pub fn new() -> Self {
         Self {
-            table: Box::new([[[0;6];64];6]),
+            table: [[[0;6];64];6],
         }
     }
 
