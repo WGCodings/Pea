@@ -253,11 +253,11 @@ impl ContinuationHistoryTable {
                 if let Some(prev) = moves[ply - 1 - i] {
                     let prev_piece = prev.role() as usize - 1;
                     let prev_to = prev.to() as usize;
-                    score += self.table[i][prev_piece][prev_to][piece][to];
+                    score += self.table[i][prev_piece][prev_to][piece][to] as i32;
                 }
             }
         }
-        score as i32
+        score
     }
 
     #[inline(always)]

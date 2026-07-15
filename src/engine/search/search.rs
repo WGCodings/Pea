@@ -523,8 +523,10 @@ pub fn negamax(
                 if is_pv{
                     reduction -=1;
                 }
+                // TODO add max .max(0) to prevent negative hist
+                let hist = (ctx.history.quiet.get(pos, &mv) + ctx.history.continuation.get(&mv, ply, &ctx.stack.moves));
 
-                reduction -= ((ctx.history.quiet.get(pos, &mv) + ctx.history.continuation.get(&mv, ply, &ctx.stack.moves))/ ctx.params.lmr_history_divisor as i32) as usize;
+                reduction -= (hist/ ctx.params.lmr_history_divisor as i32) as usize;
 
                 reduction = reduction.clamp(0,depth - 1);
             }
