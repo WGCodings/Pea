@@ -24,10 +24,10 @@ impl HistoryTables {
         self.continuation.clear();
     }
 
-    pub fn age_entries(&mut self) {
-        self.quiet.age_entries();
-        self.noisy.age_entries();
-        self.continuation.age_entries();
+    pub fn _age_entries(&mut self) {
+        self.quiet._age_entries();
+        self.noisy._age_entries();
+        self.continuation._age_entries();
     }
 }
 
@@ -63,7 +63,7 @@ impl QuietHistoryTable {
         self.table.iter_mut().for_each(|x| x.fill([0;64]));
     }
 
-    pub fn age_entries(&mut self) {
+    pub fn _age_entries(&mut self) {
         self.table
             .iter_mut()
             .flatten()
@@ -134,7 +134,7 @@ impl NoisyHistoryTable {
         self.table.iter_mut().for_each(|x| x.fill([0;6]));
     }
 
-    pub fn age_entries(&mut self) {
+    pub fn _age_entries(&mut self) {
         self.table
             .iter_mut()
             .flatten()
@@ -143,7 +143,7 @@ impl NoisyHistoryTable {
     }
 
     #[inline(always)]
-    pub fn get(
+    pub fn _get(
         &self,
         pos : &Chess,
         mv: &Move
@@ -224,7 +224,7 @@ impl ContinuationHistoryTable {
             .for_each(|x| x.fill(0));
     }
 
-    pub fn age_entries(&mut self) {
+    pub fn _age_entries(&mut self) {
         self.table
             .iter_mut()
             .flatten()
