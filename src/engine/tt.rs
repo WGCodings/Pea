@@ -183,6 +183,10 @@ impl TranspositionTable {
             }
         }
 
+
+        //if you are replacing an entry from another position, store a nullmove,
+        //if you are replacing an entry from the same position (the stored key matches), preserve the existing move
+
         self.table[idx].store(&TTEntry {
             key,
             depth: depth as u8,

@@ -502,6 +502,7 @@ pub fn negamax(
         else {
             let mut reduction : i32 = 0;
             let mut red_clamped : usize = 0;
+            let mut lmr_extension = 0;
             //TODO try changing min depth to 2
             if moves_searched >=ctx.params.lmr_min_searches as i32 && depth >= ctx.params.lmr_min_depth as usize && !in_check && is_quiet{
 
@@ -529,11 +530,15 @@ pub fn negamax(
 
                 reduction -= hist_red;
 
+                if reduction < 0{
+                    lmr_extension = -reduction*0;
+                }
+
                 red_clamped = (reduction.max(0) as usize).clamp(0,depth - 1);
 
             }
 
-            score = -negamax(&child_pos, ctx, (depth - 1 - red_clamped + extension as usize).max(0) , ply + 1, -alpha-1, -alpha, true, &mut local_pv);
+            score = -negamax(&child_pos, ctx, (depth - 1 - red_clamped + extension as usize + lmr_extension as usize).max(0) , ply + 1, -alpha-1, -alpha, true, &mut local_pv);
 
             if score > alpha && red_clamped >0 {
                 score = -negamax(&child_pos, ctx, (depth - 1 + extension as usize).max(0), ply + 1, -alpha - 1, -alpha, true, &mut local_pv);
