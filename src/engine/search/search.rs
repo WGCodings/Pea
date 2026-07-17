@@ -125,6 +125,7 @@ pub fn negamax(
     let in_check = pos.is_check();
     let is_pv = beta-alpha >1;
     let is_excluded = ctx.excluded_move[ply].is_some();
+    let mut do_probcut = true;
 
     let mut best_score = MIN_INF;
     let mut best_move = None;
@@ -185,6 +186,7 @@ pub fn negamax(
     let raw_eval = if is_excluded {
         ctx.stack.evals[ply]
     } else if let Some(e) = &tt_entry {
+        do_probcut = !(usize::from(e.depth) >= depth -3 && e.score < beta + 256);
         e.eval
     } else {
         let eval = evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them);
@@ -310,6 +312,59 @@ pub fn negamax(
     // =====================================================================================================================//
     if tt_move.is_none() && depth >= ctx.params.iir_min_depth as usize {
         depth -= 1;
+    }
+
+    // =====================================================================================================================//
+    // PROBCUT                                                                                                              //
+    // =====================================================================================================================//
+    // TODO optimise, filter captures from moves above and calculate SEE once
+    // TODO experiment with parameters
+    let probcut_beta = beta + 256;
+
+    if do_pruning
+        && !is_pv
+        && !in_check
+        && depth >= 6
+        && beta.abs() < MATE_SCORE - 128
+        && do_probcut
+    {
+
+        let mut captures = pos.capture_moves();
+        ctx.ordering.order_captures(pos, &mut captures);
+
+        for mv in captures {
+            let see = see(pos, mv);
+
+            // TODO test if just see < 0 is better
+            if static_eval + (see as i32) < probcut_beta {
+                continue;
+            }
+
+            let mut child_pos = pos.clone();
+
+            child_pos.play_unchecked(mv);
+
+            make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
+
+            let hash_child = child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
+
+            ctx.increase_history(hash_child);
+
+            let mut probcut_score = -quiescence(&child_pos, ctx, -probcut_beta, -probcut_beta + 1, ply + 1);
+
+            if probcut_score >= probcut_beta {
+                probcut_score = -negamax(&child_pos, ctx, depth-4, ply + 1, -probcut_beta, -probcut_beta + 1, true, &mut PvTable::new());
+            }
+
+            ctx.decrease_history();
+
+            unmake_move_nnue(ctx.network, &mut ctx.nnue);
+
+            if probcut_score >= probcut_beta {
+                tt_store(hash, ctx, depth - 3, probcut_beta, raw_eval, Bound::Lower, Some(mv), ply);
+                return probcut_beta;
+            }
+        }
     }
 
     // =====================================================================================================================//
