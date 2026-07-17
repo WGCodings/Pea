@@ -338,7 +338,7 @@ pub fn negamax(
             let see = see(pos, mv);
 
             // TODO test if just see < 0 is better
-            if see < 0{
+            if see < 256{
                 continue;
             }
 
@@ -367,8 +367,8 @@ pub fn negamax(
             ctx.stack.moves[ply] = None;
 
             if probcut_score >= probcut_beta {
-                tt_store(hash, ctx, depth - 3, probcut_beta, raw_eval, Bound::Lower, Some(mv), ply);
-                return probcut_beta;
+                tt_store(hash, ctx, depth - 4, probcut_score, raw_eval, Bound::Lower, Some(mv), ply);
+                return probcut_score;
             }
         }
     }
