@@ -348,6 +348,8 @@ pub fn negamax(
 
             make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
 
+            ctx.stack.moves[ply] = Some(mv);
+
             let hash_child = child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
 
             ctx.increase_history(hash_child);
@@ -361,6 +363,8 @@ pub fn negamax(
             ctx.decrease_history();
 
             unmake_move_nnue(ctx.network, &mut ctx.nnue);
+
+            ctx.stack.moves[ply] = None;
 
             if probcut_score >= probcut_beta {
                 tt_store(hash, ctx, depth - 3, probcut_beta, raw_eval, Bound::Lower, Some(mv), ply);
