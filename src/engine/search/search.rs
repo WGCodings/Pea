@@ -126,7 +126,7 @@ pub fn negamax(
     let is_pv = beta-alpha >1;
     let is_excluded = ctx.excluded_move[ply].is_some();
     let mut do_probcut = true;
-    let probcut_beta = beta + 192;
+    let probcut_beta = beta + 256;
 
     let mut best_score = MIN_INF;
     let mut best_move = None;
@@ -326,7 +326,7 @@ pub fn negamax(
     if !is_excluded
         && !is_pv
         && !in_check
-        && depth >= 5
+        && depth >= 6
         && beta.abs() < MATE_SCORE - 128
         && do_probcut
     {
@@ -353,7 +353,7 @@ pub fn negamax(
             let mut probcut_score = -quiescence(&child_pos, ctx, -probcut_beta, -probcut_beta + 1, ply + 1);
 
             if probcut_score >= probcut_beta {
-                probcut_score = -negamax(&child_pos, ctx, depth-4, ply + 1, -probcut_beta, -probcut_beta + 1, false, &mut PvTable::new());
+                probcut_score = -negamax(&child_pos, ctx, depth-3, ply + 1, -probcut_beta, -probcut_beta + 1, false, &mut PvTable::new());
             }
 
             ctx.decrease_history();
@@ -363,7 +363,7 @@ pub fn negamax(
             ctx.stack.moves[ply] = None;
 
             if probcut_score >= probcut_beta {
-                tt_store(hash, ctx, depth - 3, probcut_score, raw_eval, Bound::Lower, Some(mv), ply);
+                tt_store(hash, ctx, depth - 2, probcut_score, raw_eval, Bound::Lower, Some(mv), ply);
                 return probcut_score-(probcut_beta-beta);
             }
         }
