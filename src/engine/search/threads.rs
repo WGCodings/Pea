@@ -110,6 +110,7 @@ impl Threads {
             // Store history tables inside engine for next search call
             engine.history_tables = main_ctx.history;
             engine.corrhist_pawn = main_ctx.corrhist_pawn;
+            engine.corrhist_minor = main_ctx.corrhist_minor;
 
             result
         });
