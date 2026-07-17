@@ -335,12 +335,6 @@ pub fn negamax(
         ctx.ordering.order_captures(pos, &mut captures);
 
         for mv in captures {
-            let see = see(pos, mv);
-
-            // TODO test if just see < 0 is better
-            if see <= 0{
-                continue;
-            }
 
             let mut child_pos = pos.clone();
 
