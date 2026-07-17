@@ -321,7 +321,7 @@ pub fn negamax(
     // =====================================================================================================================//
     // TODO optimise, filter captures from moves above and calculate SEE once
     // TODO experiment with parameters
-    let probcut_beta = beta + 256;
+    let probcut_beta = beta + 384;
 
     if do_pruning
         && !is_pv
