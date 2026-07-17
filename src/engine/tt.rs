@@ -175,6 +175,8 @@ impl TranspositionTable {
         let idx         = self.index(key);
         let current_age = self.age.load(Ordering::Relaxed);
 
+        let mut best_move = best_move;
+
         if let Some(existing) = self.table[idx].load(key) {
             if existing.key == key
                 && existing.depth > depth as u8 + 2
@@ -182,6 +184,23 @@ impl TranspositionTable {
                 return;
             }
         }
+        if bound == Bound::Upper{
+            if let Some(existing) = self.table[idx].load(key) {
+                if existing.key == key
+                {
+                    best_move = existing.best_move;
+                }
+                else if existing.key != key{
+                    best_move = None;
+                }
+            }
+        }
+
+
+
+        //if you are replacing an entry from another position, store a nullmove,
+        //if you are replacing an entry from the same position (the stored key matches), preserve the existing move
+        // when you fail low and don't have a best move
 
         self.table[idx].store(&TTEntry {
             key,
