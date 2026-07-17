@@ -126,6 +126,7 @@ pub fn negamax(
     let is_pv = beta-alpha >1;
     let is_excluded = ctx.excluded_move[ply].is_some();
     let mut do_probcut = true;
+    let probcut_beta = beta + 192;
 
     let mut best_score = MIN_INF;
     let mut best_move = None;
@@ -186,7 +187,7 @@ pub fn negamax(
     let raw_eval = if is_excluded {
         ctx.stack.evals[ply]
     } else if let Some(e) = &tt_entry {
-        do_probcut = !(usize::from(e.depth) >= depth -3 && e.score < beta + 256);
+        do_probcut = !(usize::from(e.depth) >= depth -3 && e.score < probcut_beta);
         e.eval
     } else {
         let eval = evaluate(pos, ctx.network, &ctx.nnue.us, &ctx.nnue.them);
@@ -320,13 +321,12 @@ pub fn negamax(
     // PROBCUT                                                                                                              //
     // =====================================================================================================================//
     // TODO optimise, filter captures from moves above and calculate SEE once
-    // TODO experiment with parameters
-    let probcut_beta = beta + 384;
+    // TODO experiment with parameters, maybe add improving heuristic later
 
-    if do_pruning
+    if !is_excluded
         && !is_pv
         && !in_check
-        && depth >= 6
+        && depth >= 5
         && beta.abs() < MATE_SCORE - 128
         && do_probcut
     {
@@ -369,8 +369,8 @@ pub fn negamax(
             ctx.stack.moves[ply] = None;
 
             if probcut_score >= probcut_beta {
-                tt_store(hash, ctx, depth - 3, probcut_beta, raw_eval, Bound::Lower, Some(mv), ply);
-                return probcut_beta;
+                tt_store(hash, ctx, depth - 3, probcut_score, raw_eval, Bound::Lower, Some(mv), ply);
+                return probcut_score-(probcut_beta-beta);
             }
         }
     }
