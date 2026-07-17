@@ -262,6 +262,8 @@ pub fn negamax(
 
         let score = -negamax(&child_pos, ctx, depth - reduction, ply + 1, -beta, -beta + 1, false, &mut PvTable::new());
 
+        //TODO add verification
+
         std::mem::swap(&mut ctx.nnue.us, &mut ctx.nnue.them);
         ctx.decrease_history();
 
@@ -336,7 +338,7 @@ pub fn negamax(
             let see = see(pos, mv);
 
             // TODO test if just see < 0 is better
-            if static_eval + (see as i32) < probcut_beta {
+            if see < 0{
                 continue;
             }
 
@@ -353,7 +355,7 @@ pub fn negamax(
             let mut probcut_score = -quiescence(&child_pos, ctx, -probcut_beta, -probcut_beta + 1, ply + 1);
 
             if probcut_score >= probcut_beta {
-                probcut_score = -negamax(&child_pos, ctx, depth-4, ply + 1, -probcut_beta, -probcut_beta + 1, true, &mut PvTable::new());
+                probcut_score = -negamax(&child_pos, ctx, depth-4, ply + 1, -probcut_beta, -probcut_beta + 1, false, &mut PvTable::new());
             }
 
             ctx.decrease_history();
