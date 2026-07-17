@@ -338,13 +338,15 @@ pub fn negamax(
             let see = see(pos, mv);
 
             // TODO test if just see < 0 is better
-            if see < 256{
+            if see <= 0{
                 continue;
             }
 
             let mut child_pos = pos.clone();
 
             child_pos.play_unchecked(mv);
+
+            // TODO try skip if child pos is in check
 
             make_move_nnue(pos, &mv, ctx.network, &mut ctx.nnue);
 
