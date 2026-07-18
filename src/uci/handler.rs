@@ -133,6 +133,7 @@ impl UciHandler {
         println!("option name Move Overhead type spin default 10 min 0 max 1000");
         println!("option name UCI_ShowWDL type check default true");
         println!("option name NormalizeScore type check default true");
+        print_spsa_options(&self.engine.params);
         println!("uciok");
     }
 
@@ -224,9 +225,11 @@ impl UciHandler {
             }
         } else if n.eq_ignore_ascii_case("normalizescore") {
             self.uci.normalize_score = v.eq_ignore_ascii_case("true");
-        }
-        else if n.eq_ignore_ascii_case("uci_showwdl") {
+        } else if n.eq_ignore_ascii_case("uci_showwdl") {
             self.uci.uci_show_wdl = v.eq_ignore_ascii_case("true");
+        } else {
+            // Set tuning parameters
+            self.set_param(n, v);
         }
     }
 
@@ -261,9 +264,108 @@ impl UciHandler {
         theta_plus .save_yaml("src/tuner/config/theta_plus.yaml");
         theta_minus.save_yaml("src/tuner/config/theta_minus.yaml");
     }
+    fn set_param(&mut self, name: &str, value: &str) {
+        let params = &mut self.engine.params;
+
+        match name.to_lowercase().as_str() {
+            // ints
+            "raz_max_depth"          => { if let Ok(x) = value.parse::<i32>() { params.raz_max_depth = x; } }
+            "raz_thr"                => { if let Ok(x) = value.parse::<i32>() { params.raz_thr = x; } }
+            "nmp_margin"             => { if let Ok(x) = value.parse::<i32>() { params.nmp_margin = x; } }
+            "nmp_scaling"            => { if let Ok(x) = value.parse::<i32>() { params.nmp_scaling = x; } }
+            "nmp_improving_scaling"  => { if let Ok(x) = value.parse::<i32>() { params.nmp_improving_scaling = x; } }
+            "nmp_min_depth"          => { if let Ok(x) = value.parse::<i32>() { params.nmp_min_depth = x; } }
+            "nmp_base_reduction"     => { if let Ok(x) = value.parse::<i32>() { params.nmp_base_reduction = x; } }
+            "nmp_reduction_scaling"  => { if let Ok(x) = value.parse::<i32>() { params.nmp_reduction_scaling = x; } }
+            "snmp_scaling"           => { if let Ok(x) = value.parse::<i32>() { params.snmp_scaling = x; } }
+            "lmr_min_searches"       => { if let Ok(x) = value.parse::<i32>() { params.lmr_min_searches = x; } }
+            "lmr_min_depth"          => { if let Ok(x) = value.parse::<i32>() { params.lmr_min_depth = x; } }
+            "lmr_history_divisor"    => { if let Ok(x) = value.parse::<i32>() { params.lmr_history_divisor = x; } }
+            "aspw_min_depth"         => { if let Ok(x) = value.parse::<i32>() { params.aspw_min_depth = x; } }
+            "aspw_window_size"       => { if let Ok(x) = value.parse::<i32>() { params.aspw_window_size = x; } }
+            "fp_base"                => { if let Ok(x) = value.parse::<i32>() { params.fp_base = x; } }
+            "fp_scaling"             => { if let Ok(x) = value.parse::<i32>() { params.fp_scaling = x; } }
+            "fp_max_depth"           => { if let Ok(x) = value.parse::<i32>() { params.fp_max_depth = x; } }
+            "fp_improving_margin"    => { if let Ok(x) = value.parse::<i32>() { params.fp_improving_margin = x; } }
+            "fp_min_moves_searched"  => { if let Ok(x) = value.parse::<i32>() { params.fp_min_moves_searched = x; } }
+            "rfp_scaling"            => { if let Ok(x) = value.parse::<i32>() { params.rfp_scaling = x; } }
+            "rfp_improving_scaling"  => { if let Ok(x) = value.parse::<i32>() { params.rfp_improving_scaling = x; } }
+            "rfp_max_depth"          => { if let Ok(x) = value.parse::<i32>() { params.rfp_max_depth = x; } }
+            "lmp_base"               => { if let Ok(x) = value.parse::<i32>() { params.lmp_base = x; } }
+            "lmp_lin_scaling"        => { if let Ok(x) = value.parse::<i32>() { params.lmp_lin_scaling = x; } }
+            "lmp_quad_scaling"       => { if let Ok(x) = value.parse::<i32>() { params.lmp_quad_scaling = x; } }
+            "lmp_max_depth"          => { if let Ok(x) = value.parse::<i32>() { params.lmp_max_depth = x; } }
+            "cont_hist_scaling"      => { if let Ok(x) = value.parse::<i32>() { params.cont_hist_scaling = x; } }
+            "cont_hist_base"         => { if let Ok(x) = value.parse::<i32>() { params.cont_hist_base = x; } }
+            "cont_hist_malus_scaling"=> { if let Ok(x) = value.parse::<i32>() { params.cont_hist_malus_scaling = x; } }
+            "iir_min_depth"          => { if let Ok(x) = value.parse::<i32>() { params.iir_min_depth = x; } }
+            "se_dext_margin"         => { if let Ok(x) = value.parse::<i32>() { params.se_dext_margin = x; } }
+            "se_scaling"             => { if let Ok(x) = value.parse::<i32>() { params.se_scaling = x; } }
+            "se_depth_ok"            => { if let Ok(x) = value.parse::<i32>() { params.se_depth_ok = x; } }
+            "se_min_depth"           => { if let Ok(x) = value.parse::<i32>() { params.se_min_depth = x; } }
+            "se_text_margin"         => { if let Ok(x) = value.parse::<i32>() { params.se_text_margin = x; } }
+            "se_max_nr_dext"         => { if let Ok(x) = value.parse::<i32>() { params.se_max_nr_dext = x; } }
+            "hist_prune_margin"      => { if let Ok(x) = value.parse::<i32>() { params.hist_prune_margin = x; } }
+            "hist_prune_depth"       => { if let Ok(x) = value.parse::<i32>() { params.hist_prune_depth = x; } }
+
+            // floats
+            "lmr_red_constant"       => { if let Ok(x) = value.parse::<i32>() { params.lmr_red_constant = x as f32 / 10000.0; } }
+            "lmr_red_scaling"        => { if let Ok(x) = value.parse::<i32>() { params.lmr_red_scaling = x as f32 / 10000.0; } }
+            "aspw_widening_factor"   => { if let Ok(x) = value.parse::<i32>() { params.aspw_widening_factor = x as f32 / 10000.0; } }
+
+            _ => {}
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
 
 #[derive(PartialEq)]
 enum LoopControl { Continue, Break }
+
+fn print_spsa_options(params: &Params) {
+    //int
+    println!("option name raz_max_depth type spin default {} min 0 max 15", params.raz_max_depth );
+    println!("option name raz_thr type spin default {} min 0 max 512", params.raz_thr);
+    println!("option name nmp_margin type spin default {} min 0 max 250", params.nmp_margin);
+    println!("option name nmp_scaling type spin default {} min 0 max 100", params.nmp_scaling);
+    println!("option name nmp_improving_scaling type spin default {} min -100 max 200", params.nmp_improving_scaling);
+    println!("option name nmp_min_depth type spin default {} min 2 max 10", params.nmp_min_depth);
+    println!("option name nmp_base_reduction type spin default {} min 0 max 8", params.nmp_base_reduction);
+    println!("option name nmp_reduction_scaling type spin default {} min 0 max 10", params.nmp_reduction_scaling);
+    println!("option name snmp_scaling type spin default {} min 0 max 200", params.snmp_scaling);
+    println!("option name lmr_min_searches type spin default {} min 1 max 15", params.lmr_min_searches);
+    println!("option name lmr_min_depth type spin default {} min 0 max 10", params.lmr_min_depth);
+    println!("option name lmr_history_divisor type spin default {} min 1024 max 32768", params.lmr_history_divisor);
+    println!("option name aspw_min_depth type spin default {} min 1 max 10", params.aspw_min_depth);
+    println!("option name aspw_window_size type spin default {} min 5 max 150", params.aspw_window_size);
+    println!("option name fp_base type spin default {} min 0 max 120", params.fp_base);
+    println!("option name fp_scaling type spin default {} min 0 max 120", params.fp_scaling);
+    println!("option name fp_max_depth type spin default {} min 0 max 15", params.fp_max_depth);
+    println!("option name fp_improving_margin type spin default {} min 0 max 200", params.fp_improving_margin);
+    println!("option name fp_min_moves_searched type spin default {} min 1 max 10", params.fp_min_moves_searched);
+    println!("option name rfp_scaling type spin default {} min 0 max 150", params.rfp_scaling);
+    println!("option name rfp_improving_scaling type spin default {} min 0 max 200", params.rfp_improving_scaling);
+    println!("option name rfp_max_depth type spin default {} min 0 max 15", params.rfp_max_depth);
+    println!("option name lmp_base type spin default {} min 0 max 10", params.lmp_base);
+    println!("option name lmp_lin_scaling type spin default {} min 0 max 10", params.lmp_lin_scaling);
+    println!("option name lmp_quad_scaling type spin default {} min 0 max 10", params.lmp_quad_scaling);
+    println!("option name lmp_max_depth type spin default {} min 0 max 15", params.lmp_max_depth);
+    println!("option name cont_hist_scaling type spin default {} min 50 max 500", params.cont_hist_scaling);
+    println!("option name cont_hist_base type spin default {} min 0 max 300", params.cont_hist_base);
+    println!("option name cont_hist_malus_scaling type spin default {} min 1 max 5", params.cont_hist_malus_scaling);
+    println!("option name iir_min_depth type spin default {} min 0 max 10", params.iir_min_depth);
+    println!("option name se_dext_margin type spin default {} min 0 max 100", params.se_dext_margin);
+    println!("option name se_scaling type spin default {} min 0 max 10", params.se_scaling);
+    println!("option name se_depth_ok type spin default {} min 1 max 10", params.se_depth_ok);
+    println!("option name se_min_depth type spin default {} min 2 max 12", params.se_min_depth);
+    println!("option name se_text_margin type spin default {} min 25 max 150", params.se_text_margin);
+    println!("option name se_max_nr_dext type spin default {} min 2 max 16", params.se_max_nr_dext);
+    println!("option name hist_prune_margin type spin default {} min 50 max 2500", params.hist_prune_margin);
+    println!("option name hist_prune_depth type spin default {} min 2 max 10", params.hist_prune_depth);
+
+    // float
+    println!("option name lmr_red_constant type spin default {} min 5000 max 25000", (params.lmr_red_constant * 10000.0) as i32);
+    println!("option name lmr_red_scaling type spin default {} min 10000 max 50000", (params.lmr_red_scaling * 10000.0) as i32);
+    println!("option name aspw_widening_factor type spin default {} min 12000 max 50000", (params.aspw_widening_factor * 10000.0) as i32);
+}

@@ -224,7 +224,7 @@ pub fn negamax(
     // =====================================================================================================================//
     // REVERSE FUTILITY PRUNING                                                                                             //
     // =====================================================================================================================//
-    let futility = (ctx.params.rfp_scaling as usize* depth) as i32 + ctx.params.rfp_improving_scaling as i32 * !improving as i32;
+    let futility = (ctx.params.rfp_scaling as usize* depth) as i32 + ctx.params.rfp_improving_scaling * !improving as i32;
     if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && !is_root && static_eval - futility   >=beta {
         return (static_eval + beta)/2;
     }
@@ -233,7 +233,7 @@ pub fn negamax(
     // STATIC NULL MOVE PRUNING                                                                                             //
     // =====================================================================================================================//
     if  do_pruning && !in_check && !is_pv && beta.abs() < MATE_SCORE {
-        let score_margin = ctx.params.snmp_scaling as i32 * depth as i32;
+        let score_margin = ctx.params.snmp_scaling * depth as i32;
         if static_eval-score_margin >= beta {
             return static_eval-score_margin
         }
@@ -242,7 +242,7 @@ pub fn negamax(
     // =====================================================================================================================//
     // NULL MOVE PRUNING                                                                                                    //
     // =====================================================================================================================//
-    let nmp_margin : i32 = -ctx.params.nmp_margin as i32 + ctx.params.nmp_scaling as i32 * depth as i32 + ctx.params.nmp_improving_scaling as i32 * improving as i32 ;
+    let nmp_margin : i32 = -ctx.params.nmp_margin + ctx.params.nmp_scaling * depth as i32 + ctx.params.nmp_improving_scaling * improving as i32 ;
     if  do_pruning && !in_check && !is_pv && !is_root &&
         static_eval + nmp_margin >= beta &&
         do_null &&
@@ -282,7 +282,7 @@ pub fn negamax(
     // TODO ADD IMRPOVING HEURISTIC TO MARGIN
     if  do_pruning && !in_check && !is_pv
         && depth <= ctx.params.raz_max_depth as usize
-        && static_eval + ctx.params.raz_thr as i32 *(depth as i32)  + improving as i32 * 0 < alpha
+        && static_eval + ctx.params.raz_thr *(depth as i32)  + improving as i32 * 0 < alpha
     {
         let razor_score = quiescence(pos,ctx,alpha,beta,ply);
         if razor_score <= alpha{
@@ -294,7 +294,7 @@ pub fn negamax(
     // FUTILITY PRUNING PART 1                                                                                              //
     // =====================================================================================================================//
     if  depth <= ctx.params.fp_max_depth as usize && !is_pv && !in_check && alpha.abs() < MATE_SCORE && beta.abs() < MATE_SCORE && !is_excluded{
-        let margin = ctx.params.fp_base as i32+ depth as i32 * ctx.params.fp_scaling as i32 + ctx.params.fp_improving_margin as i32 * improving as i32;
+        let margin = ctx.params.fp_base+ depth as i32 * ctx.params.fp_scaling + ctx.params.fp_improving_margin * improving as i32;
         can_futility_prune = static_eval+margin <= alpha;
     }
 
@@ -432,7 +432,7 @@ pub fn negamax(
         // =====================================================================================================================//
         // LATE MOVE PRUNING                                                                                                    //
         // =====================================================================================================================//
-        let lmp_moves= ctx.params.lmp_base as i32 +depth as i32 * ctx.params.lmp_lin_scaling as i32 + depth as i32 * depth as i32 * ctx.params.lmp_quad_scaling as i32;
+        let lmp_moves= ctx.params.lmp_base +depth as i32 * ctx.params.lmp_lin_scaling + depth as i32 * depth as i32 * ctx.params.lmp_quad_scaling;
         if depth <= ctx.params.lmp_max_depth as usize
             && !is_pv
             && !in_check
@@ -453,7 +453,7 @@ pub fn negamax(
         {
             if is_quiet{
                 let hist = ctx.history.quiet.get(pos, &mv) + ctx.history.continuation.get(&mv, ply, &ctx.stack.moves);
-                if hist < -(ctx.params.hist_prune_margin as i32 * depth as i32) {
+                if hist < -(ctx.params.hist_prune_margin * depth as i32) {
                     continue;
                 }
             }
@@ -463,7 +463,7 @@ pub fn negamax(
         // =====================================================================================================================//
         // FUTILITY PRUNING PART 2                                                                                              //
         // =====================================================================================================================//
-        if can_futility_prune && moves_searched >ctx.params.fp_min_moves_searched as i32 && is_quiet{
+        if can_futility_prune && moves_searched >ctx.params.fp_min_moves_searched && is_quiet{
             continue;
         }
 
@@ -498,7 +498,7 @@ pub fn negamax(
 
                 let mut se_pv = PvTable::new();
 
-                let se_beta = (tt_score - ctx.params.se_scaling as i32 * depth as i32).max(-MATE_SCORE);
+                let se_beta = (tt_score - ctx.params.se_scaling * depth as i32).max(-MATE_SCORE);
                 let se_depth = (depth - 1) / 2;
 
 
@@ -515,14 +515,14 @@ pub fn negamax(
                     extension += 1;
 
                     if !is_pv
-                        && se_score + (ctx.params.se_dext_margin as i32) < se_beta
-                        && ctx.stack.double_exts[ply] <= ctx.params.se_max_nr_dext as i32
+                        && se_score + (ctx.params.se_dext_margin) < se_beta
+                        && ctx.stack.double_exts[ply] <= ctx.params.se_max_nr_dext
                     {
                         // Double extensions
                         extension += 1;
                         ctx.stack.double_exts[ply] += 1;
                         // Triple extensions
-                        if is_quiet && se_score + (ctx.params.se_text_margin as i32) < se_beta{
+                        if is_quiet && se_score + (ctx.params.se_text_margin) < se_beta{
                             extension += 1;
                         }
 
@@ -560,7 +560,7 @@ pub fn negamax(
             let mut reduction : i32;
             let mut red_clamped : usize = 0;
             //TODO try changing min depth to 2
-            if moves_searched >=ctx.params.lmr_min_searches as i32 && depth >= ctx.params.lmr_min_depth as usize && !in_check && is_quiet{
+            if moves_searched >=ctx.params.lmr_min_searches && depth >= ctx.params.lmr_min_depth as usize && !in_check && is_quiet{
 
                 // Base reduction
                 reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as i32;
@@ -582,7 +582,7 @@ pub fn negamax(
                     reduction -= 1;
                 }
 
-                let hist_red = (ctx.history.quiet.get(pos, &mv) + ctx.history.continuation.get(&mv, ply, &ctx.stack.moves))/ (ctx.params.lmr_history_divisor as i32);
+                let hist_red = (ctx.history.quiet.get(pos, &mv) + ctx.history.continuation.get(&mv, ply, &ctx.stack.moves))/ (ctx.params.lmr_history_divisor);
 
                 reduction -= hist_red;
 
@@ -612,8 +612,8 @@ pub fn negamax(
         }
 
         if score >= beta {
-            let bonus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
-            let malus = ctx.params.cont_hist_scaling as i32 * depth as i32 - ctx.params.cont_hist_base as i32;
+            let bonus = ctx.params.cont_hist_scaling * depth as i32 - ctx.params.cont_hist_base;
+            let malus = ctx.params.cont_hist_scaling * depth as i32 - ctx.params.cont_hist_base;
             node_type = Bound::Lower;
 
             if !is_capture{
@@ -782,7 +782,7 @@ pub fn quiescence(
 
 #[inline(always)]
 fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, prev_score: i32, avg_score : i32, pv: &mut PvTable) -> i32 {
-    let mut window = ctx.params.aspw_window_size as i32 + avg_score.abs()/50;
+    let mut window = ctx.params.aspw_window_size + avg_score.abs()/50;
     let mut alpha = prev_score - window;
     let mut beta = prev_score + window;
     let mut depth = max_depth;
