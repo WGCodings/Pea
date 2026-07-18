@@ -60,7 +60,10 @@ pub struct Params {
     pub se_text_margin: i32,
     pub se_max_nr_dext: i32,
     pub hist_prune_margin: i32,
-    pub hist_prune_depth: i32
+    pub hist_prune_depth: i32,
+    pub pc_beta_margin: i32,
+    pub pc_depth_divisor: i32,
+    pub pc_min_depth: i32
 }
 
 impl Params {
@@ -134,6 +137,10 @@ impl Params {
             // History pruning
             hist_prune_margin: 1024,
             hist_prune_depth: 4,
+            // probcut
+            pc_beta_margin: 256,
+            pc_depth_divisor: 100,
+            pc_min_depth: 5,
         }
     }
 }

@@ -307,6 +307,9 @@ impl UciHandler {
             "se_max_nr_dext"         => { if let Ok(x) = value.parse::<i32>() { params.se_max_nr_dext = x; } }
             "hist_prune_margin"      => { if let Ok(x) = value.parse::<i32>() { params.hist_prune_margin = x; } }
             "hist_prune_depth"       => { if let Ok(x) = value.parse::<i32>() { params.hist_prune_depth = x; } }
+            "pc_beta_margin"         => { if let Ok(x) = value.parse::<i32>() { params.pc_beta_margin = x; } }
+            "pc_depth_divisor"       => { if let Ok(x) = value.parse::<i32>() { params.pc_depth_divisor = x; } }
+            "pc_min_depth"           => { if let Ok(x) = value.parse::<i32>() { params.pc_min_depth = x; } }
 
             // floats
             "lmr_red_constant"       => { if let Ok(x) = value.parse::<i32>() { params.lmr_red_constant = x as f32 / 10000.0; } }
@@ -363,6 +366,9 @@ fn print_spsa_options(params: &Params) {
     println!("option name se_max_nr_dext type spin default {} min 2 max 16", params.se_max_nr_dext);
     println!("option name hist_prune_margin type spin default {} min 50 max 2500", params.hist_prune_margin);
     println!("option name hist_prune_depth type spin default {} min 2 max 10", params.hist_prune_depth);
+    println!("option name pc_beta_margin type spin default {} min 64 max 512", params.pc_beta_margin);
+    println!("option name pc_depth_divisor type spin default {} min 1 max 300", params.pc_depth_divisor);
+    println!("option name pc_min_depth type spin default {} min 3 max 10", params.pc_min_depth);
 
     // float
     println!("option name lmr_red_constant type spin default {} min 5000 max 25000", (params.lmr_red_constant * 10000.0) as i32);
