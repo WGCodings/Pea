@@ -46,7 +46,7 @@ pub struct Engine {
 
 impl Engine {
     pub fn new() -> Self {
-        let params   = Params::load_yaml("src/tuner/config/params_patch.yaml");
+        let params   = Params::default();
         let position = Chess::new();
         let net      = Self::load_network();
 
