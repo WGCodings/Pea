@@ -63,7 +63,8 @@ pub struct Params {
     pub hist_prune_depth: i32,
     pub pc_beta_margin: i32,
     pub pc_depth_divisor: i32,
-    pub pc_min_depth: i32
+    pub pc_min_depth: i32,
+    pub pc_improving_margin: i32
 }
 
 impl Params {
@@ -141,6 +142,7 @@ impl Params {
             pc_beta_margin: 267,
             pc_depth_divisor: 124,
             pc_min_depth: 9,
+            pc_improving_margin: 10,
         }
     }
 }
