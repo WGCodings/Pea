@@ -75,7 +75,7 @@ pub fn print_search_info(
         pv_to_string(&tt_line)
     };
 
-    let mom = material_count(pos);
+    let mom = material_count(pos) as f32;
 
     let wdl_str = if uci.uci_show_wdl{
         format!("wdl {} {} {} ", win_rate(score,mom),draw_rate(score,mom),loss_rate(score,mom))
@@ -108,24 +108,24 @@ pub fn print_search_info(
 // ---------------------------------------------------------------------------
 
 /// This function normalizes the raw eval based on parameters found from the Stockfish WDL tool
-fn normalize_score(score : i32, mom : i32) -> i32{
-    100*score/(((P_A[0]*mom/MOM + P_A[1])*mom/MOM + P_A[2])*mom/MOM + P_A[3])
+fn normalize_score(score : i32, mom : f32) -> i32{
+    ((100.0*score as f32)/(((P_A[0]*mom/MOM + P_A[1])*mom/MOM + P_A[2])*mom/MOM + P_A[3])) as i32
 }
 /// Winrate in WDL model, pass as promille
-pub fn win_rate(score: i32, mom: i32) -> i32 {
+pub fn win_rate(score: i32, mom: f32) -> i32 {
     let a = ((P_A[0]  * mom/MOM + P_A[1]) * mom/MOM + P_A[2]) * mom/MOM + P_A[3];
     let b = ((P_B[0]  * mom/MOM + P_B[1]) * mom/MOM + P_B[2]) * mom/MOM + P_B[3];
 
-    (1.0 / (1.0 + ((-(score - a) / b) as f32).exp())*1000.0).round() as i32
+    (1.0 / (1.0 + ((-(score as f32 - a) / b)).exp())*1000.0).round() as i32
 }
 
 /// Loss rate in WDL model
-pub fn loss_rate(score: i32, mom: i32) -> i32 {
+pub fn loss_rate(score: i32, mom: f32) -> i32 {
     win_rate(-score, mom)
 }
 
 /// Draw rate in WDL model
-pub fn draw_rate(score: i32, mom: i32) -> i32 {
+pub fn draw_rate(score: i32, mom: f32) -> i32 {
     1000 - win_rate(score, mom) - loss_rate(score, mom)
 }
 

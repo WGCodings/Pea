@@ -10,9 +10,9 @@ pub const MAX_PLY_CONTINUATION_HISTORY: usize = 4;
 pub const PIECE_VALUES: [i32;6] = [100, 320, 330, 500, 900, 0]; // P, N, B, R, Q, K
 
 // Normalization constants from Stockfish WDL model, rounded down
-pub const P_A : [i32;4] = [-125,571,-890,806];
-pub const P_B : [i32;4] = [-20,80,-75,115];
-pub const MOM : i32 = 32;
+pub const P_A : [f32;4] = [-125.0,571.0,-890.0,806.0];
+pub const P_B : [f32;4] = [-20.0,80.0,-75.0,115.0];
+pub const MOM : f32 = 32.0;
 
 // PSQT to help KBN mate finding
 
