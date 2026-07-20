@@ -333,6 +333,7 @@ pub fn negamax(
         && depth >= ctx.params.pc_min_depth as usize
         && beta.abs() < MATE_SCORE - 128
         && do_probcut
+        && false
     {
         let probcut_depth = (depth - 3 - ((static_eval-beta)/ctx.params.pc_depth_divisor) as usize)
             .clamp(0,ctx.params.pc_min_depth as usize)
@@ -343,7 +344,7 @@ pub fn negamax(
 
         for mv in captures {
 
-            if see(pos,mv) as i32 <= ctx.params.pc_see_thr { 
+            if see(pos,mv) as i32 <= ctx.params.pc_see_thr {
                 continue;
             }
 
