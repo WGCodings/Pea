@@ -267,10 +267,8 @@ pub fn negamax(
         std::mem::swap(&mut ctx.nnue.us, &mut ctx.nnue.them);
         ctx.decrease_history();
 
-        if (*ctx.stop).load(Ordering::Relaxed){ return DRAW_SCORE;}
-
         if score >= beta  {
-            if depth < 12 && beta < MATE_SCORE - 128{
+            if depth < ctx.params.nmp_verif_depth as usize && beta < MATE_SCORE - 128{
                 if score > MATE_SCORE - 128{
                     return beta
                 }

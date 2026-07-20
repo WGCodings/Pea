@@ -17,6 +17,7 @@ pub struct Params {
     pub nmp_min_depth: i32,
     pub nmp_base_reduction: i32,
     pub nmp_reduction_scaling: i32,
+    pub nmp_verif_depth: i32,
 
     pub snmp_scaling: i32,
 
@@ -65,7 +66,8 @@ pub struct Params {
     pub pc_depth_divisor: i32,
     pub pc_min_depth: i32,
     pub pc_improving_margin: i32,
-    pub pc_see_thr: i32
+    pub pc_see_thr: i32,
+
 }
 
 impl Params {
@@ -93,6 +95,7 @@ impl Params {
             nmp_min_depth: 3,
             nmp_base_reduction: 4,
             nmp_reduction_scaling: 4,
+            nmp_verif_depth: 12,
             // STATIC NULL MOVE PRUNING
             snmp_scaling: 85,
             // LATE MOVE REDUCTION
