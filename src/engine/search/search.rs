@@ -271,7 +271,7 @@ pub fn negamax(
 
         if score >= beta  {
             if depth < 12 && beta < MATE_SCORE - 128{
-                if score < MATE_SCORE - 128{
+                if score > MATE_SCORE - 128{
                     return beta
                 }
                 return score;
