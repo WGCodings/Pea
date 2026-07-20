@@ -343,6 +343,10 @@ pub fn negamax(
 
         for mv in captures {
 
+            if see(pos,mv) as i32 <= ctx.params.pc_see_thr { 
+                continue;
+            }
+
             let mut child_pos = pos.clone();
 
             child_pos.play_unchecked(mv);
