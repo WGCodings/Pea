@@ -269,8 +269,19 @@ pub fn negamax(
 
         if (*ctx.stop).load(Ordering::Relaxed){ return DRAW_SCORE;}
 
-        if score >= beta && score.abs() < MATE_SCORE {
-            return beta;
+        if score >= beta  {
+            if depth < 12 && beta < MATE_SCORE - 128{
+                if score < MATE_SCORE - 128{
+                    return beta
+                }
+                return score;
+            }
+            let v_score = negamax(&child_pos, ctx, depth - reduction, ply + 1, beta-1, beta, false, &mut PvTable::new());
+
+            if v_score >= beta {
+                return v_score;
+            }
+
         }
     }
 
