@@ -337,7 +337,7 @@ fn print_spsa_options(params: &Params) {
     //int
     println!("option name raz_max_depth type spin default {} min 0 max 15", params.raz_max_depth );
     println!("option name raz_thr type spin default {} min 0 max 512", params.raz_thr);
-    println!("option name raz_improving_margin type spin default {} min -100 max 100", params.raz_thr);
+    println!("option name raz_improving_margin type spin default {} min -100 max 100", params.raz_improving_margin);
     println!("option name nmp_margin type spin default {} min 0 max 250", params.nmp_margin);
     println!("option name nmp_scaling type spin default {} min 0 max 100", params.nmp_scaling);
     println!("option name nmp_improving_scaling type spin default {} min -100 max 200", params.nmp_improving_scaling);
@@ -381,7 +381,7 @@ fn print_spsa_options(params: &Params) {
     println!("option name pc_beta_margin type spin default {} min 64 max 512", params.pc_beta_margin);
     println!("option name pc_depth_divisor type spin default {} min 1 max 300", params.pc_depth_divisor);
     println!("option name pc_min_depth type spin default {} min 3 max 10", params.pc_min_depth);
-    println!("option name pc_improving_margin type spin default {} min -100 max 100", params.pc_min_depth);
+    println!("option name pc_improving_margin type spin default {} min -100 max 100", params.pc_improving_margin);
     println!("option name pc_see_thr type spin default {} min -256 max 256", params.pc_see_thr);
 
     // float
