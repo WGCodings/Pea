@@ -176,8 +176,6 @@ pub fn negamax(
         None
     };
 
-
-    // TODO ADD CHECK IF PLY > MAX PLY MAYBE
     if !is_root && !is_excluded && tt_entry.is_some() {
         if let Some(score) = tt_entry.as_ref().and_then(|e| e.try_score(depth, alpha, beta, ply)) {
             return score;
@@ -297,7 +295,6 @@ pub fn negamax(
     // =====================================================================================================================//
     // RAZORING                                                                                                             //
     // =====================================================================================================================//
-    // TODO ADD IMRPOVING HEURISTIC TO MARGIN
     if  do_pruning && !in_check && !is_pv
         && depth <= ctx.params.raz_max_depth as usize
         && static_eval + ctx.params.raz_thr *(depth as i32)  + improving as i32 * ctx.params.raz_improving_margin < alpha
@@ -465,6 +462,7 @@ pub fn negamax(
         // =====================================================================================================================//
         // LATE MOVE PRUNING                                                                                                    //
         // =====================================================================================================================//
+        // TODO add history to tune threshold
         let lmp_moves= ctx.params.lmp_base +depth as i32 * ctx.params.lmp_lin_scaling + depth as i32 * depth as i32 * ctx.params.lmp_quad_scaling;
         if depth <= ctx.params.lmp_max_depth as usize
             && !is_pv
@@ -508,14 +506,13 @@ pub fn negamax(
         // =====================================================================================================================//
         // From WIKI : This is usually done with a linear depth margin for captures, and a quadratic depth margin for quiets, though such details may vary.
 
-        // TODO : try -80*depth for captures and -60*depth^2 for quiet (or try lower like -21 as sp)
         if !is_pv && !is_root && !in_check && !is_quiet{
-            if (see as i32) <  -80 * depth as i32  {
+            if (see as i32) <  - ctx.params.hpp_tactical_scaling * depth as i32  {
                 continue;
             }
         }
         if !is_pv && !is_root && !in_check && is_quiet{
-            if (see as i32) <  -21 * depth as i32 * depth as i32  {
+            if (see as i32) <  - ctx.params.hpp_quiet_scaling * depth as i32 * depth as i32  {
                 continue;
             }
         }
@@ -592,11 +589,14 @@ pub fn negamax(
         else {
             let mut reduction : i32;
             let mut red_clamped : usize = 0;
-            //TODO try changing min depth to 2
+
             if moves_searched >=ctx.params.lmr_min_searches && depth >= ctx.params.lmr_min_depth as usize && !in_check && is_quiet{
 
                 // Base reduction
                 reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as i32;
+
+                // TODO increase reduction if not improving/cut node/expected cut node
+                // TODO decrease if passed pawn push
 
                 if let Some(ttm) = tt_move {
                     if ttm.is_capture() || ttm.is_promotion() {
@@ -726,6 +726,7 @@ pub fn quiescence(
         }
     }
 
+    // TODO if in check, generate all evasions, not only capture evasions
     let raw_eval = if in_check{
         -MATE_SCORE + ply as i32
     }
@@ -791,7 +792,7 @@ pub fn quiescence(
             //node_type = Bound::Lower;
             return beta;
         }
-        // TODO add best move here, similar to what simbelmyne does
+
         if score > alpha {
             node_type = Bound::Exact;
             alpha = score;
@@ -802,7 +803,6 @@ pub fn quiescence(
         return -MATE_SCORE+ply as i32;
     }
     */
-    // TODO like simbelmyne try assign best score isntead of alpha for tt
     if !(*ctx.stop).load(Ordering::Relaxed) {
         tt_store(hash, ctx, 0, alpha, raw_eval,node_type,None,ply);
     }

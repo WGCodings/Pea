@@ -300,6 +300,8 @@ impl UciHandler {
             "cont_hist_scaling"      => { if let Ok(x) = value.parse::<i32>() { params.cont_hist_scaling = x; } }
             "cont_hist_base"         => { if let Ok(x) = value.parse::<i32>() { params.cont_hist_base = x; } }
             "cont_hist_malus_scaling"=> { if let Ok(x) = value.parse::<i32>() { params.cont_hist_malus_scaling = x; } }
+            "hpp_quiet_scaling"      => { if let Ok(x) = value.parse::<i32>() { params.hpp_quiet_scaling = x; } }
+            "hpp_tactical_scaling"   => { if let Ok(x) = value.parse::<i32>() { params.hpp_tactical_scaling = x; } }
             "iir_min_depth"          => { if let Ok(x) = value.parse::<i32>() { params.iir_min_depth = x; } }
             "se_dext_margin"         => { if let Ok(x) = value.parse::<i32>() { params.se_dext_margin = x; } }
             "se_scaling"             => { if let Ok(x) = value.parse::<i32>() { params.se_scaling = x; } }
@@ -363,6 +365,8 @@ fn print_spsa_options(params: &Params) {
     println!("option name cont_hist_scaling type spin default {} min 50 max 500", params.cont_hist_scaling);
     println!("option name cont_hist_base type spin default {} min 0 max 300", params.cont_hist_base);
     println!("option name cont_hist_malus_scaling type spin default {} min 1 max 5", params.cont_hist_malus_scaling);
+    println!("option name hpp_tactictal_scaling type spin default {} min 20 max 160", params.hpp_tactical_scaling);
+    println!("option name hpp_quiet_scaling type spin default {} min 0 max 100", params.hpp_quiet_scaling);
     println!("option name iir_min_depth type spin default {} min 0 max 10", params.iir_min_depth);
     println!("option name se_dext_margin type spin default {} min 0 max 100", params.se_dext_margin);
     println!("option name se_scaling type spin default {} min 0 max 10", params.se_scaling);

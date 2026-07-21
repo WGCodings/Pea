@@ -51,7 +51,7 @@ pub struct Params {
     pub rfp_improving_scaling: i32,
     pub rfp_max_depth: i32,
 
-    pub hpp_max_depth: i32,
+    pub hpp_quiet_scaling: i32,
     pub hpp_tactical_scaling: i32,
 
     pub iir_min_depth: i32,
@@ -132,8 +132,8 @@ impl Params {
             cont_hist_base: 150,
             cont_hist_malus_scaling: 1,
             // hanging piece pruning
-            hpp_max_depth: 3,
-            hpp_tactical_scaling: 0,
+            hpp_quiet_scaling: 21,
+            hpp_tactical_scaling: 80,
             // internal iterative deepening
             iir_min_depth: 4,
             se_dext_margin: 17,
