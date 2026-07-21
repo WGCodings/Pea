@@ -246,7 +246,9 @@ pub fn negamax(
         do_null && !is_root &&
         depth >=ctx.params.nmp_min_depth as usize {
 
-        let mut reduction = (ctx.params.nmp_base_reduction as usize + depth/ctx.params.nmp_reduction_scaling as usize).min(depth);
+        // TODO add term (static_eval-beta)/divisor to reduction formula
+
+        let mut reduction = ctx.params.nmp_base_reduction as usize + depth/ctx.params.nmp_reduction_scaling as usize;
 
         reduction += 2*improving as usize;
 
@@ -328,6 +330,7 @@ pub fn negamax(
     // =====================================================================================================================//
     // INTERNAL ITERATIVE REDUCTION                                                                                         //
     // =====================================================================================================================//
+    // TODO try extra reduction of larger depth
     if tt_move.is_none() && depth >= ctx.params.iir_min_depth as usize {
         depth -= 1;
     }
@@ -359,6 +362,8 @@ pub fn negamax(
         ctx.ordering.order_captures(pos, &mut captures);
 
         for mv in captures {
+
+            // TODO only do probcut for captures with high histroy?
 
             if see(pos,mv) as i32 <= ctx.params.pc_see_thr {
                 continue;
@@ -604,7 +609,7 @@ pub fn negamax(
                     }
                 }
 
-                if see <= 0 {
+                if see as i32 <= ctx.params.lmr_see_thr {
                     reduction += 1;
                 }
 
@@ -790,6 +795,7 @@ pub fn quiescence(
 
         if score >= beta {
             //node_type = Bound::Lower;
+            // TODO try return score here
             return beta;
         }
 
