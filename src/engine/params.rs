@@ -89,9 +89,9 @@ impl Params {
             raz_max_depth: 5,
             raz_thr: 256,
             // NULL MOVE PRUNING
-            nmp_margin : 113,
-            nmp_scaling : 16,
-            nmp_improving_scaling: 5,
+            nmp_margin : 114,
+            nmp_scaling : 17,
+            nmp_improving_scaling: 6,
             nmp_min_depth: 2,
             nmp_base_reduction: 4,
             nmp_reduction_scaling: 4,
