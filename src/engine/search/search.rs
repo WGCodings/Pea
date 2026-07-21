@@ -242,7 +242,7 @@ pub fn negamax(
     // NULL MOVE PRUNING                                                                                                    //
     // =====================================================================================================================//
     let nmp_margin : i32 = -ctx.params.nmp_margin + ctx.params.nmp_scaling * depth as i32 + ctx.params.nmp_improving_scaling * improving as i32 ;
-    
+
     if  do_pruning && !in_check && !is_pv &&
         static_eval + nmp_margin >= beta &&
         do_null &&
@@ -269,6 +269,13 @@ pub fn negamax(
         ctx.decrease_history();
 
         if score >= beta  {
+
+            if score.abs() < MATE_SCORE -128{
+                return beta;
+            }
+
+            /*
+
             if depth < ctx.params.nmp_verif_depth as usize && beta < MATE_SCORE - 128{
                 if score > MATE_SCORE - 128{
                     return beta
@@ -280,6 +287,8 @@ pub fn negamax(
             if v_score >= beta {
                 return v_score;
             }
+
+             */
 
         }
     }
