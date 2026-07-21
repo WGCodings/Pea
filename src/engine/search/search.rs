@@ -231,7 +231,7 @@ pub fn negamax(
     // =====================================================================================================================//
     // STATIC NULL MOVE PRUNING                                                                                             //
     // =====================================================================================================================//
-    if  do_pruning && !in_check && !is_pv && beta.abs() < MATE_SCORE {
+    if  do_pruning && !in_check && !is_pv && !is_mate_score(beta.abs()) {
         let score_margin = ctx.params.snmp_scaling * depth as i32;
         if static_eval-score_margin >= beta {
             return static_eval-score_margin
@@ -270,7 +270,7 @@ pub fn negamax(
 
         if score >= beta  {
 
-            if score.abs() < MATE_SCORE -128{
+            if !is_mate_score(score.abs()){
                 return beta;
             }
 
@@ -311,7 +311,7 @@ pub fn negamax(
     // =====================================================================================================================//
     // FUTILITY PRUNING PART 1                                                                                              //
     // =====================================================================================================================//
-    if  depth <= ctx.params.fp_max_depth as usize && !is_pv && !in_check && alpha.abs() < MATE_SCORE && beta.abs() < MATE_SCORE && !is_excluded{
+    if  depth <= ctx.params.fp_max_depth as usize && !is_pv && !in_check && !is_mate_score(alpha.abs()) && !is_mate_score(beta.abs()) && !is_excluded{
         let margin = ctx.params.fp_base+ depth as i32 * ctx.params.fp_scaling + ctx.params.fp_improving_margin * improving as i32;
         can_futility_prune = static_eval+margin <= alpha;
     }
@@ -350,7 +350,7 @@ pub fn negamax(
         && !is_pv
         && !in_check
         && depth >= ctx.params.pc_min_depth as usize
-        && beta.abs() < MATE_SCORE - 128
+        && !is_mate_score(beta.abs())
         && do_probcut
         && false
     {
@@ -411,7 +411,7 @@ pub fn negamax(
             tt_entry.as_ref().and_then(|entry| {
                 let tt_depth_ok = entry.depth as usize + ctx.params.se_depth_ok as usize>= depth;
                 let tt_score = score_from_tt(entry.score, ply);
-                let not_mate = tt_score.abs() < MATE_SCORE - 100;
+                let not_mate = !is_mate_score(tt_score.abs());
                 let is_lower_bound = matches!(entry.bound, Bound::Lower | Bound::Exact);
 
                 if tt_depth_ok && not_mate && is_lower_bound {
@@ -868,5 +868,9 @@ fn check_time(ctx: &SearchContext) {
 fn minors_or_majors(pos : &Chess) -> Bitboard {
     let board = pos.board();
     (board.rooks_and_queens() | board.knights() | board.bishops()) & pos.us()
+}
+#[inline(always)]
+fn is_mate_score(score : i32) -> bool {
+    score > MATE_SCORE-128
 }
 
