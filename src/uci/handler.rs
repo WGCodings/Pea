@@ -347,7 +347,7 @@ fn print_spsa_options(params: &Params) {
     println!("option name nmp_verif_depth type spin default {} min 8 max 20", params.nmp_verif_depth);
     println!("option name snmp_scaling type spin default {} min 0 max 200", params.snmp_scaling);
     println!("option name lmr_min_searches type spin default {} min 1 max 15", params.lmr_min_searches);
-    println!("option name lmr_min_depth type spin default {} min 0 max 10", params.lmr_min_depth);
+    println!("option name lmr_min_depth type spin default {} min 2 max 10", params.lmr_min_depth);
     println!("option name lmr_history_divisor type spin default {} min 1024 max 32768", params.lmr_history_divisor);
     println!("option name lmr_see_thr type spin default {} min -150 max 100", params.lmr_see_thr);
     println!("option name aspw_min_depth type spin default {} min 1 max 10", params.aspw_min_depth);
