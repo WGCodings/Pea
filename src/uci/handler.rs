@@ -271,6 +271,7 @@ impl UciHandler {
             // ints
             "raz_max_depth"          => { if let Ok(x) = value.parse::<i32>() { params.raz_max_depth = x; } }
             "raz_thr"                => { if let Ok(x) = value.parse::<i32>() { params.raz_thr = x; } }
+            "raz_improving_margin"   => { if let Ok(x) = value.parse::<i32>() { params.raz_improving_margin = x; } }
             "nmp_margin"             => { if let Ok(x) = value.parse::<i32>() { params.nmp_margin = x; } }
             "nmp_scaling"            => { if let Ok(x) = value.parse::<i32>() { params.nmp_scaling = x; } }
             "nmp_improving_scaling"  => { if let Ok(x) = value.parse::<i32>() { params.nmp_improving_scaling = x; } }
@@ -333,6 +334,7 @@ fn print_spsa_options(params: &Params) {
     //int
     println!("option name raz_max_depth type spin default {} min 0 max 15", params.raz_max_depth );
     println!("option name raz_thr type spin default {} min 0 max 512", params.raz_thr);
+    println!("option name raz_improving_margin type spin default {} min -100 max 100", params.raz_thr);
     println!("option name nmp_margin type spin default {} min 0 max 250", params.nmp_margin);
     println!("option name nmp_scaling type spin default {} min 0 max 100", params.nmp_scaling);
     println!("option name nmp_improving_scaling type spin default {} min -100 max 200", params.nmp_improving_scaling);

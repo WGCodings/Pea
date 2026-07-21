@@ -10,6 +10,7 @@ use std::collections::BTreeMap;
 pub struct Params {
     pub raz_max_depth: i32,
     pub raz_thr: i32,
+    pub raz_improving_margin: i32,
 
     pub nmp_margin: i32,
     pub nmp_scaling: i32,
@@ -68,6 +69,7 @@ pub struct Params {
     pub pc_improving_margin: i32,
     pub pc_see_thr: i32,
 
+
 }
 
 impl Params {
@@ -88,6 +90,7 @@ impl Params {
             // RAZORING
             raz_max_depth: 5,
             raz_thr: 256,
+            raz_improving_margin: 0,
             // NULL MOVE PRUNING
             nmp_margin : 114,
             nmp_scaling : 17,

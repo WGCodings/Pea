@@ -245,7 +245,7 @@ pub fn negamax(
 
     if  do_pruning && !in_check && !is_pv &&
         static_eval + nmp_margin >= beta &&
-        do_null &&
+        do_null && !is_root &&
         depth >=ctx.params.nmp_min_depth as usize {
 
         let mut reduction = (ctx.params.nmp_base_reduction as usize + depth/ctx.params.nmp_reduction_scaling as usize).min(depth);
@@ -300,7 +300,7 @@ pub fn negamax(
     // TODO ADD IMRPOVING HEURISTIC TO MARGIN
     if  do_pruning && !in_check && !is_pv
         && depth <= ctx.params.raz_max_depth as usize
-        && static_eval + ctx.params.raz_thr *(depth as i32)  + improving as i32 * 0 < alpha
+        && static_eval + ctx.params.raz_thr *(depth as i32)  + improving as i32 * ctx.params.raz_improving_margin < alpha
     {
         let razor_score = quiescence(pos,ctx,alpha,beta,ply);
         if razor_score <= alpha{
