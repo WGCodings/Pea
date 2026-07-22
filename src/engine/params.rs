@@ -88,70 +88,81 @@ impl Params {
 
     pub fn default() -> Self {
         Self {
-            // RAZORING
-            raz_max_depth: 5,
-            raz_thr: 202,
-            raz_improving_margin: 55,
+            raz_max_depth: 7,
+            raz_thr: 204,
+            raz_improving_margin: 48,
+
             // NULL MOVE PRUNING
-            nmp_margin : 188,
-            nmp_scaling : 11,
-            nmp_improving_scaling: -99,
-            nmp_min_depth: 4,
-            nmp_base_reduction: 3,
-            nmp_reduction_scaling: 8,
-            nmp_verif_depth: 10,
+            nmp_margin: 180,
+            nmp_scaling: 8,
+            nmp_improving_scaling: -87,
+            nmp_min_depth: 5,
+            nmp_base_reduction: 4,
+            nmp_reduction_scaling: 9,
+            nmp_verif_depth: 8,
+
             // STATIC NULL MOVE PRUNING
-            snmp_scaling: 49,
+            snmp_scaling: 69,
+
             // LATE MOVE REDUCTION
             lmr_min_searches: 4,
             lmr_min_depth: 2,
-            lmr_red_constant: 0.5056,
-            lmr_red_scaling: 2.2434,
-            lmr_history_divisor: 4531,
-            lmr_see_thr: 10,
+            lmr_red_constant: 0.6016,
+            lmr_red_scaling: 2.0328,
+            lmr_history_divisor: 8370,
+            lmr_see_thr: 7,
+
             // ASPIRATION WINDOW
             aspw_min_depth: 7,
-            aspw_window_size: 28,
-            aspw_widening_factor: 2.1893,
-            //FUTILITY PRUNING
-            fp_base: 39,
-            fp_scaling : 86,
+            aspw_window_size: 36,
+            aspw_widening_factor: 2.2421,
+
+            // FUTILITY PRUNING
+            fp_base: 28,
+            fp_scaling: 76,
             fp_max_depth: 11,
-            fp_improving_margin: 8,
-            fp_min_moves_searched: 6,
+            fp_improving_margin: 1,
+            fp_min_moves_searched: 5,
+
             // REVERSE FUTILITY PRUNING
-            rfp_scaling: 73,
-            rfp_improving_scaling: 108,
-            rfp_max_depth: 13,
+            rfp_scaling: 69,
+            rfp_improving_scaling: 122,
+            rfp_max_depth: 15,
+
             // LATE MOVE PRUNING
-            lmp_base: 7,
-            lmp_lin_scaling: 1,
+            lmp_base: 8,
+            lmp_lin_scaling: 2,
             lmp_quad_scaling: 1,
-            lmp_max_depth: 4,
+            lmp_max_depth: 3,
+
             // N-PLY CONTINUATION HISTORY
-            cont_hist_scaling: 450,
-            cont_hist_base: 169,
+            cont_hist_scaling: 500,
+            cont_hist_base: 177,
             cont_hist_malus_scaling: 1,
-            // hanging piece pruning
-            hpp_quiet_scaling: 22,
-            hpp_tactical_scaling: 43,
-            // internal iterative deepening
-            iir_min_depth: 5,
-            se_dext_margin: 15,
-            se_scaling: 5,
+
+            // Hanging piece pruning
+            hpp_quiet_scaling: 23,
+            hpp_tactical_scaling: 36,
+
+            // Internal iterative deepening
+            iir_min_depth: 4,
+            se_dext_margin: 11,
+            se_scaling: 3,
             se_depth_ok: 7,
-            se_min_depth: 12,
-            se_text_margin: 137,
+            se_min_depth: 10,
+            se_text_margin: 145,
             se_max_nr_dext: 8,
+
             // History pruning
-            hist_prune_margin: 297,
+            hist_prune_margin: 124,
             hist_prune_depth: 3,
-            // probcut
-            pc_beta_margin: 312,
-            pc_depth_divisor: 18,
-            pc_min_depth: 3,
-            pc_improving_margin: 90,
-            pc_see_thr: 95,
+
+            // ProbCut
+            pc_beta_margin: 345,
+            pc_depth_divisor: 35,
+            pc_min_depth: 4,
+            pc_improving_margin: 100,
+            pc_see_thr: 130,
         }
     }
 }
