@@ -154,7 +154,7 @@ impl Params {
             se_max_nr_dext: 8,
 
             // History pruning
-            hist_prune_margin: 124,
+            hist_prune_margin: 1024,
             hist_prune_depth: 3,
 
             // ProbCut
