@@ -244,7 +244,7 @@ pub fn negamax(
 
     if  do_pruning && !in_check && !is_pv &&
         static_eval + nmp_margin >= beta &&
-        do_null && !is_root &&
+        do_null && !is_root && cut_node &&
         depth >=ctx.params.nmp_min_depth as usize {
 
         // TODO add term (static_eval-beta)/divisor to reduction formula
@@ -336,7 +336,7 @@ pub fn negamax(
     // =====================================================================================================================//
     // TODO try extra reduction of larger depth
     // TODO add cutnode condition
-    if tt_move.is_none() && depth >= ctx.params.iir_min_depth as usize {
+    if tt_move.is_none() && depth >= ctx.params.iir_min_depth as usize && cut_node{
         depth -= 1;
     }
 
@@ -358,6 +358,7 @@ pub fn negamax(
         && depth >= ctx.params.pc_min_depth as usize
         && !is_mate_score(beta)
         && do_probcut
+        && cut_node
         && false
     {
         let probcut_depth = (depth - 3 - ((static_eval-beta)/ctx.params.pc_depth_divisor) as usize)
