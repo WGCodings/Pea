@@ -762,6 +762,7 @@ pub fn quiescence(
 
     let mut node_type = Bound::Upper;
     //let mut moves_searched = 0;
+    
 
     let mut moves = pos.capture_moves();
 
