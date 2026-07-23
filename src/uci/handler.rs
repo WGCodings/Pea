@@ -301,6 +301,7 @@ impl UciHandler {
             "cont_hist_scaling"      => { if let Ok(x) = value.parse::<i32>() { params.cont_hist_scaling = x; } }
             "cont_hist_base"         => { if let Ok(x) = value.parse::<i32>() { params.cont_hist_base = x; } }
             "cont_hist_malus_scaling"=> { if let Ok(x) = value.parse::<i32>() { params.cont_hist_malus_scaling = x; } }
+            "cont_hist_malus_base"   => { if let Ok(x) = value.parse::<i32>() { params.cont_hist_malus_base = x; }}
             "hpp_quiet_scaling"      => { if let Ok(x) = value.parse::<i32>() { params.hpp_quiet_scaling = x; } }
             "hpp_tactical_scaling"   => { if let Ok(x) = value.parse::<i32>() { params.hpp_tactical_scaling = x; } }
             "iir_min_depth"          => { if let Ok(x) = value.parse::<i32>() { params.iir_min_depth = x; } }
@@ -348,7 +349,7 @@ fn print_spsa_options(params: &Params) {
     println!("option name snmp_scaling type spin default {} min 0 max 200", params.snmp_scaling);
     println!("option name lmr_min_searches type spin default {} min 1 max 15", params.lmr_min_searches);
     println!("option name lmr_min_depth type spin default {} min 0 max 10", params.lmr_min_depth);
-    println!("option name lmr_history_divisor type spin default {} min 1024 max 32768", params.lmr_history_divisor);
+    println!("option name lmr_history_divisor type spin default {} min 4096 max 32768", params.lmr_history_divisor);
     println!("option name lmr_see_thr type spin default {} min -150 max 100", params.lmr_see_thr);
     println!("option name aspw_min_depth type spin default {} min 1 max 10", params.aspw_min_depth);
     println!("option name aspw_window_size type spin default {} min 5 max 150", params.aspw_window_size);
@@ -359,14 +360,15 @@ fn print_spsa_options(params: &Params) {
     println!("option name fp_min_moves_searched type spin default {} min 1 max 10", params.fp_min_moves_searched);
     println!("option name rfp_scaling type spin default {} min 0 max 150", params.rfp_scaling);
     println!("option name rfp_improving_scaling type spin default {} min 0 max 200", params.rfp_improving_scaling);
-    println!("option name rfp_max_depth type spin default {} min 0 max 15", params.rfp_max_depth);
+    println!("option name rfp_max_depth type spin default {} min 0 max 25", params.rfp_max_depth);
     println!("option name lmp_base type spin default {} min 0 max 10", params.lmp_base);
     println!("option name lmp_lin_scaling type spin default {} min 0 max 10", params.lmp_lin_scaling);
     println!("option name lmp_quad_scaling type spin default {} min 0 max 10", params.lmp_quad_scaling);
     println!("option name lmp_max_depth type spin default {} min 0 max 15", params.lmp_max_depth);
-    println!("option name cont_hist_scaling type spin default {} min 50 max 500", params.cont_hist_scaling);
-    println!("option name cont_hist_base type spin default {} min 0 max 300", params.cont_hist_base);
-    println!("option name cont_hist_malus_scaling type spin default {} min 1 max 5", params.cont_hist_malus_scaling);
+    println!("option name cont_hist_scaling type spin default {} min 200 max 1000", params.cont_hist_scaling);
+    println!("option name cont_hist_base type spin default {} min 100 max 300", params.cont_hist_base);
+    println!("option name cont_hist_malus_scaling type spin default {} min 200 max 1000", params.cont_hist_malus_scaling);
+    println!("option name cont_hist_malus_base type spin default {} min 100 max 300", params.cont_hist_malus_base);
     println!("option name hpp_tactictal_scaling type spin default {} min 20 max 160", params.hpp_tactical_scaling);
     println!("option name hpp_quiet_scaling type spin default {} min 0 max 100", params.hpp_quiet_scaling);
     println!("option name iir_min_depth type spin default {} min 0 max 10", params.iir_min_depth);
@@ -376,7 +378,7 @@ fn print_spsa_options(params: &Params) {
     println!("option name se_min_depth type spin default {} min 2 max 12", params.se_min_depth);
     println!("option name se_text_margin type spin default {} min 25 max 150", params.se_text_margin);
     println!("option name se_max_nr_dext type spin default {} min 2 max 16", params.se_max_nr_dext);
-    println!("option name hist_prune_margin type spin default {} min 50 max 2500", params.hist_prune_margin);
+    println!("option name hist_prune_margin type spin default {} min 512 max 2048", params.hist_prune_margin);
     println!("option name hist_prune_depth type spin default {} min 2 max 10", params.hist_prune_depth);
     println!("option name pc_beta_margin type spin default {} min 64 max 512", params.pc_beta_margin);
     println!("option name pc_depth_divisor type spin default {} min 1 max 300", params.pc_depth_divisor);

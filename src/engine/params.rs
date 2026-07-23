@@ -42,6 +42,7 @@ pub struct Params {
     pub cont_hist_scaling: i32,
     pub cont_hist_base: i32,
     pub cont_hist_malus_scaling: i32,
+    pub cont_hist_malus_base: i32,
 
     pub lmp_base: i32,
     pub lmp_lin_scaling: i32,
@@ -131,7 +132,8 @@ impl Params {
             // N-PLY CONTINUATION HISTORY
             cont_hist_scaling: 375,
             cont_hist_base: 150,
-            cont_hist_malus_scaling: 1,
+            cont_hist_malus_scaling: 375,
+            cont_hist_malus_base: 150,
             // hanging piece pruning
             hpp_quiet_scaling: 21,
             hpp_tactical_scaling: 80,
@@ -152,6 +154,7 @@ impl Params {
             pc_min_depth: 9,
             pc_improving_margin: 10,
             pc_see_thr: 0,
+
         }
     }
 }

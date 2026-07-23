@@ -654,7 +654,7 @@ pub fn negamax(
 
         if score >= beta {
             let bonus = ctx.params.cont_hist_scaling * depth as i32 - ctx.params.cont_hist_base;
-            let malus = ctx.params.cont_hist_scaling * depth as i32 - ctx.params.cont_hist_base;
+            let malus = ctx.params.cont_hist_malus_scaling * depth as i32 - ctx.params.cont_hist_malus_base;
             node_type = Bound::Lower;
 
             if !is_capture{
