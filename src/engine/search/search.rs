@@ -612,6 +612,10 @@ pub fn negamax(
                     }
                 }
 
+                if !improving{
+                    reduction += 1;
+                }
+
                 if see as i32 <= ctx.params.lmr_see_thr {
                     reduction += 1;
                 }
