@@ -601,7 +601,7 @@ pub fn negamax(
             if moves_searched >=ctx.params.lmr_min_searches && depth >= ctx.params.lmr_min_depth as usize && !in_check && is_quiet{
 
                 // Base reduction
-                reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as i32;
+                reduction = (ctx.params.lmr_red_constant-0.5+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as i32;
 
                 // TODO increase reduction if not improving/cut node/expected cut node
                 // TODO decrease if passed pawn push
