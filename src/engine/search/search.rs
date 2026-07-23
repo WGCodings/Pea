@@ -1,4 +1,5 @@
 use std::cmp;
+use std::cmp::min;
 use std::sync::atomic::Ordering;
 
 use std::time::{Duration, Instant};
@@ -229,7 +230,7 @@ pub fn negamax(
     // =====================================================================================================================//
     // STATIC NULL MOVE PRUNING                                                                                             //
     // =====================================================================================================================//
-    if  do_pruning && !in_check && !is_pv && !is_mate_score(beta.abs()) {
+    if  do_pruning && !in_check && !is_pv && !is_mate_score(beta) {
         let score_margin = ctx.params.snmp_scaling * depth as i32;
         if static_eval-score_margin >= beta {
             return static_eval-score_margin
@@ -248,7 +249,7 @@ pub fn negamax(
 
         // TODO add term (static_eval-beta)/divisor to reduction formula
 
-        let mut reduction = ctx.params.nmp_base_reduction as usize + depth/ctx.params.nmp_reduction_scaling as usize;
+        let mut reduction = (ctx.params.nmp_base_reduction as usize + depth/ctx.params.nmp_reduction_scaling as usize).min(depth);
 
         reduction += 2*improving as usize;
 
@@ -270,7 +271,7 @@ pub fn negamax(
 
         if score >= beta  {
 
-            if !is_mate_score(score.abs()){
+            if !is_mate_score(score){
                 return beta;
             }
 
@@ -310,7 +311,7 @@ pub fn negamax(
     // =====================================================================================================================//
     // FUTILITY PRUNING PART 1                                                                                              //
     // =====================================================================================================================//
-    if  depth <= ctx.params.fp_max_depth as usize && !is_pv && !in_check && !is_mate_score(alpha.abs()) && !is_mate_score(beta.abs()) && !is_excluded{
+    if  depth <= ctx.params.fp_max_depth as usize && !is_pv && !in_check && !is_mate_score(alpha) && !is_mate_score(beta) && !is_excluded{
         let margin = ctx.params.fp_base+ depth as i32 * ctx.params.fp_scaling + ctx.params.fp_improving_margin * improving as i32;
         can_futility_prune = static_eval+margin <= alpha;
     }
@@ -350,7 +351,7 @@ pub fn negamax(
         && !is_pv
         && !in_check
         && depth >= ctx.params.pc_min_depth as usize
-        && !is_mate_score(beta.abs())
+        && !is_mate_score(beta)
         && do_probcut
         && false
     {
@@ -762,7 +763,7 @@ pub fn quiescence(
 
     let mut node_type = Bound::Upper;
     //let mut moves_searched = 0;
-    
+
 
     let mut moves = pos.capture_moves();
 
@@ -878,6 +879,6 @@ fn minors_or_majors(pos : &Chess) -> Bitboard {
 }
 #[inline(always)]
 fn is_mate_score(score : i32) -> bool {
-    score > MATE_SCORE-128
+    score.abs() > MATE_SCORE-128
 }
 
