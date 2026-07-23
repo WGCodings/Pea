@@ -734,7 +734,7 @@ pub fn quiescence(
         }
     }
 
-    // TODO if in check, generate all evasions, not only capture evasions
+
     let raw_eval = if in_check{
         -MATE_SCORE + ply as i32
     }
@@ -766,8 +766,15 @@ pub fn quiescence(
     let mut node_type = Bound::Upper;
     //let mut moves_searched = 0;
 
+    // TODO if in check, generate all evasions, not only capture evasions
 
-    let mut moves = pos.capture_moves();
+
+
+    if in_check{
+
+    }
+
+    let mut moves = if in_check{ pos.legal_moves() } else { pos.capture_moves() };
 
     ctx.ordering.order_captures(pos, &mut moves);
 
