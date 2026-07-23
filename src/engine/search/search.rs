@@ -269,6 +269,8 @@ pub fn negamax(
         std::mem::swap(&mut ctx.nnue.us, &mut ctx.nnue.them);
         ctx.decrease_history();
 
+        if (*ctx.stop).load(Ordering::Relaxed){ return DRAW_SCORE;}
+
         if score >= beta  {
 
             if !is_mate_score(score){
@@ -879,6 +881,6 @@ fn minors_or_majors(pos : &Chess) -> Bitboard {
 }
 #[inline(always)]
 fn is_mate_score(score : i32) -> bool {
-    score.abs() > MATE_SCORE-128
+    score.abs() >= MATE_SCORE-128
 }
 
