@@ -1,5 +1,4 @@
 use std::cmp;
-use std::cmp::min;
 use std::sync::atomic::Ordering;
 
 use std::time::{Duration, Instant};
@@ -70,7 +69,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, uci : &UciState, max_depth: 
         let score = if depth >= ctx.params.aspw_min_depth as usize{
             aspiration_search(pos, ctx, depth, prev_score, avg_score, &mut pv)
         } else {
-            negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, true, &mut pv)
+            negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, true, false, &mut pv)
         };
 
         if (*ctx.stop).load(Ordering::Relaxed) && depth >1 { break; }
@@ -114,6 +113,7 @@ pub fn negamax(
     mut alpha: i32,
     mut beta: i32,
     do_null : bool,
+    cut_node : bool,
     pv: &mut PvTable,
 ) -> i32 {
     (*ctx.node_count).fetch_add(1, Ordering::Relaxed);
@@ -130,6 +130,7 @@ pub fn negamax(
 
 
     let mut best_score = MIN_INF;
+    let mut corr = 0;
     let mut best_move = None;
 
     if ply > 0 {
@@ -197,9 +198,8 @@ pub fn negamax(
     let static_eval = if is_excluded {
         raw_eval
     } else {
-        raw_eval
-            + ctx.corrhist_pawn.correct_evaluation(pos)
-            + ctx.corrhist_material.correct_evaluation(pos)
+        corr = ctx.corrhist_pawn.correct_evaluation(pos) + ctx.corrhist_material.correct_evaluation(pos);
+        raw_eval + corr
     };
 
 
@@ -248,6 +248,7 @@ pub fn negamax(
         depth >=ctx.params.nmp_min_depth as usize {
 
         // TODO add term (static_eval-beta)/divisor to reduction formula
+        // TODO add cutnode condition
 
         let mut reduction = (ctx.params.nmp_base_reduction as usize + depth/ctx.params.nmp_reduction_scaling as usize).min(depth);
 
@@ -262,7 +263,7 @@ pub fn negamax(
         let hash_child = child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
         ctx.increase_history(hash_child);
 
-        let score = -negamax(&child_pos, ctx, depth - reduction, ply + 1, -beta, -beta + 1, false, &mut PvTable::new());
+        let score = -negamax(&child_pos, ctx, depth - reduction, ply + 1, -beta, -beta + 1, false, false, &mut PvTable::new());
 
         //TODO add verification
 
@@ -334,6 +335,7 @@ pub fn negamax(
     // INTERNAL ITERATIVE REDUCTION                                                                                         //
     // =====================================================================================================================//
     // TODO try extra reduction of larger depth
+    // TODO add cutnode condition
     if tt_move.is_none() && depth >= ctx.params.iir_min_depth as usize {
         depth -= 1;
     }
@@ -343,6 +345,7 @@ pub fn negamax(
     // =====================================================================================================================//
     // TODO optimise, filter captures from moves above and calculate SEE once
     // TODO experiment with parameters, maybe add improving heuristic later
+    // TODO add cutnode condition
 
     let probcut_beta = beta + ctx.params.pc_beta_margin - i32::from(improving) * ctx.params.pc_improving_margin;
 
@@ -391,7 +394,7 @@ pub fn negamax(
 
 
             if probcut_score >= probcut_beta {
-                probcut_score = -negamax(&child_pos, ctx, probcut_depth, ply + 1, -probcut_beta, -probcut_beta + 1, false, &mut PvTable::new());
+                probcut_score = -negamax(&child_pos, ctx, probcut_depth, ply + 1, -probcut_beta, -probcut_beta + 1, false, false, &mut PvTable::new());
             }
 
             ctx.decrease_history();
@@ -542,7 +545,7 @@ pub fn negamax(
 
 
                 ctx.excluded_move[ply] = Some(mv);
-                let se_score = negamax(pos, ctx, se_depth, ply, se_beta - 1, se_beta, false, &mut se_pv);
+                let se_score = negamax(pos, ctx, se_depth, ply, se_beta - 1, se_beta, false, cut_node, &mut se_pv);
                 ctx.excluded_move[ply] = None;
 
 
@@ -571,6 +574,7 @@ pub fn negamax(
                 else if tt_score >= beta {
                     extension -= 1;
                 }
+                // TODO if cut node ext = -2
             }
         }
 
@@ -592,7 +596,7 @@ pub fn negamax(
         // START PVS SEARCH WITH FULL WINDOW FOR THE FIRST MOVE AND LMR FOR LATE MOVES                                          //
         // =====================================================================================================================//
         if moves_searched == 1{
-            score = -negamax(&child_pos, ctx, depth - 1 + extension as usize, ply + 1, -beta, -alpha, true, &mut local_pv);
+            score = -negamax(&child_pos, ctx, depth - 1 + extension as usize, ply + 1, -beta, -alpha, true, !is_pv && !cut_node, &mut local_pv);
         }
         else {
             let mut reduction : i32;
@@ -612,9 +616,12 @@ pub fn negamax(
                     }
                 }
 
-                if !improving{
-                    reduction += 1;
-                }
+                reduction += i32::from(!improving);
+
+                reduction += i32::from(cut_node);
+
+                reduction -= corr.abs()/ctx.params.lmr_corr_scaling;
+
 
                 if see as i32 <= ctx.params.lmr_see_thr {
                     reduction += 1;
@@ -635,13 +642,13 @@ pub fn negamax(
 
             }
 
-            score = -negamax(&child_pos, ctx, (depth - 1 - red_clamped + extension as usize).max(0) , ply + 1, -alpha-1, -alpha, true, &mut local_pv);
+            score = -negamax(&child_pos, ctx, (depth - 1 - red_clamped + extension as usize).max(0) , ply + 1, -alpha-1, -alpha, true, true, &mut local_pv);
 
             if score > alpha && red_clamped >0 {
-                score = -negamax(&child_pos, ctx, (depth - 1 + extension as usize).max(0), ply + 1, -alpha - 1, -alpha, true, &mut local_pv);
+                score = -negamax(&child_pos, ctx, (depth - 1 + extension as usize).max(0), ply + 1, -alpha - 1, -alpha, true, !cut_node, &mut local_pv);
             }
             if score > alpha && score < beta {
-                score = -negamax(&child_pos, ctx, (depth - 1 + extension as usize).max(0), ply + 1, -beta, -alpha, true, &mut local_pv);
+                score = -negamax(&child_pos, ctx, (depth - 1 + extension as usize).max(0), ply + 1, -beta, -alpha, true, false, &mut local_pv);
             }
         }
 
@@ -835,7 +842,7 @@ fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, pre
     let mut depth = max_depth;
 
     loop {
-        let score = negamax(pos, ctx, depth, 0, alpha, beta, true, pv);
+        let score = negamax(pos, ctx, depth, 0, alpha, beta, true, false, pv);
 
         if (*ctx.stop).load(Ordering::Relaxed) { return score; }
 

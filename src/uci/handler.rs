@@ -284,6 +284,7 @@ impl UciHandler {
             "lmr_min_depth"          => { if let Ok(x) = value.parse::<i32>() { params.lmr_min_depth = x; } }
             "lmr_history_divisor"    => { if let Ok(x) = value.parse::<i32>() { params.lmr_history_divisor = x; } }
             "lmr_see_thr"            => { if let Ok(x) = value.parse::<i32>() { params.lmr_see_thr = x; } }
+            "lmr_corr_scaling"       => { if let Ok(x) = value.parse::<i32>() { params.lmr_corr_scaling = x; } }
             "aspw_min_depth"         => { if let Ok(x) = value.parse::<i32>() { params.aspw_min_depth = x; } }
             "aspw_window_size"       => { if let Ok(x) = value.parse::<i32>() { params.aspw_window_size = x; } }
             "fp_base"                => { if let Ok(x) = value.parse::<i32>() { params.fp_base = x; } }
@@ -351,6 +352,7 @@ fn print_spsa_options(params: &Params) {
     println!("option name lmr_min_depth type spin default {} min 0 max 10", params.lmr_min_depth);
     println!("option name lmr_history_divisor type spin default {} min 4096 max 32768", params.lmr_history_divisor);
     println!("option name lmr_see_thr type spin default {} min -150 max 100", params.lmr_see_thr);
+    println!("option name lmr_corr_scaling type spin default {} min 20 max 60", params.lmr_corr_scaling);
     println!("option name aspw_min_depth type spin default {} min 1 max 10", params.aspw_min_depth);
     println!("option name aspw_window_size type spin default {} min 5 max 150", params.aspw_window_size);
     println!("option name fp_base type spin default {} min 0 max 120", params.fp_base);
