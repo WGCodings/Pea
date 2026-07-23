@@ -1,5 +1,4 @@
 use std::cmp;
-use std::cmp::min;
 use std::sync::atomic::Ordering;
 
 use std::time::{Duration, Instant};
@@ -768,11 +767,6 @@ pub fn quiescence(
 
     // TODO if in check, generate all evasions, not only capture evasions
 
-
-
-    if in_check{
-
-    }
 
     let mut moves = if in_check{ pos.legal_moves() } else { pos.capture_moves() };
 
