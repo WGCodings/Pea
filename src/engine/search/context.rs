@@ -31,6 +31,7 @@ pub struct SearchContext<'a> {
 
     pub stats: SearchStats, // Some search statistics
 
+    // TODO make fixed length array from it
     pub repetition_stack: Vec<u64>, // Stack of moves from previous moves played in the game, important for 3 fold repetition
     pub tt: &'a TranspositionTable, // TT
 

@@ -28,6 +28,7 @@ pub struct Params {
     pub lmr_red_scaling: f32,
     pub lmr_history_divisor: i32,
     pub lmr_see_thr: i32,
+    pub lmr_corr_scaling: i32,
 
     pub aspw_min_depth: i32,
     pub aspw_window_size: i32,
@@ -106,10 +107,11 @@ impl Params {
             // LATE MOVE REDUCTION
             lmr_min_searches: 6,
             lmr_min_depth: 3,
-            lmr_red_constant: 0.7844,
-            lmr_red_scaling: 2.4695,
-            lmr_history_divisor: 8192,
-            lmr_see_thr: 0,
+            lmr_red_constant: 0.7894,
+            lmr_red_scaling: 2.4207,
+            lmr_history_divisor: 8113,
+            lmr_see_thr: 3,
+            lmr_corr_scaling: 32,
             // ASPIRATION WINDOW
             aspw_min_depth: 5,
             aspw_window_size: 30,
