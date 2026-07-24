@@ -570,15 +570,16 @@ pub fn negamax(
                         }
 
                     }
-                } else if se_beta >= beta && !is_pv{
+                } else if se_beta >= beta{
                     return se_beta;
                 }
+                else if tt_score >= beta {
+                    extension -= 1;
+                }
                 else if cut_node {
-                    extension = -2;
+                    extension -= 2;
                 }
-                else {
-                    extension = 0;
-                }
+
             }
         }
 
