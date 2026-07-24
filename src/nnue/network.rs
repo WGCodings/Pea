@@ -5,7 +5,7 @@ const QB: i16 = 64;
 
 const NUM_OUTPUT_BUCKETS : usize = 8;
 
-
+use std::arch::x86_64::*;
 
 use shakmaty::{Chess, Color, Position, Role};
 
@@ -100,6 +100,7 @@ pub struct Network {
 impl Network {
     /// Calculates the output of the network, starting from the already
     /// calculated hidden layer (done efficiently during makemoves).
+    #[cfg(not(target_feature = "avx2"))]
     pub fn evaluate(&self, us: &Accumulator, them: &Accumulator, pos : &Chess) -> i32 {
         let mut output = 0;
         let bucket = self.bucket(pos);
@@ -127,6 +128,65 @@ impl Network {
         output /= i32::from(QA) * i32::from(QB);
 
         output
+    }
+
+    #[cfg(target_feature = "avx2")]
+    pub fn evaluate(&self, us: &Accumulator, them: &Accumulator, pos: &Chess) -> i32 {
+        let bucket = self.bucket(pos);
+        let offset = bucket * 2 * HIDDEN_SIZE;
+        let us_weights = &self.output_weights[offset..offset + HIDDEN_SIZE];
+        let them_weights = &self.output_weights[offset + HIDDEN_SIZE..offset + 2 * HIDDEN_SIZE];
+        unsafe {
+            let zero = _mm256_setzero_si256();
+            let qa = _mm256_set1_epi16(QA);
+
+            let sum = _mm256_add_epi32(Self::screlu_avx2(&us.vals, us_weights, zero, qa), Self::screlu_avx2(&them.vals, them_weights, zero, qa));
+
+            let mut output = Self::hsum_epi32(sum);
+
+            output /= i32::from(QA);
+            output += i32::from(self.output_bias[bucket]);
+            output *= SCALE;
+            output /= i32::from(QA) * i32::from(QB);
+            output
+        }
+    }
+
+    #[cfg(target_feature = "avx2")]
+    #[inline(always)]
+    unsafe fn screlu_avx2(
+        inputs: &[i16; HIDDEN_SIZE],
+        weights: &[i16],
+        zero: __m256i,
+        qa: __m256i,
+    ) -> __m256i {
+        let mut acc = _mm256_setzero_si256();
+        let in_ptr = inputs.as_ptr();
+        let w_ptr = weights.as_ptr();
+
+        for i in (0..HIDDEN_SIZE).step_by(16) {
+            let x = _mm256_load_si256(in_ptr.add(i) as *const __m256i);
+            let w = _mm256_loadu_si256(w_ptr.add(i) as *const __m256i);
+
+            let clamped = _mm256_min_epi16(_mm256_max_epi16(x, zero), qa);
+            let t = _mm256_mullo_epi16(clamped, w);
+            let prod = _mm256_madd_epi16(clamped, t);
+
+            acc = _mm256_add_epi32(acc, prod);
+        }
+        acc
+    }
+    #[cfg(target_feature = "avx2")]
+    #[inline(always)]
+    unsafe fn hsum_epi32(v: __m256i) -> i32 {
+        let hi = _mm256_extracti128_si256(v, 1);
+        let lo = _mm256_castsi256_si128(v);
+        let sum128 = _mm_add_epi32(hi, lo);
+        let hi64 = _mm_unpackhi_epi64(sum128, sum128);
+        let sum64 = _mm_add_epi32(sum128, hi64);
+        let hi32 = _mm_shuffle_epi32(sum64, 0b01);
+        let sum32 = _mm_add_epi32(sum64, hi32);
+        _mm_cvtsi128_si32(sum32)
     }
 
     pub fn load() -> &'static Network {
@@ -175,11 +235,10 @@ impl Network {
 
         material_bucket * 3 + queen_bucket
     }
-
-
      */
 
 }
+
 
 /// A column of the feature-weights matrix.
 /// Note the `align(64)`.
@@ -197,6 +256,7 @@ impl Accumulator {
     }
 
     /// Add a feature to an accumulator.
+    #[cfg(not(target_feature = "avx2"))]
     pub fn add_feature(&mut self, feature_idx: usize, net: &Network) {
         for (i, d) in self.vals.iter_mut().zip(&net.feature_weights[feature_idx].vals) {
             *i += *d
@@ -204,9 +264,36 @@ impl Accumulator {
     }
 
     /// Remove a feature from an accumulator.
+     #[cfg(not(target_feature = "avx2"))]
     pub fn remove_feature(&mut self, feature_idx: usize, net: &Network) {
         for (i, d) in self.vals.iter_mut().zip(&net.feature_weights[feature_idx].vals) {
             *i -= *d
+        }
+    }
+    #[cfg(target_feature = "avx2")]
+    pub fn add_feature(&mut self, feature_idx: usize, net: &Network) {
+        unsafe {
+            let src = net.feature_weights[feature_idx].vals.as_ptr();
+            let dst = self.vals.as_mut_ptr();
+            for i in (0..HIDDEN_SIZE).step_by(16) {
+                let a = _mm256_load_si256(dst.add(i) as *const __m256i);
+                let b = _mm256_load_si256(src.add(i) as *const __m256i);
+                let sum = _mm256_add_epi16(a, b);
+                _mm256_store_si256(dst.add(i) as *mut __m256i, sum);
+            }
+        }
+    }
+    #[cfg(target_feature = "avx2")]
+    pub fn remove_feature(&mut self, feature_idx: usize, net: &Network) {
+        unsafe {
+            let src = net.feature_weights[feature_idx].vals.as_ptr();
+            let dst = self.vals.as_mut_ptr();
+            for i in (0..HIDDEN_SIZE).step_by(16) {
+                let a = _mm256_load_si256(dst.add(i) as *const __m256i);
+                let b = _mm256_load_si256(src.add(i) as *const __m256i);
+                let diff = _mm256_sub_epi16(a, b);
+                _mm256_store_si256(dst.add(i) as *mut __m256i, diff);
+            }
         }
     }
 }
