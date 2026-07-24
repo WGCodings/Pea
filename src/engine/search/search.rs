@@ -576,10 +576,12 @@ pub fn negamax(
                 else if tt_score >= beta {
                     extension -= 1;
                 }
+                /*
+                        
                 else if cut_node {
                     extension -= 2;
                 }
-
+                */
             }
         }
 
