@@ -344,8 +344,8 @@ fn print_spsa_options(params: &Params) {
     println!("option name nmp_scaling type spin default {} min 0 max 100", params.nmp_scaling);
     println!("option name nmp_improving_scaling type spin default {} min -100 max 200", params.nmp_improving_scaling);
     println!("option name nmp_min_depth type spin default {} min 2 max 10", params.nmp_min_depth);
-    println!("option name nmp_base_reduction type spin default {} min 0 max 8", params.nmp_base_reduction);
-    println!("option name nmp_reduction_scaling type spin default {} min 0 max 10", params.nmp_reduction_scaling);
+    println!("option name nmp_base_reduction type spin default {} min 1 max 5", params.nmp_base_reduction);
+    println!("option name nmp_reduction_scaling type spin default {} min 1 max 10", params.nmp_reduction_scaling);
     println!("option name nmp_verif_depth type spin default {} min 8 max 20", params.nmp_verif_depth);
     println!("option name snmp_scaling type spin default {} min 0 max 200", params.snmp_scaling);
     println!("option name lmr_min_searches type spin default {} min 1 max 10", params.lmr_min_searches);
