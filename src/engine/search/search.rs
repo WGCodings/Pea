@@ -602,8 +602,10 @@ pub fn negamax(
         // =====================================================================================================================//
         // START PVS SEARCH WITH FULL WINDOW FOR THE FIRST MOVE AND LMR FOR LATE MOVES                                          //
         // =====================================================================================================================//
+
+        let extended_depth = (depth as i32 + extension).max(0) as usize;
         if moves_searched == 1{
-            score = -negamax(&child_pos, ctx, depth - 1 + extension as usize, ply + 1, -beta, -alpha, true, !is_pv && !cut_node, &mut local_pv);
+            score = -negamax(&child_pos, ctx, extended_depth - 1, ply + 1, -beta, -alpha, true, !is_pv && !cut_node, &mut local_pv);
         }
         else {
             let mut reduction : i32;
@@ -645,17 +647,17 @@ pub fn negamax(
 
                 reduction -= hist_red;
 
-                red_clamped = (reduction.max(0) as usize).clamp(0,depth - 1);
+                red_clamped = (reduction.max(0) as usize).clamp(0,extended_depth - 1);
 
             }
 
-            score = -negamax(&child_pos, ctx, (depth - 1 - red_clamped + extension as usize).max(0) , ply + 1, -alpha-1, -alpha, true, true, &mut local_pv);
+            score = -negamax(&child_pos, ctx, (extended_depth - 1 - red_clamped).max(0) , ply + 1, -alpha-1, -alpha, true, true, &mut local_pv);
 
             if score > alpha && red_clamped >0 {
-                score = -negamax(&child_pos, ctx, (depth - 1 + extension as usize).max(0), ply + 1, -alpha - 1, -alpha, true, !cut_node, &mut local_pv);
+                score = -negamax(&child_pos, ctx, (extended_depth - 1).max(0), ply + 1, -alpha - 1, -alpha, true, !cut_node, &mut local_pv);
             }
             if score > alpha && score < beta {
-                score = -negamax(&child_pos, ctx, (depth - 1 + extension as usize).max(0), ply + 1, -beta, -alpha, true, false, &mut local_pv);
+                score = -negamax(&child_pos, ctx, (extended_depth - 1).max(0), ply + 1, -beta, -alpha, true, false, &mut local_pv);
             }
         }
 
