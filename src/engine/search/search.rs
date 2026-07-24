@@ -570,13 +570,18 @@ pub fn negamax(
                         }
 
                     }
-                } else if se_beta >= beta {
+                } else if se_beta >= beta && !is_pv{
                     return se_beta;
                 }
                 else if tt_score >= beta {
-                    extension -= 1;
+                    extension = -3 + i32::from(is_pv);
                 }
-                // TODO if cut node ext = -2
+                else if cut_node {
+                    extension = -2;
+                }
+                else {
+                    extension = 0;
+                }
             }
         }
 
@@ -606,7 +611,7 @@ pub fn negamax(
 
             if moves_searched >=ctx.params.lmr_min_searches && depth >= ctx.params.lmr_min_depth as usize && !in_check && is_quiet{
 
-                // Base reduction
+                // Base reductionQ
                 reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as i32;
 
                 // TODO increase reduction if not improving/cut node/expected cut node
