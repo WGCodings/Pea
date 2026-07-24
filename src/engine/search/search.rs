@@ -573,9 +573,6 @@ pub fn negamax(
                 } else if se_beta >= beta && !is_pv{
                     return se_beta;
                 }
-                else if tt_score >= beta {
-                    extension = -3 + i32::from(is_pv);
-                }
                 else if cut_node {
                     extension = -2;
                 }
