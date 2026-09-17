@@ -111,6 +111,77 @@ impl Network {
         (pos.board().occupied().count() - 2) / divisor
     }
 }
+
+#[cfg(target_feature = "avx512bw")]
+mod avx512 {
+    use std::arch::x86_64::*;
+    use shakmaty::Chess;
+    use crate::nnue::network::{Accumulator, Network, HIDDEN_SIZE, QA, QB, SCALE};
+
+    impl Network {
+        pub fn evaluate(&self, us: &Accumulator, them: &Accumulator, pos: &Chess) -> i32 {
+            let bucket = self.bucket(pos);
+            let offset = bucket * 2 * HIDDEN_SIZE;
+            let us_weights = &self.output_weights[offset..offset + HIDDEN_SIZE];
+            let them_weights = &self.output_weights[offset + HIDDEN_SIZE..offset + 2 * HIDDEN_SIZE];
+            unsafe {
+                let zero = _mm512_setzero_si512();
+                let qa = _mm512_set1_epi16(QA);
+
+                let sum = _mm512_add_epi32(Self::screlu_avx512(&us.vals, us_weights, zero, qa), Self::screlu_avx512(&them.vals, them_weights, zero, qa));
+
+                let mut output = Self::hsum_epi32(sum);
+
+                output /= i32::from(QA);
+                output += i32::from(self.output_bias[bucket]);
+                output *= SCALE;
+                output /= i32::from(QA) * i32::from(QB);
+                output
+            }
+        }
+
+        #[inline(always)]
+        unsafe fn screlu_avx512(
+            inputs: &[i16; HIDDEN_SIZE],
+            weights: &[i16],
+            zero: __m512i,
+            qa: __m512i,
+        ) -> __m512i {
+            let mut acc = _mm512_setzero_si512();
+            let in_ptr = inputs.as_ptr();
+            let w_ptr = weights.as_ptr();
+
+            for i in (0..HIDDEN_SIZE).step_by(32) {
+                let x = _mm512_load_si512(in_ptr.add(i) as *const i32); // aligned load, matches Accumulator's align(64)
+                let w = _mm512_loadu_si512(w_ptr.add(i) as *const i32);
+
+                let clamped = _mm512_min_epi16(_mm512_max_epi16(x, zero), qa);
+                let t = _mm512_mullo_epi16(clamped, w);
+                let prod = _mm512_madd_epi16(clamped, t);
+
+                acc = _mm512_add_epi32(acc, prod);
+            }
+            acc
+        }
+
+        #[inline(always)]
+        unsafe fn hsum_epi32(v: __m512i) -> i32 {
+            // Fold 512 -> 256 first, then reuse the same reduction as the AVX2 path.
+            let lo256 = _mm512_castsi512_si256(v);
+            let hi256 = _mm512_extracti64x4_epi64(v, 1);
+            let sum256 = _mm256_add_epi32(lo256, hi256);
+
+            let hi128 = _mm256_extracti128_si256(sum256, 1);
+            let lo128 = _mm256_castsi256_si128(sum256);
+            let sum128 = _mm_add_epi32(hi128, lo128);
+            let hi64 = _mm_unpackhi_epi64(sum128, sum128);
+            let sum64 = _mm_add_epi32(sum128, hi64);
+            let hi32 = _mm_shuffle_epi32(sum64, 0b01);
+            let sum32 = _mm_add_epi32(sum64, hi32);
+            _mm_cvtsi128_si32(sum32)
+        }
+    }
+}
 #[cfg(target_feature = "avx2")]
 mod avx2 {
     use std::arch::x86_64::*;
