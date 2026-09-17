@@ -152,8 +152,8 @@ mod avx512 {
             let w_ptr = weights.as_ptr();
 
             for i in (0..HIDDEN_SIZE).step_by(32) {
-                let x = _mm512_load_si512(in_ptr.add(i) as *const i32); // aligned load, matches Accumulator's align(64)
-                let w = _mm512_loadu_si512(w_ptr.add(i) as *const i32);
+                let x = _mm512_load_si512(in_ptr.add(i) as *const __m512i);
+                let w = _mm512_loadu_si512(w_ptr.add(i) as *const __m512i);
 
                 let clamped = _mm512_min_epi16(_mm512_max_epi16(x, zero), qa);
                 let t = _mm512_mullo_epi16(clamped, w);
