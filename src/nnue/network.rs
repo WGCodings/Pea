@@ -1,7 +1,12 @@
-const HIDDEN_SIZE: usize = 1536;
+const L1: usize = 1536;
+const HALF: usize = L1 / 2;
+const L2: usize = 32;
+const L3: usize = 16;
 const SCALE: i32 = 400;
 const QA: i16 = 255;
 const QB: i16 = 64;
+const Q: i16 = 64;
+const FT_SHIFT: u32 = 8;
 
 const NUM_OUTPUT_BUCKETS : usize = 8;
 
@@ -94,56 +99,75 @@ pub fn screlu(x: i16) -> i32 {
     y * y
 }
 
+#[inline]
+fn crelu(x: i16, qa: i16) -> i32 {
+    i32::from(x).clamp(0, i32::from(qa))
+}
+
 /// This is the quantised format that bullet outputs.
 #[repr(C)]
 pub struct Network {
-    /// Column-Major `HIDDEN_SIZE x 768` matrix.
-    /// Values have quantization of QA.
     feature_weights: [Accumulator; 768 * NUM_INPUT_BUCKETS],
-    /// Vector with dimension `HIDDEN_SIZE`.
-    /// Values have quantization of QA.
     feature_bias: Accumulator,
-    /// Column-Major `1 x (2 * HIDDEN_SIZE)`
-    /// matrix, we use it like this to make the
-    /// code nicer in `Network::evaluate`.
-    /// Values have quantization of QB.
-    output_weights: [i16; 2 * HIDDEN_SIZE*NUM_OUTPUT_BUCKETS],
-    /// Scalar output bias.
-    /// Value has quantization of QA * QB.
-    output_bias: [i16;NUM_OUTPUT_BUCKETS]
+
+    l1_weights: [i8; L1 * NUM_OUTPUT_BUCKETS * L2],
+    l1_bias: [i32; NUM_OUTPUT_BUCKETS * L2],
+
+    l2_weights: [i32; L2 * NUM_OUTPUT_BUCKETS * L3],
+    l2_bias: [i32; NUM_OUTPUT_BUCKETS * L3],
+
+    l3_weights: [i32; L3 * NUM_OUTPUT_BUCKETS],
+    l3_bias: [i32; NUM_OUTPUT_BUCKETS]
 }
 
 impl Network {
-    /// Calculates the output of the network, starting from the already
-    /// calculated hidden layer (done efficiently during makemoves).
     #[cfg(not(target_feature = "avx2"))]
-    pub fn evaluate(&self, us: &Accumulator, them: &Accumulator, pos : &Chess) -> i32 {
-        let mut output = 0;
+    pub fn evaluate(&self, us: &Accumulator, them: &Accumulator, pos: &Chess) -> i32 {
         let bucket = self.bucket(pos);
-        let offset = bucket * 2 * HIDDEN_SIZE;
 
-        let us_weights = &self.output_weights[offset .. offset + HIDDEN_SIZE];
-        let them_weights = &self.output_weights[offset + HIDDEN_SIZE .. offset + 2 * HIDDEN_SIZE];
-
-        // Side-To-Move
-        for (&input, &weight) in us.vals.iter().zip(us_weights) {
-            output += screlu(input) * i32::from(weight);
+        let mut hl1 = [0i32; L1];
+        for i in 0..HALF {
+            let a = crelu(us.vals[i], QA);
+            let b = crelu(us.vals[i + HALF], QA);
+            hl1[i] = (a * b) >> FT_SHIFT;
+        }
+        for i in 0..HALF {
+            let a = crelu(them.vals[i], QA);
+            let b = crelu(them.vals[i + HALF], QA);
+            hl1[HALF + i] = (a * b) >> FT_SHIFT;
         }
 
-        // Not-Side-To-Move
-        for (&input, &weight) in them.vals.iter().zip(them_weights) {
-            output += screlu(input) * i32::from(weight);
+        let l1_off = bucket * L2 * L1;
+        let l1_bias_off = bucket * L2;
+        let mut hl2 = [0i32; L2];
+        for o in 0..L2 {
+            let mut sum: i32 = 0;
+            for i in 0..L1 {
+                sum += hl1[i] * i32::from(self.l1_weights[l1_off + o * L1 + i]);
+            }
+            sum += self.l1_bias[l1_bias_off + o];
+            hl2[o] = (sum / i32::from(Q)).clamp(0, i32::from(Q));
         }
 
-        output /= i32::from(QA);
+        let l2_off = bucket * L3 * L2;
+        let l2_bias_off = bucket * L3;
+        let mut hl3 = [0i32; L3];
+        for o in 0..L3 {
+            let mut sum: i32 = 0;
+            for i in 0..L2 {
+                sum += hl2[i] * self.l2_weights[l2_off + o * L2 + i];
+            }
+            sum += self.l2_bias[l2_bias_off + o];
+            hl3[o] = (sum / i32::from(Q).pow(2)).clamp(0, i32::from(Q));
+        }
 
-        output += i32::from(self.output_bias[bucket]);
+        let l3_off = bucket * L3;
+        let mut output: i32 = self.l3_bias[bucket];
+        for i in 0..L3 {
+            output += hl3[i] * self.l3_weights[l3_off + i];
+        }
 
-        output *= SCALE;
-
-        output /= i32::from(QA) * i32::from(QB);
-
-        output
+        output * SCALE / i32::from(Q).pow(4)
     }
 
     #[cfg(target_feature = "avx2")]
@@ -261,7 +285,7 @@ impl Network {
 #[derive(Clone, Copy)]
 #[repr(C, align(64))]
 pub struct Accumulator {
-    pub(crate) vals: [i16; HIDDEN_SIZE],
+    pub(crate) vals: [i16; L1],
 }
 
 impl Accumulator {
