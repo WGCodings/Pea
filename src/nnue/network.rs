@@ -182,7 +182,7 @@ mod avx512 {
         }
     }
 }
-#[cfg(target_feature = "avx2")]
+#[cfg(all(target_feature = "avx2", not(target_feature = "avx512bw")))]
 mod avx2 {
     use std::arch::x86_64::*;
     use shakmaty::Chess;
