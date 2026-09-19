@@ -233,7 +233,7 @@ pub fn negamax(
     // REVERSE FUTILITY PRUNING                                                                                             //
     // =====================================================================================================================//
     let futility : i32 = (ctx.params.rfp_scaling as usize* depth) as i32 + ctx.params.rfp_improving_scaling * !improving as i32;
-    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && !is_root && static_eval - futility*scaling_i32/999   >=beta {
+    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && !is_root && static_eval - futility*scaling_i32/999 >=beta {
         return (static_eval + beta)/2;
     }
 
