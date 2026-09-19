@@ -17,9 +17,6 @@ const KING_BUCKET_LAYOUT: [usize; 64] =  [
 ];
 pub const NUM_INPUT_BUCKETS: usize = 4;
 
-#[cfg(target_feature = "avx2")]
-use std::arch::x86_64::*;
-
 use shakmaty::{Board, Chess, Color, Position, Role};
 
 static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../../nnue/files/quantised.bin")) };
@@ -85,15 +82,6 @@ pub fn role_index(role: Role) -> usize {
     }
 }
 
-#[inline]
-/// Square Clipped ReLU - Activation Function.
-/// Note that this takes the i16s in the accumulator to i32s.
-/// Range is 0.0 .. 1.0 (in other words, 0 to QA*QA quantized).
-pub fn screlu(x: i16) -> i32 {
-    let y = i32::from(x).clamp(0, i32::from(QA));
-    y * y
-}
-
 /// This is the quantised format that bullet outputs.
 #[repr(C)]
 pub struct Network {
@@ -112,147 +100,148 @@ pub struct Network {
     /// Value has quantization of QA * QB.
     output_bias: [i16;NUM_OUTPUT_BUCKETS]
 }
-
+// Shared implementations for avx2 and non avx2
 impl Network {
-    /// Calculates the output of the network, starting from the already
-    /// calculated hidden layer (done efficiently during makemoves).
-    #[cfg(not(target_feature = "avx2"))]
-    pub fn evaluate(&self, us: &Accumulator, them: &Accumulator, pos : &Chess) -> i32 {
-        let mut output = 0;
-        let bucket = self.bucket(pos);
-        let offset = bucket * 2 * HIDDEN_SIZE;
-
-        let us_weights = &self.output_weights[offset .. offset + HIDDEN_SIZE];
-        let them_weights = &self.output_weights[offset + HIDDEN_SIZE .. offset + 2 * HIDDEN_SIZE];
-
-        // Side-To-Move
-        for (&input, &weight) in us.vals.iter().zip(us_weights) {
-            output += screlu(input) * i32::from(weight);
-        }
-
-        // Not-Side-To-Move
-        for (&input, &weight) in them.vals.iter().zip(them_weights) {
-            output += screlu(input) * i32::from(weight);
-        }
-
-        output /= i32::from(QA);
-
-        output += i32::from(self.output_bias[bucket]);
-
-        output *= SCALE;
-
-        output /= i32::from(QA) * i32::from(QB);
-
-        output
-    }
-
-    #[cfg(target_feature = "avx2")]
-    pub fn evaluate(&self, us: &Accumulator, them: &Accumulator, pos: &Chess) -> i32 {
-        let bucket = self.bucket(pos);
-        let offset = bucket * 2 * HIDDEN_SIZE;
-        let us_weights = &self.output_weights[offset..offset + HIDDEN_SIZE];
-        let them_weights = &self.output_weights[offset + HIDDEN_SIZE..offset + 2 * HIDDEN_SIZE];
-        unsafe {
-            let zero = _mm256_setzero_si256();
-            let qa = _mm256_set1_epi16(QA);
-
-            let sum = _mm256_add_epi32(Self::screlu_avx2(&us.vals, us_weights, zero, qa), Self::screlu_avx2(&them.vals, them_weights, zero, qa));
-
-            let mut output = Self::hsum_epi32(sum);
-
-            output /= i32::from(QA);
-            output += i32::from(self.output_bias[bucket]);
-            output *= SCALE;
-            output /= i32::from(QA) * i32::from(QB);
-            output
-        }
-    }
-
-    #[cfg(target_feature = "avx2")]
-    #[inline(always)]
-    unsafe fn screlu_avx2(
-        inputs: &[i16; HIDDEN_SIZE],
-        weights: &[i16],
-        zero: __m256i,
-        qa: __m256i,
-    ) -> __m256i {
-        let mut acc = _mm256_setzero_si256();
-        let in_ptr = inputs.as_ptr();
-        let w_ptr = weights.as_ptr();
-
-        for i in (0..HIDDEN_SIZE).step_by(16) {
-            let x = _mm256_load_si256(in_ptr.add(i) as *const __m256i);
-            let w = _mm256_loadu_si256(w_ptr.add(i) as *const __m256i);
-
-            let clamped = _mm256_min_epi16(_mm256_max_epi16(x, zero), qa);
-            let t = _mm256_mullo_epi16(clamped, w);
-            let prod = _mm256_madd_epi16(clamped, t);
-
-            acc = _mm256_add_epi32(acc, prod);
-        }
-        acc
-    }
-    #[cfg(target_feature = "avx2")]
-    #[inline(always)]
-    unsafe fn hsum_epi32(v: __m256i) -> i32 {
-        let hi = _mm256_extracti128_si256(v, 1);
-        let lo = _mm256_castsi256_si128(v);
-        let sum128 = _mm_add_epi32(hi, lo);
-        let hi64 = _mm_unpackhi_epi64(sum128, sum128);
-        let sum64 = _mm_add_epi32(sum128, hi64);
-        let hi32 = _mm_shuffle_epi32(sum64, 0b01);
-        let sum32 = _mm_add_epi32(sum64, hi32);
-        _mm_cvtsi128_si32(sum32)
-    }
-
     pub fn load() -> &'static Network {
         &NNUE
-    }
-
-    pub fn _load_from_path(path: &str) -> Box<Network> {
-        let bytes = std::fs::read(path)
-            .unwrap_or_else(|e| panic!("Failed to read network '{}': {}", path, e));
-        assert_eq!(
-            bytes.len(),
-            std::mem::size_of::<Network>(),
-            "Network file '{}' has wrong size", path
-        );
-        unsafe {
-            let mut net = Box::new(std::mem::zeroed::<Network>());
-            std::ptr::copy_nonoverlapping(
-                bytes.as_ptr(),
-                net.as_mut() as *mut Network as *mut u8,
-                std::mem::size_of::<Network>(),
-            );
-            net
-        }
     }
 
     fn bucket(&self, pos: &Chess) -> usize {
         let divisor = 32usize.div_ceil(NUM_OUTPUT_BUCKETS);
         (pos.board().occupied().count() - 2) / divisor
     }
+}
+#[cfg(target_feature = "avx2")]
+mod avx2 {
+    use std::arch::x86_64::*;
+    use shakmaty::Chess;
+    use crate::nnue::network::{Accumulator, Network, HIDDEN_SIZE, QA, QB, SCALE};
 
-    /*
-    fn queen_bucket(&self, pos: &Chess) -> usize {
-        // Non-pawn material count
-        let board = pos.board();
-        let pawn_count = board.pawns().count();
-        let npm_count = board.occupied().count() - pawn_count;
+    impl Network {
+        pub fn evaluate(&self, us: &Accumulator, them: &Accumulator, pos: &Chess) -> i32 {
+            let bucket = self.bucket(pos);
+            let offset = bucket * 2 * HIDDEN_SIZE;
+            let us_weights = &self.output_weights[offset..offset + HIDDEN_SIZE];
+            let them_weights = &self.output_weights[offset + HIDDEN_SIZE..offset + 2 * HIDDEN_SIZE];
+            unsafe {
+                let zero = _mm256_setzero_si256();
+                let qa = _mm256_set1_epi16(QA);
 
-        // N is NUM_OUTPUT_BUCKETS / 3
-        const N: usize = NUM_OUTPUT_BUCKETS / 3;
-        let divisor = 16usize.div_ceil(N);
-        let material_bucket = ((npm_count - 2) / divisor).min(N - 1);
+                let sum = _mm256_add_epi32(Self::screlu_avx2(&us.vals, us_weights, zero, qa), Self::screlu_avx2(&them.vals, them_weights, zero, qa));
 
-        // Queen bucket
-        let queen_count = board.queens().count();
-        let queen_bucket = queen_count.min(2);
+                let mut output = Self::hsum_epi32(sum);
 
-        material_bucket * 3 + queen_bucket
+                output /= i32::from(QA);
+                output += i32::from(self.output_bias[bucket]);
+                output *= SCALE;
+                output /= i32::from(QA) * i32::from(QB);
+                output
+            }
+        }
+
+        #[inline(always)]
+        unsafe fn screlu_avx2(
+            inputs: &[i16; HIDDEN_SIZE],
+            weights: &[i16],
+            zero: __m256i,
+            qa: __m256i,
+        ) -> __m256i {
+            let mut acc = _mm256_setzero_si256();
+            let in_ptr = inputs.as_ptr();
+            let w_ptr = weights.as_ptr();
+
+            for i in (0..HIDDEN_SIZE).step_by(16) {
+                let x = _mm256_load_si256(in_ptr.add(i) as *const __m256i);
+                let w = _mm256_loadu_si256(w_ptr.add(i) as *const __m256i);
+
+                let clamped = _mm256_min_epi16(_mm256_max_epi16(x, zero), qa);
+                let t = _mm256_mullo_epi16(clamped, w);
+                let prod = _mm256_madd_epi16(clamped, t);
+
+                acc = _mm256_add_epi32(acc, prod);
+            }
+            acc
+        }
+
+        #[inline(always)]
+        unsafe fn hsum_epi32(v: __m256i) -> i32 {
+            let hi = _mm256_extracti128_si256(v, 1);
+            let lo = _mm256_castsi256_si128(v);
+            let sum128 = _mm_add_epi32(hi, lo);
+            let hi64 = _mm_unpackhi_epi64(sum128, sum128);
+            let sum64 = _mm_add_epi32(sum128, hi64);
+            let hi32 = _mm_shuffle_epi32(sum64, 0b01);
+            let sum32 = _mm_add_epi32(sum64, hi32);
+            _mm_cvtsi128_si32(sum32)
+        }
     }
-     */
+}
 
+#[cfg(not(target_feature = "avx2"))]
+mod base {
+    use shakmaty::{Chess};
+    use crate::nnue::network::{Accumulator, Network, HIDDEN_SIZE, QA, QB, SCALE};
+
+    #[inline]
+    /// Square Clipped ReLU - Activation Function.
+    /// Note that this takes the i16s in the accumulator to i32s.
+    /// Range is 0.0 .. 1.0 (in other words, 0 to QA*QA quantized).
+    pub fn screlu(x: i16) -> i32 {
+        let y = i32::from(x).clamp(0, i32::from(QA));
+        y * y
+    }
+    impl Network {
+        /// Calculates the output of the network, starting from the already
+        /// calculated hidden layer (done efficiently during makemoves).
+        #[cfg(not(target_feature = "avx2"))]
+        pub fn evaluate(&self, us: &Accumulator, them: &Accumulator, pos: &Chess) -> i32 {
+            let mut output = 0;
+            let bucket = self.bucket(pos);
+            let offset = bucket * 2 * HIDDEN_SIZE;
+
+            let us_weights = &self.output_weights[offset..offset + HIDDEN_SIZE];
+            let them_weights = &self.output_weights[offset + HIDDEN_SIZE..offset + 2 * HIDDEN_SIZE];
+
+            // Side-To-Move
+            for (&input, &weight) in us.vals.iter().zip(us_weights) {
+                output += screlu(input) * i32::from(weight);
+            }
+
+            // Not-Side-To-Move
+            for (&input, &weight) in them.vals.iter().zip(them_weights) {
+                output += screlu(input) * i32::from(weight);
+            }
+
+            output /= i32::from(QA);
+
+            output += i32::from(self.output_bias[bucket]);
+
+            output *= SCALE;
+
+            output /= i32::from(QA) * i32::from(QB);
+
+            output
+        }
+        /*
+        fn queen_bucket(&self, pos: &Chess) -> usize {
+            // Non-pawn material count
+            let board = pos.board();
+            let pawn_count = board.pawns().count();
+            let npm_count = board.occupied().count() - pawn_count;
+
+            // N is NUM_OUTPUT_BUCKETS / 3
+            const N: usize = NUM_OUTPUT_BUCKETS / 3;
+            let divisor = 16usize.div_ceil(N);
+            let material_bucket = ((npm_count - 2) / divisor).min(N - 1);
+
+            // Queen bucket
+            let queen_count = board.queens().count();
+            let queen_bucket = queen_count.min(2);
+
+            material_bucket * 3 + queen_bucket
+        }
+         */
+    }
 }
 
 
