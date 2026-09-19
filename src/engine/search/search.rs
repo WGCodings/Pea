@@ -60,13 +60,16 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, uci : &UciState, max_depth: 
     let mut avg_score = 0;
     let mut tt_pv = vec![];
 
-    let scaling_x = base_time.as_secs_f64().ln();
+    let scaling_x = (base_time.as_secs_f64()+0.75).ln(); // the 0.75 is to match 8+0.08 s and make scaling = 0 for first move
 
     let max = 1.0;
     let min = -1.0;
     let c = 2.0;
 
     let scaling = (max-min)/(1.0+(-scaling_x/c).exp())+min;
+
+    //println!("{}", base_time.as_secs_f64());
+    //println!("{}", scaling);
 
     for depth in 1..=max_depth {
         pv.clear();
@@ -233,7 +236,10 @@ pub fn negamax(
     // REVERSE FUTILITY PRUNING                                                                                             //
     // =====================================================================================================================//
     let futility : i32 = (ctx.params.rfp_scaling as usize* depth) as i32 + ctx.params.rfp_improving_scaling * !improving as i32;
-    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && !is_root && static_eval - futility - (futility/10) * scaling_i32/999 >= beta {
+
+    let scaled_futility = futility + (futility/10) * scaling_i32/999;
+
+    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && !is_root && static_eval - scaled_futility >= beta {
         return (static_eval + beta)/2;
     }
 
