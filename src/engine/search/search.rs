@@ -60,6 +60,13 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, uci : &UciState, max_depth: 
     let mut avg_score = 0;
     let mut tt_pv = vec![];
 
+    let scaling_x = base_time.as_secs_f64().ln();
+
+    let max = 1.0;
+    let min = -1.0;
+    let c = 2.0;
+
+    let scaling = (max-min)/(1.0+(-scaling_x/c).exp())+min;
 
     for depth in 1..=max_depth {
         pv.clear();
@@ -67,9 +74,9 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, uci : &UciState, max_depth: 
         if tm.should_stop() && depth > 1 { break; }
         
         let score = if depth >= ctx.params.aspw_min_depth as usize{
-            aspiration_search(pos, ctx, depth, prev_score, avg_score, &mut pv)
+            aspiration_search(pos, ctx, depth, prev_score, avg_score, &mut pv, scaling)
         } else {
-            negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, true, false, &mut pv)
+            negamax(pos, ctx, depth, 0, MIN_INF, MAX_INF, true, false, &mut pv, scaling)
         };
 
         if (*ctx.stop).load(Ordering::Relaxed) && depth >1 { break; }
@@ -115,6 +122,7 @@ pub fn negamax(
     do_null : bool,
     cut_node : bool,
     pv: &mut PvTable,
+    scaling : f64
 ) -> i32 {
     (*ctx.node_count).fetch_add(1, Ordering::Relaxed);
     ctx.stats.nodes += 1;
@@ -218,12 +226,14 @@ pub fn negamax(
 
     let mut can_futility_prune = false;
 
+    let scaling_i32 = (scaling * 1000.0) as i32;
+
 
     // =====================================================================================================================//
     // REVERSE FUTILITY PRUNING                                                                                             //
     // =====================================================================================================================//
-    let futility = (ctx.params.rfp_scaling as usize* depth) as i32 + ctx.params.rfp_improving_scaling * !improving as i32;
-    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && !is_root && static_eval - futility   >=beta {
+    let futility : i32 = (ctx.params.rfp_scaling as usize* depth) as i32 + ctx.params.rfp_improving_scaling * !improving as i32;
+    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && !is_root && static_eval - futility*scaling_i32/999   >=beta {
         return (static_eval + beta)/2;
     }
 
@@ -261,7 +271,7 @@ pub fn negamax(
         let hash_child = child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
         ctx.increase_history(hash_child);
 
-        let score = -negamax(&child_pos, ctx, depth - reduction, ply + 1, -beta, -beta + 1, false, false, &mut PvTable::new());
+        let score = -negamax(&child_pos, ctx, depth - reduction, ply + 1, -beta, -beta + 1, false, false, &mut PvTable::new(),scaling);
 
         //TODO add verification
 
@@ -396,7 +406,7 @@ pub fn negamax(
 
 
             if probcut_score >= probcut_beta {
-                probcut_score = -negamax(&child_pos, ctx, probcut_depth, ply + 1, -probcut_beta, -probcut_beta + 1, false, false, &mut PvTable::new());
+                probcut_score = -negamax(&child_pos, ctx, probcut_depth, ply + 1, -probcut_beta, -probcut_beta + 1, false, false, &mut PvTable::new(),scaling);
             }
 
             ctx.decrease_history();
@@ -547,7 +557,7 @@ pub fn negamax(
 
 
                 ctx.excluded_move[ply] = Some(mv);
-                let se_score = negamax(pos, ctx, se_depth, ply, se_beta - 1, se_beta, false, cut_node, &mut se_pv);
+                let se_score = negamax(pos, ctx, se_depth, ply, se_beta - 1, se_beta, false, cut_node, &mut se_pv,scaling);
                 ctx.excluded_move[ply] = None;
 
 
@@ -605,7 +615,7 @@ pub fn negamax(
 
         let extended_depth = (depth as i32 + extension).max(0) as usize;
         if moves_searched == 1{
-            score = -negamax(&child_pos, ctx, extended_depth - 1, ply + 1, -beta, -alpha, true, !is_pv && !cut_node, &mut local_pv);
+            score = -negamax(&child_pos, ctx, extended_depth - 1, ply + 1, -beta, -alpha, true, !is_pv && !cut_node, &mut local_pv, scaling);
         }
         else {
             let mut reduction : i32;
@@ -651,13 +661,13 @@ pub fn negamax(
 
             }
 
-            score = -negamax(&child_pos, ctx, (extended_depth - 1 - red_clamped).max(0) , ply + 1, -alpha-1, -alpha, true, true, &mut local_pv);
+            score = -negamax(&child_pos, ctx, (extended_depth - 1 - red_clamped).max(0) , ply + 1, -alpha-1, -alpha, true, true, &mut local_pv, scaling);
 
             if score > alpha && red_clamped >0 {
-                score = -negamax(&child_pos, ctx, (extended_depth - 1).max(0), ply + 1, -alpha - 1, -alpha, true, !cut_node, &mut local_pv);
+                score = -negamax(&child_pos, ctx, (extended_depth - 1).max(0), ply + 1, -alpha - 1, -alpha, true, !cut_node, &mut local_pv, scaling);
             }
             if score > alpha && score < beta {
-                score = -negamax(&child_pos, ctx, (extended_depth - 1).max(0), ply + 1, -beta, -alpha, true, false, &mut local_pv);
+                score = -negamax(&child_pos, ctx, (extended_depth - 1).max(0), ply + 1, -beta, -alpha, true, false, &mut local_pv, scaling);
             }
         }
 
@@ -844,14 +854,14 @@ pub fn quiescence(
 // =====================================================================================================================//
 
 #[inline(always)]
-fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, prev_score: i32, avg_score : i32, pv: &mut PvTable) -> i32 {
+fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, prev_score: i32, avg_score : i32, pv: &mut PvTable,scaling : f64) -> i32 {
     let mut window = ctx.params.aspw_window_size + avg_score.abs()/50;
     let mut alpha = prev_score - window;
     let mut beta = prev_score + window;
     let mut depth = max_depth;
 
     loop {
-        let score = negamax(pos, ctx, depth, 0, alpha, beta, true, false, pv);
+        let score = negamax(pos, ctx, depth, 0, alpha, beta, true, false, pv, scaling);
 
         if (*ctx.stop).load(Ordering::Relaxed) { return score; }
 
