@@ -68,6 +68,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, uci : &UciState, max_depth: 
 
     let scaling = (max-min)/(1.0+(-scaling_x/c).exp())+min;
 
+
     //println!("{}", base_time.as_secs_f64());
     //println!("{}", scaling);
 
@@ -138,6 +139,7 @@ pub fn negamax(
     let is_pv = beta-alpha >1;
     let is_excluded = ctx.excluded_move[ply].is_some();
     let do_probcut;
+    let scaling_i32 = (scaling * 1000.0) as i32;
 
 
     let mut best_score = MIN_INF;
@@ -229,7 +231,7 @@ pub fn negamax(
 
     let mut can_futility_prune = false;
 
-    let scaling_i32 = (scaling * 1000.0) as i32;
+
 
 
     // =====================================================================================================================//
@@ -247,8 +249,12 @@ pub fn negamax(
     // STATIC NULL MOVE PRUNING                                                                                             //
     // =====================================================================================================================//
     if  do_pruning && !in_check && !is_pv && !is_mate_score(beta) {
+
         let score_margin = ctx.params.snmp_scaling * depth as i32;
-        if static_eval-score_margin >= beta {
+
+        let scaled_margin = score_margin + (score_margin/10) * scaling_i32/999;
+
+        if static_eval-scaled_margin >= beta {
             return static_eval-score_margin
         }
     }
@@ -258,8 +264,10 @@ pub fn negamax(
     // =====================================================================================================================//
     let nmp_margin : i32 = -ctx.params.nmp_margin + ctx.params.nmp_scaling * depth as i32 + ctx.params.nmp_improving_scaling * improving as i32 ;
 
+    let scaled_nmp_margin = nmp_margin - (nmp_margin/10) * scaling_i32/999;
+
     if  do_pruning && !in_check && !is_pv &&
-        static_eval + nmp_margin >= beta &&
+        static_eval + scaled_nmp_margin >= beta &&
         do_null && !is_root && cut_node &&
         depth >=ctx.params.nmp_min_depth as usize {
 
@@ -314,9 +322,13 @@ pub fn negamax(
     // =====================================================================================================================//
     // RAZORING                                                                                                             //
     // =====================================================================================================================//
+    let razoring_margin = ctx.params.raz_thr *(depth as i32)  + improving as i32 * ctx.params.raz_improving_margin;
+
+    let scaled_razoring_margin = razoring_margin + (razoring_margin/10) * scaling_i32/999;
+
     if  do_pruning && !in_check && !is_pv
         && depth <= ctx.params.raz_max_depth as usize
-        && static_eval + ctx.params.raz_thr *(depth as i32)  + improving as i32 * ctx.params.raz_improving_margin < alpha
+        && static_eval + scaled_razoring_margin < alpha
     {
         let razor_score = quiescence(pos,ctx,alpha,beta,ply);
         if razor_score <= alpha{
@@ -328,8 +340,12 @@ pub fn negamax(
     // FUTILITY PRUNING PART 1                                                                                              //
     // =====================================================================================================================//
     if  depth <= ctx.params.fp_max_depth as usize && !is_pv && !in_check && !is_mate_score(alpha) && !is_mate_score(beta) && !is_excluded{
+
         let margin = ctx.params.fp_base+ depth as i32 * ctx.params.fp_scaling + ctx.params.fp_improving_margin * improving as i32;
-        can_futility_prune = static_eval+margin <= alpha;
+
+        let scaled_margin = margin + (margin/10) * scaling_i32/999;
+
+        can_futility_prune = static_eval + scaled_margin <= alpha;
     }
 
     let mut moves = pos.legal_moves();
