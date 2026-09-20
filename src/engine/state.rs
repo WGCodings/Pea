@@ -6,25 +6,7 @@ use crate::engine::params::Params;
 use crate::engine::tt::TranspositionTable;
 use crate::nnue::network::Network;
 
-// ---------------------------------------------------------------------------
-// Engine options, should migrate to uci state probably
-// ---------------------------------------------------------------------------
 
-pub struct Options {
-    /// Number of search threads.
-    pub threads: u8,
-    /// Move overhead in milliseconds subtracted from time budget.
-    pub move_overhead: u64,
-}
-
-impl Options {
-    fn default() -> Self {
-        Self {
-            threads: 1,
-            move_overhead: 10,
-        }
-    }
-}
 
 // ---------------------------------------------------------------------------
 // Engine, things that should survive across search calls
@@ -40,7 +22,6 @@ pub struct Engine {
     pub corrhist_minor:   CorrectionHistoryTable<MinorsAndKingsKey>,
     pub corrhist_major:   CorrectionHistoryTable<MajorsAndKingsKey>,
     pub history_tables:   HistoryTables,
-    pub options:          Options,
     pub net:               &'static Network,
 }
 
@@ -64,10 +45,7 @@ impl Engine {
             corrhist_major:      CorrectionHistoryTable::new(256,0),
             history_tables:      HistoryTables::new(),
             params,
-            net,
-            options:       Options::default(),
-
-
+            net
         }
     }
 
@@ -88,21 +66,9 @@ impl Engine {
         let hash = self.position.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
         self.repetition_stack.push(hash);
     }
-
-    // -----------------------------------------------------------------------
-    // Setters for Options stuct
-    // -----------------------------------------------------------------------
-
+    
     pub fn resize_tt(&mut self, mb: usize) {
         self.tt = TranspositionTable::new(mb);
     }
-
-    pub fn set_move_overhead(&mut self, ms: u64) {
-        self.options.move_overhead = ms;
-    }
-
-    pub fn set_threads(&mut self, n: u8) {
-        self.options.threads = n;
-    }
-
+    
 }

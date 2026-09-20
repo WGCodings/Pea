@@ -41,7 +41,7 @@ impl Threads {
         let stop = uci.stop.clone();
         stop.store(false, Ordering::Relaxed);
 
-        let num_threads     = engine.options.threads as usize;
+        let num_threads     = uci.threads as usize;
         let params          = &engine.params;
         let rep_stack       = &engine.repetition_stack;
         let network: &'static Network = engine.net;

@@ -190,7 +190,7 @@ impl UciHandler {
             &self.engine.position,
             wtime, btime, winc, binc,
             movetime, depth,
-            self.engine.options.move_overhead,
+            self.uci.move_overhead,
         );
 
         let (_, best_move, _,_) = Threads::search(
@@ -219,11 +219,11 @@ impl UciHandler {
             }
         } else if n.eq_ignore_ascii_case("move overhead") {
             if let Ok(ms) = v.parse::<u64>() {
-                self.engine.set_move_overhead(cmp::min(cmp::max(ms, 1), 1000));
+                self.uci.set_move_overhead(cmp::min(cmp::max(ms, 1), 1000));
             }
         } else if n.eq_ignore_ascii_case("threads") {
             if let Ok(t) = v.parse::<u8>() {
-                self.engine.set_threads(cmp::min(cmp::max(t, 1), 128));
+                self.uci.set_threads(cmp::min(cmp::max(t, 1), 128));
             }
         } else if n.eq_ignore_ascii_case("normalizescore") {
             self.uci.normalize_score = v.eq_ignore_ascii_case("true");

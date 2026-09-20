@@ -7,6 +7,9 @@ pub struct UciState {
 
     pub uci_show_wdl : bool,
     pub normalize_score : bool,
+    
+    pub threads: u8,
+    pub move_overhead: u64,
 
     pub stop: Arc<AtomicBool>,
 
@@ -23,6 +26,8 @@ impl UciState {
             verbose,
             uci_show_wdl: true,
             normalize_score: false,
+            threads: 1,
+            move_overhead: 10,
             stop: Arc::new(AtomicBool::new(false)),
             last_wtime: None,
             last_btime: None,
@@ -44,5 +49,13 @@ impl UciState {
 
     pub fn reset_stop(&self) {
         (*self.stop).store(false, Ordering::Relaxed);
+    }
+
+    pub fn set_move_overhead(&mut self, ms: u64) {
+        self.move_overhead = ms;
+    }
+
+    pub fn set_threads(&mut self, n: u8) {
+        self.threads = n;
     }
 }

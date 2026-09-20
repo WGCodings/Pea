@@ -60,11 +60,11 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, uci : &UciState, max_depth: 
     let mut avg_score = 0;
     let mut tt_pv = vec![];
 
-    let scaling_x = (base_time.as_secs_f64()+0.75).ln(); // the 0.75 is to match 8+0.08 s and make scaling = 0 for first move
+    let scaling_x = ((base_time.as_secs_f64()*uci.threads as f64)+0.75).ln(); // the 0.75 is to match 8+0.08 s and make scaling = 0 for first move
 
     let max = 1.0;
     let min = -1.0;
-    let c = 2.0;
+    let c = 1.0;
 
     let scaling = (max-min)/(1.0+(-scaling_x/c).exp())+min;
 
