@@ -6,7 +6,7 @@ use shakmaty::{Chess, EnPassantMode, Position};
 use shakmaty::fen::Fen;
 use crate::engine::utility::read_position_from_fen;
 
-const MIN_RANDOM_PLIES: u32 = 6;
+const MIN_RANDOM_PLIES: u32 = 0;
 const MAX_RANDOM_PLIES: u32 = 9;
 const FALLBACK_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
