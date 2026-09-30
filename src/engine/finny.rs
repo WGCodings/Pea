@@ -16,12 +16,12 @@ impl FinnyEntry {
 }
 
 pub struct FinnyTable {
-    entries: [FinnyEntry; NUM_INPUT_BUCKETS * 4],
+    entries: Box<[FinnyEntry]>,
 }
 
 impl FinnyTable {
     pub(crate) fn default(net: &Network) -> Self {
-        Self { entries: std::array::from_fn(|_| FinnyEntry::default(net)) }
+        Self { entries: vec![FinnyEntry::default(net); NUM_INPUT_BUCKETS * 4].into_boxed_slice() }
     }
 
     /// Get finny entry. 0 - NUM_INPUT_BUCKETS-1 for black and the rest for white finny tables
