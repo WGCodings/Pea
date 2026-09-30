@@ -5,17 +5,17 @@ const QB: i16 = 64;
 
 const NUM_OUTPUT_BUCKETS : usize = 8;
 
-const KING_BUCKET_LAYOUT: [usize; 64] =  [
-    0, 0, 1, 1,1,1,0,0,
-    2, 2, 2, 2,2,2,2,2,
-    3, 3, 3, 3,3,3,3,3,
-    3, 3, 3, 3,3,3,3,3,
-    3, 3, 3, 3,3,3,3,3,
-    3, 3, 3, 3,3,3,3,3,
-    3, 3, 3, 3,3,3,3,3,
-    3, 3, 3, 3,3,3,3,3
+const KING_BUCKET_LAYOUT: [usize; 64] = [
+    0, 1, 2, 3,3,2,1,0,
+    0, 4, 5, 6,6,5,4,0,
+    7, 7, 8, 8,8,8,7,7,
+    9, 9, 10, 10,10,10,9,9,
+    9, 9, 10, 10,10,10,9,9,
+    11, 11, 11, 11,11, 11, 11, 11,
+    11, 11, 11, 11,11, 11, 11, 11,
+    11, 11, 11, 11,11, 11, 11, 11,
 ];
-pub const NUM_INPUT_BUCKETS: usize = 4;
+pub const NUM_INPUT_BUCKETS: usize = 12;
 
 use shakmaty::{Board, Chess, Color, Position, Role};
 
