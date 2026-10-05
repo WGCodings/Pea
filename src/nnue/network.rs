@@ -125,7 +125,7 @@ impl Network {
         let sums = l1_forward(&ft.0, &self.l1_weights[bucket]);
         let mut l1 = [0f32; L2_SIZE];
         for i in 0..L2_SIZE {
-            l1[i] = (sums[i] as f32 * L1_DEQUANT + self.l1_bias[bucket][i]).clamp(0.0, 1.0);
+            l1[i] = (sums[i] as f32 * L1_DEQUANT + self.l1_bias[bucket][i]).max(0.0).min(1.0);
         }
 
         let mut l2 = self.l2_bias[bucket];
@@ -136,13 +136,15 @@ impl Network {
             }
         }
         for v in l2.iter_mut() {
-            *v = v.clamp(0.0, 1.0);
+            *v = v.max(0.0).min(1.0);
         }
 
         let w = &self.l3_weights[bucket];
         let mut partial = [0f32; 8];
-        for i in 0..L3_SIZE {
-            partial[i % 8] += w[i] * l2[i];
+        for (a, w) in l2.chunks_exact(8).zip(w.chunks_exact(8)) {
+            for k in 0..8 {
+                partial[k] += w[k] * a[k];
+            }
         }
         let out = self.l3_bias[bucket] + partial.iter().sum::<f32>();
 
