@@ -165,8 +165,8 @@ fn activate_ft(acc: &[i16; HIDDEN_SIZE], out: &mut [u8]) {
         for i in (0..HALF).step_by(32) {
             let a0 = _mm256_min_epi16(_mm256_max_epi16(_mm256_load_si256(a_ptr.add(i).cast()), zero), qa);
             let a1 = _mm256_min_epi16(_mm256_max_epi16(_mm256_load_si256(a_ptr.add(i + 16).cast()), zero), qa);
-            let b0 = _mm256_min_epi16(_mm256_max_epi16(_mm256_load_si256(b_ptr.add(i).cast()), zero), qa);
-            let b1 = _mm256_min_epi16(_mm256_max_epi16(_mm256_load_si256(b_ptr.add(i + 16).cast()), zero), qa);
+            let b0 = _mm256_min_epi16(_mm256_load_si256(b_ptr.add(i).cast()), qa);
+            let b1 = _mm256_min_epi16(_mm256_load_si256(b_ptr.add(i + 16).cast()), qa);
 
             let p0 = _mm256_mulhi_epi16(_mm256_slli_epi16::<7>(a0), b0);
             let p1 = _mm256_mulhi_epi16(_mm256_slli_epi16::<7>(a1), b1);
@@ -192,19 +192,22 @@ fn l1_forward(input: &[u8; HIDDEN_SIZE], weights: &[i8; HIDDEN_SIZE * L2_SIZE]) 
     const _: () = assert!(L2_SIZE == 16, "the AVX2l is written for 16 outputs");
 
     unsafe {
-        let mut nnz = [0u16; L1_CHUNKS];
+        let mut nnz = [0u16; L1_CHUNKS + 8];
         let mut count = 0;
         let in_ptr = input.as_ptr();
         let zero = _mm256_setzero_si256();
+        let mut base = _mm_setzero_si128();
+        let step = _mm_set1_epi16(8);
+
         for c in (0..L1_CHUNKS).step_by(8) {
             let v = _mm256_load_si256(in_ptr.add(c * 4).cast());
             let is_zero = _mm256_cmpeq_epi32(v, zero);
-            let mut mask = !(_mm256_movemask_ps(_mm256_castsi256_ps(is_zero)) as u32) & 0xFF;
-            while mask != 0 {
-                nnz[count] = (c as u32 + mask.trailing_zeros()) as u16;
-                count += 1;
-                mask &= mask - 1;
-            }
+            let mask = (!_mm256_movemask_ps(_mm256_castsi256_ps(is_zero)) & 0xFF) as usize;
+
+            let offsets = _mm_load_si128(NNZ_TABLE.0[mask].as_ptr().cast());
+            _mm_storeu_si128(nnz.as_mut_ptr().add(count).cast(), _mm_add_epi16(base, offsets));
+            count += mask.count_ones() as usize;
+            base = _mm_add_epi16(base, step);
         }
 
         let ones = _mm256_set1_epi16(1);
@@ -303,3 +306,25 @@ impl Accumulator {
         }
     }
 }
+
+// L1: u8 inputs x i8 weights, skipping 4-byte chunks that are all zero
+// Ty to Viridithas for all the simd
+#[cfg(target_feature = "avx2")]
+#[repr(C, align(16))]
+struct NnzTable([[u16; 8]; 256]);
+#[cfg(target_feature = "avx2")]
+static NNZ_TABLE: NnzTable = {
+    let mut table = [[0u16; 8]; 256];
+    let mut mask = 0;
+    while mask < 256 {
+        let mut bits = mask;
+        let mut n = 0;
+        while bits != 0 {
+            table[mask][n] = bits.trailing_zeros() as u16;
+            bits &= bits - 1;
+            n += 1;
+        }
+        mask += 1;
+    }
+    NnzTable(table)
+};
