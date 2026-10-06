@@ -11,6 +11,36 @@ const L1_DEQUANT: f32 = 1.0 / ((QA as f32 * QA as f32 / (1u32 << FT_SHIFT) as f3
 const HALF: usize = HIDDEN_SIZE / 2;
 const L1_CHUNKS: usize = HIDDEN_SIZE / 4;
 
+#[cfg(feature = "ft-stats")]
+pub mod ft_stats {
+    use super::HALF;
+    use std::sync::atomic::{AtomicU64, Ordering::Relaxed};
+
+    static ACTIVE: [AtomicU64; HALF] = [const { AtomicU64::new(0) }; HALF];
+    static EVALS: AtomicU64 = AtomicU64::new(0);
+
+    /// Counts, per neuron, how often its u8 output is non-zero (both sides share the same neuron).
+    pub fn record(ft: &[u8]) {
+        for i in 0..HALF {
+            let n = u64::from(ft[i] != 0) + u64::from(ft[i + HALF] != 0);
+            if n > 0 {
+                ACTIVE[i].fetch_add(n, Relaxed);
+            }
+        }
+        EVALS.fetch_add(1, Relaxed);
+    }
+
+    /// Writes "evals N" and then one count per neuron.
+    pub fn dump(path: &str) {
+        let mut s = format!("evals {}\n", EVALS.load(Relaxed));
+        for a in &ACTIVE {
+            s += &format!("{}\n", a.load(Relaxed));
+        }
+        std::fs::write(path, s).expect("cannot write ft stats");
+        println!("ft stats written to [{path}]");
+    }
+}
+
 const KING_BUCKET_LAYOUT: [usize; 64] =  [
     0, 0, 1, 1,1,1,0,0,
     2, 2, 2, 2,2,2,2,2,
@@ -121,6 +151,9 @@ impl Network {
         let mut ft = FtOut([0; HIDDEN_SIZE]);
         activate_ft(&us.vals, &mut ft.0[..HALF]);
         activate_ft(&them.vals, &mut ft.0[HALF..]);
+
+        #[cfg(feature = "ft-stats")]
+        ft_stats::record(&ft.0);
 
         let sums = l1_forward(&ft.0, &self.l1_weights[bucket]);
         let mut l1 = [0f32; L2_SIZE];

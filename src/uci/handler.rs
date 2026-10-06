@@ -12,6 +12,7 @@ use crate::engine::search::threads::Threads;
 use crate::datagen::datagen_main::run_datagen;
 use crate::uci::parser::{move_to_uci, uci_to_move, UciCommand};
 use crate::uci::state::UciState;
+
 const BENCH_FENS: &str = include_str!("../../assets/bench.txt");
 
 // ---------------------------------------------------------------------------
@@ -123,6 +124,8 @@ impl UciHandler {
 
         let nps = total_nodes * 1000 / (total_time as u64).max(1);
         println!("Bench: {total_nodes} nodes {nps} nps");
+        #[cfg(feature = "ft-stats")]
+        ft_stats::dump("ft_stats.txt");
     }
 
 
