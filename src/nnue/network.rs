@@ -1,5 +1,6 @@
 pub const HIDDEN_SIZE: usize = 1536;
-pub const L2_SIZE: usize = 32;
+pub const L2_SIZE: usize = 16;
+const L2_IN : usize = L2_SIZE*2; // 16 for crelu and 16 for squared then crelu
 pub const L3_SIZE: usize = 32;
 pub const NUM_OUTPUT_BUCKETS: usize = 8;
 pub const NUM_INPUT_BUCKETS: usize = 4;
@@ -93,7 +94,7 @@ pub struct Network {
     pub(crate) feature_bias: Accumulator,
     l1_weights: [[i8; HIDDEN_SIZE * L2_SIZE]; NUM_OUTPUT_BUCKETS],
     l1_bias: [[f32; L2_SIZE]; NUM_OUTPUT_BUCKETS],
-    l2_weights: [[[f32; L3_SIZE]; L2_SIZE]; NUM_OUTPUT_BUCKETS],
+    l2_weights: [[[f32; L3_SIZE]; L2_IN]; NUM_OUTPUT_BUCKETS],
     l2_bias: [[f32; L3_SIZE]; NUM_OUTPUT_BUCKETS],
     l3_weights: [[f32; L3_SIZE]; NUM_OUTPUT_BUCKETS],
     l3_bias: [f32; NUM_OUTPUT_BUCKETS],
@@ -123,9 +124,11 @@ impl Network {
         activate_ft(&them.vals, &mut ft.0[HALF..]);
 
         let sums = l1_forward(&ft.0, &self.l1_weights[bucket]);
-        let mut l1 = [0f32; L2_SIZE];
+        let mut l1 = [0f32; L2_IN];
         for i in 0..L2_SIZE {
-            l1[i] = (sums[i] as f32 * L1_DEQUANT + self.l1_bias[bucket][i]).max(0.0).min(1.0);
+            let x = sums[i] as f32 * L1_DEQUANT + self.l1_bias[bucket][i];
+            l1[i] = x.max(0.0).min(1.0);
+            l1[L2_SIZE + i] = (x * x).min(1.0);
         }
 
         let mut l2 = self.l2_bias[bucket];
