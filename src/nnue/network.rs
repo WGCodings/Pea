@@ -1,5 +1,5 @@
 pub const HIDDEN_SIZE: usize = 1536;
-pub const L2_SIZE: usize = 16;
+pub const L2_SIZE: usize = 32;
 pub const L3_SIZE: usize = 32;
 pub const NUM_OUTPUT_BUCKETS: usize = 8;
 pub const NUM_INPUT_BUCKETS: usize = 4;
@@ -189,7 +189,10 @@ fn activate_ft(acc: &[i16; HIDDEN_SIZE], out: &mut [u8]) {
 #[cfg(target_feature = "avx2")]
 fn l1_forward(input: &[u8; HIDDEN_SIZE], weights: &[i8; HIDDEN_SIZE * L2_SIZE]) -> [i32; L2_SIZE] {
     use std::arch::x86_64::*;
-    const _: () = assert!(L2_SIZE == 16, "the AVX2l is written for 16 outputs");
+    const _: () = assert!(L2_SIZE % 8 == 0, "L2_SIZE needs to be a multiple of 8.");
+
+    const REGS: usize = L2_SIZE / 8;
+    const CHUNK_BYTES: usize = L2_SIZE * 4;
 
     unsafe {
         let mut nnz = [0u16; L1_CHUNKS + 8];
@@ -214,40 +217,36 @@ fn l1_forward(input: &[u8; HIDDEN_SIZE], weights: &[i8; HIDDEN_SIZE * L2_SIZE]) 
         let in32 = in_ptr.cast::<i32>();
         let w_ptr = weights.as_ptr();
 
-        let mut acc0 = _mm256_setzero_si256();
-        let mut acc1 = _mm256_setzero_si256();
-        let mut acc2 = _mm256_setzero_si256();
-        let mut acc3 = _mm256_setzero_si256();
+        let mut acc_a = [_mm256_setzero_si256(); REGS];
+        let mut acc_b = [_mm256_setzero_si256(); REGS];
+
         let mut j = 0;
         while j + 1 < count {
             let ca = nnz[j] as usize;
             let cb = nnz[j + 1] as usize;
             let xa = _mm256_set1_epi32(*in32.add(ca));
             let xb = _mm256_set1_epi32(*in32.add(cb));
-            let wa0 = _mm256_load_si256(w_ptr.add(ca * 64).cast());
-            let wa1 = _mm256_load_si256(w_ptr.add(ca * 64 + 32).cast());
-            let wb0 = _mm256_load_si256(w_ptr.add(cb * 64).cast());
-            let wb1 = _mm256_load_si256(w_ptr.add(cb * 64 + 32).cast());
-            acc0 = _mm256_add_epi32(acc0, _mm256_madd_epi16(_mm256_maddubs_epi16(xa, wa0), ones));
-            acc1 = _mm256_add_epi32(acc1, _mm256_madd_epi16(_mm256_maddubs_epi16(xa, wa1), ones));
-            acc2 = _mm256_add_epi32(acc2, _mm256_madd_epi16(_mm256_maddubs_epi16(xb, wb0), ones));
-            acc3 = _mm256_add_epi32(acc3, _mm256_madd_epi16(_mm256_maddubs_epi16(xb, wb1), ones));
+            for k in 0..REGS {
+                let wa = _mm256_load_si256(w_ptr.add(ca * CHUNK_BYTES + k * 32).cast());
+                let wb = _mm256_load_si256(w_ptr.add(cb * CHUNK_BYTES + k * 32).cast());
+                acc_a[k] = _mm256_add_epi32(acc_a[k], _mm256_madd_epi16(_mm256_maddubs_epi16(xa, wa), ones));
+                acc_b[k] = _mm256_add_epi32(acc_b[k], _mm256_madd_epi16(_mm256_maddubs_epi16(xb, wb), ones));
+            }
             j += 2;
         }
         if j < count {
             let c = nnz[j] as usize;
             let x = _mm256_set1_epi32(*in32.add(c));
-            let w0 = _mm256_load_si256(w_ptr.add(c * 64).cast());
-            let w1 = _mm256_load_si256(w_ptr.add(c * 64 + 32).cast());
-            acc0 = _mm256_add_epi32(acc0, _mm256_madd_epi16(_mm256_maddubs_epi16(x, w0), ones));
-            acc1 = _mm256_add_epi32(acc1, _mm256_madd_epi16(_mm256_maddubs_epi16(x, w1), ones));
+            for k in 0..REGS {
+                let w = _mm256_load_si256(w_ptr.add(c * CHUNK_BYTES + k * 32).cast());
+                acc_a[k] = _mm256_add_epi32(acc_a[k], _mm256_madd_epi16(_mm256_maddubs_epi16(x, w), ones));
+            }
         }
-        acc0 = _mm256_add_epi32(acc0, acc2);
-        acc1 = _mm256_add_epi32(acc1, acc3);
 
         let mut out = [0i32; L2_SIZE];
-        _mm256_storeu_si256(out.as_mut_ptr().cast(), acc0);
-        _mm256_storeu_si256(out.as_mut_ptr().add(8).cast(), acc1);
+        for k in 0..REGS {
+            _mm256_storeu_si256(out.as_mut_ptr().add(k * 8).cast(), _mm256_add_epi32(acc_a[k], acc_b[k]));
+        }
         out
     }
 }
