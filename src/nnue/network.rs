@@ -2,7 +2,7 @@ pub const HIDDEN_SIZE: usize = 1536;
 pub const L2_SIZE: usize = 16;
 pub const L3_SIZE: usize = 32;
 pub const NUM_OUTPUT_BUCKETS: usize = 8;
-pub const NUM_INPUT_BUCKETS: usize = 4;
+pub const NUM_INPUT_BUCKETS: usize = 6;
 const SCALE: f32 = 400.0;
 const QA: i16 = 255;
 const Q1: i32 = 64;
@@ -12,14 +12,14 @@ const HALF: usize = HIDDEN_SIZE / 2;
 const L1_CHUNKS: usize = HIDDEN_SIZE / 4;
 
 const KING_BUCKET_LAYOUT: [usize; 64] =  [
-    0, 0, 1, 1,1,1,0,0,
-    2, 2, 2, 2,2,2,2,2,
-    3, 3, 3, 3,3,3,3,3,
-    3, 3, 3, 3,3,3,3,3,
-    3, 3, 3, 3,3,3,3,3,
-    3, 3, 3, 3,3,3,3,3,
-    3, 3, 3, 3,3,3,3,3,
-    3, 3, 3, 3,3,3,3,3
+    0, 1, 2, 3,3,2,1,0,
+    4, 4, 4, 4,4,4,4,4,
+    5, 5, 5, 5,5,5,5,5,
+    5, 5, 5, 5,5,5,5,5,
+    5, 5, 5, 5,5,5,5,5,
+    5, 5, 5, 5,5,5,5,5,
+    5, 5, 5, 5,5,5,5,5,
+    5, 5, 5, 5,5,5,5,5,
 ];
 use shakmaty::{Board, Chess, Color, Position, Role};
 
