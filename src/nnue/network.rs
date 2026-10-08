@@ -1,7 +1,7 @@
 pub const HIDDEN_SIZE: usize = 1536;
 pub const L2_SIZE: usize = 16;
 pub const L3_SIZE: usize = 32;
-pub const NUM_OUTPUT_BUCKETS: usize = 8;
+pub const NUM_OUTPUT_BUCKETS: usize = 16;
 pub const NUM_INPUT_BUCKETS: usize = 4;
 const SCALE: f32 = 400.0;
 const QA: i16 = 255;
@@ -108,9 +108,14 @@ impl Network {
         &NNUE
     }
 
+    // Material buckets but different if opposite kings
     fn bucket(pos: &Chess) -> usize {
-        let divisor = 32usize.div_ceil(NUM_OUTPUT_BUCKETS);
-        (pos.board().occupied().count() - 2) / divisor
+        const MATERIAL_BUCKETS: usize = NUM_OUTPUT_BUCKETS / 2;
+        let board = pos.board();
+        let material = (board.occupied().count() - 2) / 32usize.div_ceil(MATERIAL_BUCKETS);
+        let wk = board.king_of(Color::White).unwrap().to_usize() % 8 > 3;
+        let bk = board.king_of(Color::Black).unwrap().to_usize() % 8 > 3;
+        material + usize::from(wk != bk) * MATERIAL_BUCKETS
     }
     pub fn evaluate(&self, us: &Accumulator, them: &Accumulator, pos: &Chess) -> i32 {
         self.evaluate_bucket(us, them, Self::bucket(pos)) as i32
