@@ -1,6 +1,6 @@
 pub const HIDDEN_SIZE: usize = 1536;
 pub const L2_SIZE: usize = 16;
-pub const L3_SIZE: usize = 32;
+pub const L3_SIZE: usize = 48;
 pub const NUM_OUTPUT_BUCKETS: usize = 8;
 pub const NUM_INPUT_BUCKETS: usize = 4;
 const SCALE: f32 = 400.0;
