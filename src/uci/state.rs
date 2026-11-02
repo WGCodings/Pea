@@ -22,7 +22,7 @@ impl UciState {
             multipv: 1,
             verbose,
             uci_show_wdl: true,
-            normalize_score: false,
+            normalize_score: true,
             stop: Arc::new(AtomicBool::new(false)),
             last_wtime: None,
             last_btime: None,

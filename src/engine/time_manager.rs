@@ -107,7 +107,6 @@ fn compute_time_limit_sub(
 
     let base = remaining / 30;
 
-    // Increment is almost free time — use 80% of it
     let inc_bonus = increment.mul_f32(0.8);
 
     let mut time = base + inc_bonus;

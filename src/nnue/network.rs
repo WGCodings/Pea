@@ -308,7 +308,7 @@ impl Accumulator {
 }
 
 // L1: u8 inputs x i8 weights, skipping 4-byte chunks that are all zero
-// Ty to Viridithas for all the simd
+// Ty to Viridithas for all the simd ideas
 #[cfg(target_feature = "avx2")]
 #[repr(C, align(16))]
 struct NnzTable([[u16; 8]; 256]);

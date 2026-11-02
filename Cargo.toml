@@ -1,7 +1,8 @@
 [package]
-name = "FastPeaPea"
-version = "0.1.0"
+name = "Pea"
+version = "10.0.0"
 edition = "2021"
+authors = ["WGCodings"]
 
 [dependencies]
 shakmaty = "=0.30.0"

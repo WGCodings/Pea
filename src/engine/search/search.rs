@@ -875,22 +875,6 @@ fn check_time(ctx: &SearchContext) {
         if (ctx.start_time.elapsed() >= ctx.time_limit) || (ctx.stats.nodes >= ctx.node_limit) {
             (*ctx.stop).store(true, Ordering::Relaxed);
         }
-
-        /*
-
-        let nonzero: Vec<i32> = ctx.corrhist_pawn.table.iter()
-            .flatten()
-            .filter(|&&x| x != 0)
-            .copied()
-            .collect();
-        eprintln!("nonzero: {}, max_abs: {}, mean_abs: {}",
-                  nonzero.len(),
-                  nonzero.iter().map(|x| x.abs()).max().unwrap_or(0),
-                  nonzero.iter().map(|x| x.abs()).sum::<i32>() / nonzero.len().max(1) as i32
-        );
-
-         */
-
     }
 }
 
