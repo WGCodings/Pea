@@ -73,7 +73,6 @@ You can play the latest generations of my networks on lichess : [Net 0][lichess-
 
 ### Evaluation
 - NNUE with architecture `(768 → 1536) × 2 → 1 × 8` trained with the excellent [Bullet] crate
-- SPSA trainer *(work in progress)*
 - correction histories
 
 
@@ -114,7 +113,7 @@ Below is a table of Elo estimates from having the engine play against other engi
 | v7.0 (Net 1) | 2850              | 2392                                                                    | 2739                                                                    | 2858                                                                         | /                                                            | /                                                        |
 | v8.0 (Net 0) | 2993              | 2507                                                                    | 2869                                                                    | 2996                                                                         | /                                                            | /                                                        |
 | v9.0 (Net 0) | 3193              | 2691                                                                    | 3027                                                                    | 3062                                                                         | 3264                                                         | 3223                                                     |
-| v9.1 (Net 0) | 3388              | /                                                                       | /                                                                       | /                                                                            | /                                                            | /                                                        |
+| v9.1 (Net 0) | 3388              | 2888                                                                    | 3164                                                                    | 3220                                                                         | 3383                                                         | 3343                                                     |
 ---
 
 
@@ -150,21 +149,10 @@ make release
 
 ## Usage
 
-Running the binary directly drops you into a UCI prompt. In practice, you'll want to use a UCI-compatible frontend:
-
-- [Arena][arena]
-- [Cutechess][cutechess]
-- [Shredder][shredder]
+Running the binary directly drops you into a UCI prompt. You can import it in you favorite chess GUI.
 
 
 ---
-
-## Contributing
-
-You can support the Pea by donating compute on my Openbench instance https://peaob.pythonanywhere.com/ 
-or if you have an interest in collaboration, you can always leave me a message.(Or fork the repo and do some pull requests.)
-For an Openbench account or other requests you can contact me by sending an email to warregevers@hotmail.com.
-
 
 ## Roadmap
 
@@ -198,7 +186,7 @@ For some more advanced ideas I also grateful to the authors of [viridithas][viri
 Thanks to [Stockfish' WDL Model][StockFishWDLModel] I was able to normalize the eval score and provide WDL information for every position.
 Many thanks to Andy Grant for the [Openbench][Openbench] testing framework, with which testing is a real pleasure.
 
-Thanks to the communities at the **Engine Programming**  Discord servers, the Chess Programming Wiki and TalkChess forum for all the ideas and information.
+Thanks to the communities at the Engine Programming Discord servers, the Chess Programming Wiki and TalkChess forum for all the ideas and information.
 
 ---
 
