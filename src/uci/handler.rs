@@ -377,14 +377,14 @@ fn _print_spsa_options(params: &Params) {
     println!("option name fp_base type spin default {} min 0 max 120", params.fp_base);
     println!("option name fp_scaling type spin default {} min 0 max 120", params.fp_scaling);
     println!("option name fp_max_depth type spin default {} min 0 max 15", params.fp_max_depth);
-    println!("option name fp_improving_margin type spin default {} min 0 max 200", params.fp_improving_margin);
+    println!("option name fp_improving_margin type spin default {} min -100 max 100", params.fp_improving_margin);
     println!("option name fp_min_moves_searched type spin default {} min 1 max 10", params.fp_min_moves_searched);
     println!("option name rfp_scaling type spin default {} min 0 max 150", params.rfp_scaling);
     println!("option name rfp_improving_scaling type spin default {} min 0 max 200", params.rfp_improving_scaling);
     println!("option name rfp_max_depth type spin default {} min 0 max 25", params.rfp_max_depth);
     println!("option name lmp_base type spin default {} min 0 max 10", params.lmp_base);
     println!("option name lmp_lin_scaling type spin default {} min 0 max 10", params.lmp_lin_scaling);
-    println!("option name lmp_quad_scaling type spin default {} min 0 max 10", params.lmp_quad_scaling);
+    println!("option name lmp_quad_scaling type spin default {} min -10 max 10", params.lmp_quad_scaling);
     println!("option name lmp_max_depth type spin default {} min 0 max 15", params.lmp_max_depth);
     println!("option name cont_hist_scaling type spin default {} min 200 max 1000", params.cont_hist_scaling);
     println!("option name cont_hist_base type spin default {} min 100 max 300", params.cont_hist_base);
