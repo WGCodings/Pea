@@ -93,15 +93,15 @@ impl Params {
             // LATE MOVE REDUCTION
             lmr_min_searches: 2,
             lmr_min_depth: 1,
-            lmr_red_constant: 7637.0000,
-            lmr_red_scaling: 25150.0000,
+            lmr_red_constant: 0.7637,
+            lmr_red_scaling: 2.5150,
             lmr_history_divisor: 8355,
             lmr_see_thr: 5,
             lmr_corr_scaling: 35,
             // ASPIRATION WINDOW
             aspw_min_depth: 6,
             aspw_window_size: 33,
-            aspw_widening_factor: 22235.0,
+            aspw_widening_factor: 2.2235,
             //FUTILITY PRUNING
             fp_base: 39,
             fp_scaling : 70,
