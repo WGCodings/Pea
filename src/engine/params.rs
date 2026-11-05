@@ -78,12 +78,12 @@ impl Params {
         Self {
             // RAZORING
             raz_max_depth: 5,
-            raz_thr: 265,
-            raz_improving_margin: -2,
+            raz_thr: 244,
+            raz_improving_margin: 0,
             // NULL MOVE PRUNING
-            nmp_margin : 120,
-            nmp_scaling : 20,
-            nmp_improving_scaling: -4,
+            nmp_margin : 123,
+            nmp_scaling : 22,
+            nmp_improving_scaling: -5,
             nmp_min_depth: 3,
             nmp_base_reduction: 4,
             nmp_reduction_scaling: 4,
@@ -93,24 +93,24 @@ impl Params {
             // LATE MOVE REDUCTION
             lmr_min_searches: 4,
             lmr_min_depth: 2,
-            lmr_red_constant: 0.7520,
-            lmr_red_scaling: 2.4705,
-            lmr_history_divisor: 8804,
-            lmr_see_thr: 3,
-            lmr_corr_scaling: 31,
+            lmr_red_constant: 0.7335,
+            lmr_red_scaling: 2.5967,
+            lmr_history_divisor: 8936,
+            lmr_see_thr: 4,
+            lmr_corr_scaling: 32,
             // ASPIRATION WINDOW
             aspw_min_depth: 5,
-            aspw_window_size: 32,
-            aspw_widening_factor: 2.1192,
+            aspw_window_size: 31,
+            aspw_widening_factor: 2.1779,
             //FUTILITY PRUNING
-            fp_base: 40,
-            fp_scaling : 58,
+            fp_base: 42,
+            fp_scaling : 62,
             fp_max_depth: 8,
             fp_improving_margin: 2,
             fp_min_moves_searched: 1,
             // REVERSE FUTILITY PRUNING
-            rfp_scaling: 47,
-            rfp_improving_scaling: 107,
+            rfp_scaling: 41,
+            rfp_improving_scaling: 106,
             rfp_max_depth: 10,
             // LATE MOVE PRUNING
             lmp_base: 4,
@@ -118,23 +118,23 @@ impl Params {
             lmp_quad_scaling: 0,
             lmp_max_depth: 5,
             // N-PLY CONTINUATION HISTORY
-            cont_hist_scaling: 377,
-            cont_hist_base: 153,
-            cont_hist_malus_scaling: 383,
-            cont_hist_malus_base: 143,
+            cont_hist_scaling: 356,
+            cont_hist_base: 150,
+            cont_hist_malus_scaling: 399,
+            cont_hist_malus_base: 146,
             // hanging piece pruning
-            hpp_quiet_scaling: 22,
-            hpp_tactical_scaling: 86,
+            hpp_quiet_scaling: 21,
+            hpp_tactical_scaling: 76,
             // internal iterative deepening
             iir_min_depth: 2,
             se_dext_margin: 16,
             se_scaling: 4,
             se_depth_ok: 3,
             se_min_depth: 10,
-            se_text_margin: 101,
+            se_text_margin: 97,
             se_max_nr_dext: 8,
             // History pruning
-            hist_prune_margin: 996,
+            hist_prune_margin: 994,
             hist_prune_depth: 4,
             // probcut
             pc_beta_margin: 267,
@@ -142,6 +142,7 @@ impl Params {
             pc_min_depth: 9,
             pc_improving_margin: 10,
             pc_see_thr: 0,
+
 
         }
     }
