@@ -2,7 +2,10 @@ pub const HIDDEN_SIZE: usize = 1536;
 pub const L2_SIZE: usize = 16;
 pub const L3_SIZE: usize = 32;
 pub const NUM_OUTPUT_BUCKETS: usize = 8;
-pub const NUM_INPUT_BUCKETS: usize = 4;
+pub const NUM_KING_BUCKETS: usize = 4;
+const MATERIAL_SPLITS: &[usize] = &[23];
+pub const NUM_PIECE_BUCKETS: usize = MATERIAL_SPLITS.len() + 1;
+pub const NUM_INPUT_BUCKETS: usize = NUM_KING_BUCKETS * NUM_PIECE_BUCKETS;
 const SCALE: f32 = 400.0;
 const QA: i16 = 255;
 const Q1: i32 = 64;
@@ -29,9 +32,14 @@ static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../../nnue/
 // NNUE NETWORK IS TRAINED BY THE BULLET CRATE AND CODE HAS BEEN REUSED FROM ONE OF THE EXAMPLES TO DO THE INFERENCE
 // =====================================================================================================================//
 
-
+fn material(board: &Board) -> usize {
+    let m = board.pawns().count()
+        + 2 * (board.knights().count() + board.bishops().count() + board.rooks().count())
+        + 4 * board.queens().count();
+    m.min(48)
+}
 /// Returns the bucket
-pub fn get_bucket(board: &Board, perspective: Color) -> (usize,bool) {
+pub fn get_bucket(board: &Board, perspective: Color) -> (usize, bool) {
     let king_sq = board.king_of(perspective).unwrap();
     let mut sq_idx = king_sq.to_usize();
     if perspective == Color::Black {
@@ -39,8 +47,11 @@ pub fn get_bucket(board: &Board, perspective: Color) -> (usize,bool) {
     }
 
     let is_mirrored = sq_idx % 8 > 3;
+    
+    let mat = material(board);
+    let phase = MATERIAL_SPLITS.iter().filter(|&&s| s <= mat).count();
 
-    (KING_BUCKET_LAYOUT[sq_idx],is_mirrored)
+    (phase * NUM_KING_BUCKETS + KING_BUCKET_LAYOUT[sq_idx], is_mirrored)
 }
 
 #[inline(always)]
