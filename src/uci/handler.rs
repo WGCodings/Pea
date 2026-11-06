@@ -384,7 +384,7 @@ fn _print_spsa_options(params: &Params) {
     println!("option name rfp_max_depth type spin default {} min 0 max 25", params.rfp_max_depth);
     println!("option name lmp_base type spin default {} min 0 max 10", params.lmp_base);
     println!("option name lmp_lin_scaling type spin default {} min 0 max 10", params.lmp_lin_scaling);
-    println!("option name lmp_quad_scaling type spin default {} min -10 max 10", params.lmp_quad_scaling);
+    println!("option name lmp_quad_scaling type spin default {} min 0 max 10", params.lmp_quad_scaling);
     println!("option name lmp_max_depth type spin default {} min 0 max 15", params.lmp_max_depth);
     println!("option name cont_hist_scaling type spin default {} min 200 max 1000", params.cont_hist_scaling);
     println!("option name cont_hist_base type spin default {} min 100 max 300", params.cont_hist_base);
