@@ -189,7 +189,7 @@ impl UciHandler {
         let time_limit = compute_time_limit(
             &self.engine.position,
             wtime, btime, winc, binc,
-            movetime, depth,
+            movetime, depth, nodes, 
             self.engine.options.move_overhead,
         );
 
