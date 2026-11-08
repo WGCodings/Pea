@@ -133,13 +133,14 @@ pub fn compute_time_limit(
     binc: Option<u64>,
     movetime: Option<u64>,
     depth: Option<u32>,
+    nodes: Option<u64>,
     move_overhead: u64,
 ) -> Option<Duration> {
     if let Some(ms) = movetime {
         return Some(Duration::from_millis(ms.saturating_sub(move_overhead)));
     }
     // Just take whatever time is needed to get to that depth
-    if depth.is_some() {
+    if depth.is_some() || nodes.is_some() {
         return Some(Duration::MAX / 10);
     }
     let remaining = match pos.turn() {
