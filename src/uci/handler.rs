@@ -180,6 +180,7 @@ impl UciHandler {
     ) {
         self.uci.save_time(wtime, btime, winc, binc);
         self.uci.reset_stop();
+        
 
         let max_depth = depth.map_or(64, |d| d as usize);
         let max_nodes = nodes.unwrap_or(u64::MAX);
@@ -189,7 +190,7 @@ impl UciHandler {
         let time_limit = compute_time_limit(
             &self.engine.position,
             wtime, btime, winc, binc,
-            movetime, depth,
+            movetime, depth, nodes,
             self.engine.options.move_overhead,
         );
 
