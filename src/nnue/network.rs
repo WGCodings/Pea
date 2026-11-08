@@ -3,6 +3,8 @@ pub const L2_SIZE: usize = 16;
 pub const L3_SIZE: usize = 32;
 pub const NUM_OUTPUT_BUCKETS: usize = 8;
 pub const NUM_INPUT_BUCKETS: usize = 4;
+const KZ_INPUTS: usize = 288;
+const FT_INPUTS: usize = 768 * NUM_INPUT_BUCKETS + KZ_INPUTS;
 const SCALE: f32 = 400.0;
 const QA: i16 = 255;
 const Q1: i32 = 64;
@@ -21,7 +23,7 @@ const KING_BUCKET_LAYOUT: [usize; 64] =  [
     3, 3, 3, 3,3,3,3,3,
     3, 3, 3, 3,3,3,3,3
 ];
-use shakmaty::{Board, Chess, Color, Position, Role};
+use shakmaty::{Board, Chess, Color, Piece, Position, Role, Square};
 
 static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../../nnue/files/quantised.bin")) };
 
@@ -63,9 +65,9 @@ pub fn accumulator_for_perspective<P: Position>(pos: &P, net: &Network, perspect
     let board = pos.board();
     let (bucket, is_mirrored) = get_bucket(board, perspective);
 
-    for square in shakmaty::Square::ALL {
+    for square in Square::ALL {
         if let Some(piece) = board.piece_at(square) {
-            let sq_idx = shakmaty::Square::to_usize(square);
+            let sq_idx = Square::to_usize(square);
             let piece_type = role_index(piece.role);
             let side = if piece.color == Color::White { 0 } else { 1 };
             acc.add_feature(calculate_index(side, sq_idx, piece_type, perspective, bucket, is_mirrored), net);
@@ -89,7 +91,7 @@ pub fn role_index(role: Role) -> usize {
 /// This is the quantised format that bullet outputs.
 #[repr(C)]
 pub struct Network {
-    pub(crate) feature_weights: [Accumulator; 768 * NUM_INPUT_BUCKETS],
+    pub(crate) feature_weights: [Accumulator; FT_INPUTS],
     pub(crate) feature_bias: Accumulator,
     l1_weights: [[i8; HIDDEN_SIZE * L2_SIZE]; NUM_OUTPUT_BUCKETS],
     l1_bias: [[f32; L2_SIZE]; NUM_OUTPUT_BUCKETS],
@@ -113,7 +115,21 @@ impl Network {
         (pos.board().occupied().count() - 2) / divisor
     }
     pub fn evaluate(&self, us: &Accumulator, them: &Accumulator, pos: &Chess) -> i32 {
-        self.evaluate_bucket(us, them, Self::bucket(pos)) as i32
+
+        let mut us = *us;
+        let mut them = *them;
+        let base = 768 * NUM_INPUT_BUCKETS;
+        let stm_white = pos.turn() == Color::White;
+
+        // For now just add king zone inputs on copy of our current accs, later will incremental if works on fn
+
+        kz_feature_pairs(pos.board(), |w, b| {
+            let (u, t) = if stm_white { (w, b) } else { (b, w) };
+            us.add_feature(base + u, self);
+            them.add_feature(base + t, self);
+        });
+
+        self.evaluate_bucket(&us, &them, Self::bucket(pos)) as i32
     }
 
     pub fn evaluate_bucket(&self, us: &Accumulator, them: &Accumulator, bucket: usize) -> f32 {
@@ -328,3 +344,67 @@ static NNZ_TABLE: NnzTable = {
     }
     NnzTable(table)
 };
+
+
+// Find features that need to be activated for king zone inputs
+// Look at sqaures in kings zones, check which pieces attack/defend it and for every hit,
+// report the feature index to activate later in accumulators
+const KZ_ROLES: [Role; 6] = [Role::Pawn, Role::Knight, Role::Bishop, Role::Rook, Role::Queen, Role::King];
+
+pub fn kz_feature_pairs(board: &Board, mut emit: impl FnMut(usize, usize)) {
+    let (Some(wk), Some(bk)) = (board.king_of(Color::White), board.king_of(Color::Black)) else { return };
+    let colors = [Color::White, Color::Black];
+    let king = [wk, bk];
+    let mirror = [wk.to_usize() % 8 > 3, bk.to_usize() % 8 > 3];
+    let occ = board.occupied();
+
+    for owner in 0..2 {
+        let (kr, kf) = (king[owner].rank() as i32, king[owner].file() as i32);
+        let forward = if owner == 0 { 1 } else { -1 };
+        for dr in -1..=2i32 {
+            for df in -1..=1i32 {
+                let (r, f) = (kr + forward * dr, kf + df);
+                // Skip if off board
+                if !(0..8).contains(&r) || !(0..8).contains(&f) {
+                    continue;
+                }
+                let sq = Square::new((r * 8 + f) as u32);
+                // king zone square index
+                let zsq = |view: usize| {
+                    let d = if mirror[view] { -df } else { df };
+                    ((dr + 1) * 3 + (d + 1)) as usize
+                };
+                let (z0, z1) = (zsq(0), zsq(1));
+                for c in 0..2 {
+                    // These features are never activated in training, so discard them
+                    // These are opponent pieces, we are looking at our king square and opponent is attacking it = check
+                    if dr == 0 && df == 0 && c != owner {
+                        continue;
+                    }
+                    let attackers = board.attacks_to(sq, colors[c], occ);
+                    for (p, &role) in KZ_ROLES.iter().enumerate() {
+
+                        // Skip king attacks to its own zone
+                        if p == 5 && c == owner {
+                            continue;
+                        }
+                        // Ok if any other piece attacks this king zone sqaure
+                        let mut hit = (attackers & board.by_role(role)).any();
+
+                        // Pawn shields: pawns defend their own king : activate features on pawn sqaure itself AND that which it is attacking
+                        if p == 0 && c == owner && board.piece_at(sq) == Some(Piece { color: colors[c], role: Role::Pawn }) {
+                            hit = true;
+                        }
+                        // if hit, calculate index and emit to add_feature for in accumulator
+                        if hit {
+                            let idx = |view: usize, z: usize| {
+                                usize::from(c != view) * 144 + p * 24 + usize::from(owner != view) * 12 + z
+                            };
+                            emit(idx(0, z0), idx(1, z1));
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
