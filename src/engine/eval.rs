@@ -13,8 +13,8 @@ pub fn evaluate(pos: &Chess, net: &Network, state: &mut NNUEState) -> i32 {
 
 
 
-    let (fresh_white, fresh_white_bucket, _) =  accumulator_for_perspective(pos, net, Color::White);
-    let (fresh_black, fresh_black_bucket, _) = accumulator_for_perspective(pos, net, Color::Black);
+    let (fresh_white, _, _) =  accumulator_for_perspective(pos, net, Color::White);
+    let (fresh_black, _, _) = accumulator_for_perspective(pos, net, Color::Black);
 
 
     
