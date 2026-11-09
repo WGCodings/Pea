@@ -28,11 +28,9 @@ pub fn evaluate(pos: &Chess, net: &Network, state: &mut NNUEState) -> i32 {
     }
 
      */
-    
-    let (us, them) = match pos.turn() {
-        Color::White => (&state.white_acc, &state.black_acc),
-        Color::Black => (&state.black_acc, &state.white_acc),
-    };
+
+    let (w, b) = state.current();
+    let (us, them) = if pos.turn() == Color::White { (w, b) } else { (b, w) };
 
     let nnue_score= net.evaluate(us,them,pos);
 

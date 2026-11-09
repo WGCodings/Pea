@@ -95,7 +95,7 @@ pub fn run_game(
             ordering,
             network,
             repetition_stack.clone(),
-            NNUEState::new(&pos, network),
+            *NNUEState::new(&pos, network),
             Arc::new(AtomicBool::new(false)),
             Arc::new(AtomicU64::new(0)),
             false,

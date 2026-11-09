@@ -1,21 +1,22 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::time::{Duration, Instant};
-use shakmaty::{Bitboard, Board, Chess, Color, Move, Position, Role, Square};
+use shakmaty::{ Board, Chess, Color, Move, Position, Role, Square};
 use crate::engine::corrhist::{CorrectionHistoryTable, MajorsAndKingsKey, MaterialKey, MinorsAndKingsKey, PawnKey};
-use crate::engine::finny::{FinnyEntry, FinnyTable};
+use crate::engine::finny::{FinnyTable};
 use crate::engine::history::HistoryTables;
 use crate::engine::params::Params;
 use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::search::SearchStats;
 use crate::engine::tt::TranspositionTable;
-use crate::nnue::network::{accumulator_for_perspective, calculate_index, get_bucket, role_index, Accumulator, Network};
+use crate::engine::types::NNUE_STACK;
+use crate::nnue::network::{calculate_index, get_bucket, role_index, update_into, Accumulator, Network};
 
 // Keep track of move, eval and nr of double ext per ply.
 pub struct Stack {
-    pub moves: [Option<Move>; 128],
-    pub evals: [i32; 128],
-    pub double_exts: [i32; 128],
+    pub moves: [Option<Move>; NNUE_STACK],
+    pub evals: [i32; NNUE_STACK],
+    pub double_exts: [i32; NNUE_STACK],
 }
 // The searchcontext is passed on during the search and contains parameters, time management, history, tt tables etc
 pub struct SearchContext<'a> {
@@ -39,7 +40,7 @@ pub struct SearchContext<'a> {
     pub nnue: NNUEState, // State of NNUE i e accumulators
     pub network: &'a Network, // NNUE network
 
-    pub killers: [[Option<Move>; 3]; 128],
+    pub killers: [[Option<Move>; 3]; NNUE_STACK],
     pub history: HistoryTables,
 
 
@@ -51,7 +52,7 @@ pub struct SearchContext<'a> {
     
     pub stack : Stack,
 
-    pub excluded_move: [Option<Move>; 128], // excluded moves for Singular extensions
+    pub excluded_move: [Option<Move>; NNUE_STACK], // excluded moves for Singular extensions
 
 }
 
@@ -146,27 +147,39 @@ impl<'a> SearchContext<'a> {
 // =====================================================================================================================//
 // KEEP TRACK OF CHANGES TO ACCUMULATOR DURING MAKE MOVE                                                                //
 // =====================================================================================================================//
-#[derive(Clone, Copy)]
+
+#[derive(Clone, Copy, Default)]
+pub struct PieceSq {
+    pub side: u8,
+    pub role: u8,
+    pub sq: u8,
+}
+
+#[derive(Clone, Copy, Default)]
 pub struct AccumulatorDelta {
-    white_removed: [usize; 2],
-    white_added: [usize; 2],
-    black_removed: [usize; 2],
-    black_added: [usize; 2],
-    n_removed: u8,
-    n_added: u8,
-    is_refresh: bool,
-    refresh_color: Color
+    pub removed: [PieceSq; 2],
+    pub added: [PieceSq; 2],
+    pub n_removed: u8,
+    pub n_added: u8,
 }
 
 impl AccumulatorDelta {
     fn default() -> Self {
         Self {
-            white_removed: [0; 2], white_added: [0; 2],
-            black_removed: [0; 2], black_added: [0; 2],
+            removed: [PieceSq::default(); 2],
+            added: [PieceSq::default(); 2],
             n_removed: 0, n_added: 0,
-            is_refresh: false,
-            refresh_color: Color::White,
         }
+    }
+    #[inline(always)]
+    fn add(&mut self, side: Color, role: Role, sq: Square) {
+        self.added[self.n_added as usize] = PieceSq { side: (side == Color::Black) as u8, role: role_index(role) as u8, sq: sq as u8 };
+        self.n_added += 1;
+    }
+    #[inline(always)]
+    fn remove(&mut self, side: Color, role: Role, sq: Square) {
+        self.removed[self.n_removed as usize] = PieceSq { side: (side == Color::Black) as u8, role: role_index(role) as u8, sq: sq as u8 };
+        self.n_removed += 1;
     }
 }
 
@@ -175,29 +188,44 @@ impl AccumulatorDelta {
 // =====================================================================================================================//
 
 pub struct NNUEState {
-    pub white_acc: Accumulator,
-    pub black_acc: Accumulator,
-    pub white_bucket: usize,
-    pub black_bucket: usize,
-    pub white_is_mirrored : bool,
-    pub black_is_mirrored : bool,
-    pub stack: Vec<AccumulatorDelta>,
-    pub applied: usize,
-    pub ft: FinnyTable
+    accs: Vec<[Accumulator; 2]>,
+    computed: Vec<[bool; 2]>,
+    buckets: Vec<[(usize, bool); 2]>,
+    refresh: Vec<[bool; 2]>,
+    deltas: Vec<AccumulatorDelta>,
+    top: usize,
+    pub ft: Box<FinnyTable>,
+}
+#[inline(always)]
+fn persp(i: usize) -> Color {
+    if i == 0 { Color::White } else { Color::Black }
 }
 
 impl NNUEState {
-    pub fn new<P: Position>(pos: &P, net: &Network) -> Self {
-        let (white_acc, white_bucket, white_is_mirrored) = accumulator_for_perspective(pos, net, Color::White);
-        let (black_acc, black_bucket, black_is_mirrored) = accumulator_for_perspective(pos, net, Color::Black);
+    pub fn new(pos: &Chess, net: &Network) -> Box<Self> {
+        let mut s = Box::new(Self {
+            accs: vec![[net.feature_bias; 2]; NNUE_STACK],
+            computed: vec![[false; 2]; NNUE_STACK],
+            buckets: vec![[(0, false); 2]; NNUE_STACK],
+            refresh: vec![[false; 2]; NNUE_STACK],
+            deltas: vec![AccumulatorDelta::default(); NNUE_STACK],
+            top: 0,
+            ft: Box::from(FinnyTable::default(net)),
+        });
+        for p in 0..2 {
+            s.buckets[0][p] = get_bucket(pos.board(), persp(p));
+            finny_refresh(pos.board(), net, &mut s, p);
+        }
+        s.computed[0] = [true; 2];
+        s
+    }
 
-        let mut ft = FinnyTable::default(net);
-        let bb = get_bb(pos.board());
-        *ft.get_entry(Color::White, white_bucket, white_is_mirrored) = FinnyEntry { acc: white_acc, piece_bb: bb };
-        *ft.get_entry(Color::Black, black_bucket, black_is_mirrored) = FinnyEntry { acc: black_acc, piece_bb: bb };
-
-
-        Self { white_acc, black_acc, white_bucket, black_bucket, white_is_mirrored, black_is_mirrored, stack: Vec::with_capacity(64), applied: 0, ft }
+    // Get latest acc on 'top', i e last ply
+    #[inline(always)]
+    pub fn current(&self) -> (&Accumulator, &Accumulator) {
+        debug_assert!(self.computed[self.top] == [true; 2]);
+        let a = &self.accs[self.top];
+        (&a[0], &a[1])
     }
 }
 
@@ -207,217 +235,114 @@ impl NNUEState {
 
 /// Loop over the accumulator delta stack until you find a clean one. Then do incremental updates from that point back to the current accumulator.
 #[inline(always)]
-pub fn clean_accumulator<P: Position>(pos: &P, net: &Network, state: &mut NNUEState) {
-
-    if state.applied == state.stack.len() {
-        return;
-    }
-
-    // flags used to avoid cleaning the accumulator when we are using finny tables later to do the updates anyways.
-    let mut do_white_finny_refresh = false;
-    let mut do_black_finny_refresh = false;
-
-    for i in state.applied..state.stack.len() {
-        let delta = state.stack[i];
-
-        if delta.is_refresh {
-            match delta.refresh_color {
-                Color::White => {
-                    do_white_finny_refresh = true;
-                    if !do_black_finny_refresh {
-                        state.black_acc.apply_feature_updates(&delta.black_added[..delta.n_added as usize], &delta.black_removed[..delta.n_removed as usize], net);
-                    }
-                }
-                Color::Black => {
-                    do_black_finny_refresh = true;
-                    if !do_white_finny_refresh {
-                        state.white_acc.apply_feature_updates(&delta.white_added[..delta.n_added as usize], &delta.white_removed[..delta.n_removed as usize], net);
-                    }
-                }
-            }
+pub fn clean_accumulator(pos: &Chess, net: &Network, state: &mut NNUEState) {
+    let top = state.top;
+    for p in 0..2 {
+        if state.computed[top][p] {
             continue;
         }
-
-        if !do_white_finny_refresh {
-            state.white_acc.apply_feature_updates(&delta.white_added[..delta.n_added as usize], &delta.white_removed[..delta.n_removed as usize], net);
+        let mut i = top;
+        let mut needs_refresh = false;
+        while !state.computed[i][p] {
+            if state.refresh[i][p] {
+                needs_refresh = true;
+                break;
+            }
+            i -= 1;
         }
-        if !do_black_finny_refresh {
-            state.black_acc.apply_feature_updates(&delta.black_added[..delta.n_added as usize], &delta.black_removed[..delta.n_removed as usize], net);
+        if needs_refresh {
+            finny_refresh(pos.board(), net, state, p);
+        } else {
+            for j in i + 1..=top {
+                apply_delta(net, state, j, p);
+            }
         }
+        state.computed[top][p] = true;
     }
-
-    if do_white_finny_refresh {
-        state.white_acc = finny_refresh(pos, net, Color::White, state.white_bucket, state.white_is_mirrored, &mut state.ft);
-    }
-    if do_black_finny_refresh {
-        state.black_acc = finny_refresh(pos, net, Color::Black, state.black_bucket, state.black_is_mirrored, &mut state.ft);
-    }
-
-    state.applied = state.stack.len();
 }
 
-fn finny_refresh<P: Position>(pos: &P, net: &Network, perspective: Color, bucket: usize, is_mirrored : bool, ft: &mut FinnyTable) -> Accumulator {
-    let board = pos.board();
-    let new_bb = get_bb(board);
-    let entry = ft.get_entry(perspective, bucket, is_mirrored);
-
-    let mut acc = entry.acc;
+pub fn finny_refresh(board: &Board, net: &Network, state: &mut NNUEState, p: usize) {
+    let c = persp(p);
+    let top = state.top;
+    let (bucket, mirrored) = state.buckets[top][p];
+    let entry = state.ft.get_entry(c, bucket, mirrored);
 
     let mut adds = [0usize; 32];
     let mut rems = [0usize; 32];
-    let mut n_add = 0;
-    let mut n_rem = 0;
-
+    let (mut na, mut nr) = (0, 0);
     for side in 0..2 {
-        for role_idx in 0..6 {
-            let old = entry.piece_bb[side][role_idx];
-            let new = new_bb[side][role_idx];
-
-            for sq in old & !new {
-                rems[n_rem] = calculate_index(side, sq.to_usize(), role_idx, perspective, bucket, is_mirrored);
-                n_rem += 1;
+        let colour = persp(side);
+        for (r, role) in Role::ALL.into_iter().enumerate() {
+            let now = board.by_color(colour) & board.by_role(role);
+            let old = entry.piece_bb[side][r];
+            for sq in now & !old {
+                adds[na] = calculate_index(side, sq as usize, r, c, bucket, mirrored);
+                na += 1;
             }
-            for sq in new & !old {
-                adds[n_add] = calculate_index(side, sq.to_usize(), role_idx, perspective, bucket, is_mirrored);
-                n_add += 1;
+            for sq in old & !now {
+                rems[nr] = calculate_index(side, sq as usize, r, c, bucket, mirrored);
+                nr += 1;
             }
+            entry.piece_bb[side][r] = now;
         }
     }
-
-    acc.apply_feature_updates(&adds[..n_add], &rems[..n_rem], net);
-
-    entry.acc = acc;
-    entry.piece_bb = new_bb;
-    acc
+    let e: *mut Accumulator = &mut entry.acc;
+    update_into(e, e, &adds[..na], &rems[..nr], net);
+    state.accs[top][p] = unsafe { *e };
 }
-
-/// Check if a move is a king move
 #[inline(always)]
-fn is_king_move<P: Position>(mv: &Move) -> bool {
+pub fn make_move_nnue(pos: &Chess, child_pos: &Chess, mv: &Move, state: &mut NNUEState) {
+    let us = pos.turn();
+    let them = !us;
+    let mut d = AccumulatorDelta::default();
+    let mut king_moved = false;
     match *mv {
-        Move::Normal { role, .. } => role == Role::King,
-        Move::Castle { .. } => true,
-        _ => false,
-    }
-}
-
-#[inline(always)]
-pub fn make_move_nnue<P: Position>(pos: &P, child_pos: &P, mv: &Move, state: &mut NNUEState) {
-    let mut delta = AccumulatorDelta::default();
-    let board = pos.board();
-    let white_bucket = state.white_bucket;
-    let white_is_mirrored = state.white_is_mirrored;
-    let black_bucket = state.black_bucket;
-    let black_is_mirrored = state.black_is_mirrored;
-
-    match *mv {
-        Move::Normal { from, to, promotion, .. } => {
-            let piece = board.piece_at(from).unwrap();
-            let side = if piece.color == Color::White { 0 } else { 1 };
-            let piece_type = role_index(piece.role);
-
-            remove_feature(&mut delta, side, from.to_usize(), piece_type, white_bucket, white_is_mirrored,black_is_mirrored,black_bucket);
-
-            if let Some(captured) = board.piece_at(to) {
-                let cap_side = if captured.color == Color::White { 0 } else { 1 };
-                let cap_type = role_index(captured.role);
-                remove_feature(&mut delta, cap_side, to.to_usize(), cap_type, white_bucket, white_is_mirrored,black_is_mirrored, black_bucket);
+        Move::Normal { role, from, capture, to, promotion } => {
+            d.remove(us, role, from);
+            d.add(us, promotion.unwrap_or(role), to);
+            if let Some(c) = capture {
+                d.remove(them, c, to);
             }
-
-            let final_type = role_index(promotion.unwrap_or(piece.role));
-            add_feature(&mut delta, side, to.to_usize(), final_type, white_bucket, white_is_mirrored,black_is_mirrored, black_bucket);
+            king_moved = role == Role::King;
         }
-
         Move::EnPassant { from, to } => {
-            let piece = board.piece_at(from).unwrap();
-            let side = if piece.color == Color::White { 0 } else { 1 };
-            let piece_type = role_index(Role::Pawn);
-
-            remove_feature(&mut delta, side, from.to_usize(), piece_type, white_bucket, white_is_mirrored,black_is_mirrored, black_bucket);
-
-            let cap_sq = Square::from_coords(to.file(), from.rank()).to_usize();
-            remove_feature(&mut delta, 1 - side, cap_sq, piece_type, white_bucket, white_is_mirrored,black_is_mirrored, black_bucket);
-
-            add_feature(&mut delta, side, to.to_usize(), piece_type, white_bucket, white_is_mirrored,black_is_mirrored, black_bucket);
+            d.remove(us, Role::Pawn, from);
+            d.add(us, Role::Pawn, to);
+            d.remove(them, Role::Pawn, Square::from_coords(to.file(), from.rank()));
         }
-
         Move::Castle { king, rook } => {
-            let piece = board.piece_at(king).unwrap();
-            let side = if piece.color == Color::White { 0 } else { 1 };
-
-            let king_from = king.to_usize();
-            let rook_from = rook.to_usize();
-            let kingside = rook.file() > king.file();
-            let king_to = if kingside { king_from + 2 } else { king_from - 2 };
-            let rook_to = if kingside { king_from + 1 } else { king_from - 1 };
-
-            remove_feature(&mut delta, side, king_from, role_index(Role::King), white_bucket, white_is_mirrored,black_is_mirrored, black_bucket);
-            remove_feature(&mut delta, side, rook_from, role_index(Role::Rook), white_bucket, white_is_mirrored,black_is_mirrored, black_bucket);
-            add_feature(&mut delta, side, king_to, role_index(Role::King), white_bucket, white_is_mirrored,black_is_mirrored, black_bucket);
-            add_feature(&mut delta, side, rook_to, role_index(Role::Rook), white_bucket, white_is_mirrored,black_is_mirrored, black_bucket);
+            let side = mv.castling_side().unwrap();
+            d.remove(us, Role::King, king);
+            d.remove(us, Role::Rook, rook);
+            d.add(us, Role::King, side.king_to(us));
+            d.add(us, Role::Rook, side.rook_to(us));
+            king_moved = true;
         }
-        _ => {}
+        Move::Put { .. } => unreachable!(),
     }
 
-    if is_king_move::<P>(mv) {
-        let stm = pos.turn();
+    let parent = state.top;
+    let ply = parent + 1;
 
-        let (new_bucket, new_is_mirrored) = get_bucket(child_pos.board(), stm);
-        let (old_bucket, old_is_mirrored) = match stm {
-            Color::White => (white_bucket, state.white_is_mirrored),
-            Color::Black => (black_bucket, state.black_is_mirrored),
-        };
-
-        if new_bucket != old_bucket || new_is_mirrored != old_is_mirrored {
-            match stm {
-                Color::White => { state.white_bucket = new_bucket; state.white_is_mirrored = new_is_mirrored; }
-                Color::Black => { state.black_bucket = new_bucket; state.black_is_mirrored = new_is_mirrored; }
-            }
-            delta.is_refresh = true;
-            delta.refresh_color = stm;
+    state.top = ply;
+    state.deltas[ply] = d;
+    state.computed[ply] = [false; 2];
+    state.buckets[ply] = state.buckets[parent];
+    state.refresh[ply] = [false; 2];
+    if king_moved {
+        let p = (us == Color::Black) as usize;
+        let nb = get_bucket(child_pos.board(), us);
+        if nb != state.buckets[parent][p] {
+            state.buckets[ply][p] = nb;
+            state.refresh[ply][p] = true;
         }
     }
-
-    state.stack.push(delta);
 }
 
 #[inline(always)]
-pub fn unmake_move_nnue<P: Position>(pos: &P, net: &Network, state: &mut NNUEState) {
-    let is_clean = state.applied == state.stack.len();
-    let delta = state.stack.pop().unwrap();
-
-    if delta.is_refresh {
-        let (old_bucket, old_is_mirrored) = get_bucket(pos.board(), delta.refresh_color);
-        match delta.refresh_color {
-            Color::White => { state.white_bucket = old_bucket; state.white_is_mirrored = old_is_mirrored; }
-            Color::Black => { state.black_bucket = old_bucket; state.black_is_mirrored = old_is_mirrored; }
-        }
-    }
-
-    if !is_clean {
-        return;
-    }
-    state.applied -= 1;
-
-    if delta.is_refresh {
-        let stm = delta.refresh_color;
-
-        match stm {
-            Color::White => state.black_acc.apply_feature_updates(&delta.black_removed[..delta.n_removed as usize], &delta.black_added[..delta.n_added as usize], net),
-            Color::Black => state.white_acc.apply_feature_updates(&delta.white_removed[..delta.n_removed as usize], &delta.white_added[..delta.n_added as usize], net)
-        }
-
-        let bucket = match stm { Color::White => state.white_bucket, Color::Black => state.black_bucket };
-
-        match stm {
-            Color::White => state.white_acc = finny_refresh(pos, net, Color::White, bucket, state.white_is_mirrored, &mut state.ft),
-            Color::Black => state.black_acc = finny_refresh(pos, net, Color::Black, bucket, state.black_is_mirrored, &mut state.ft),
-        }
-        return;
-    }
-
-    state.white_acc.apply_feature_updates(&delta.white_removed[..delta.n_removed as usize], &delta.white_added[..delta.n_added as usize], net);
-    state.black_acc.apply_feature_updates(&delta.black_removed[..delta.n_removed as usize], &delta.black_added[..delta.n_added as usize], net);
+pub fn unmake_move_nnue(_pos: &Chess, _net: &Network, state: &mut NNUEState) {
+    debug_assert!(state.top > 0);
+    state.top -= 1;
 }
 
 
@@ -425,33 +350,23 @@ pub fn unmake_move_nnue<P: Position>(pos: &P, net: &Network, state: &mut NNUESta
 // =====================================================================================================================//
 // HELPER FUNCTION TO ACTIVATE AND DEACTIVATE FEATURES INTO FUSED UPDATES                                               //
 // =====================================================================================================================//
-
-fn remove_feature(delta: &mut AccumulatorDelta, side: usize, sq: usize, piece_type: usize, white_bucket: usize, white_is_mirrored : bool, black_is_mirrored : bool, black_bucket: usize) {
-    let white_idx = calculate_index(side, sq, piece_type, Color::White, white_bucket,white_is_mirrored);
-    let black_idx = calculate_index(side, sq, piece_type, Color::Black, black_bucket,black_is_mirrored);
-    let n = delta.n_removed as usize;
-    delta.white_removed[n] = white_idx;
-    delta.black_removed[n] = black_idx;
-    delta.n_removed += 1;
-}
-
-fn add_feature(delta: &mut AccumulatorDelta, side: usize, sq: usize, piece_type: usize, white_bucket: usize, white_is_mirrored : bool, black_is_mirrored : bool, black_bucket: usize) {
-    let white_idx = calculate_index(side, sq, piece_type, Color::White, white_bucket,white_is_mirrored);
-    let black_idx = calculate_index(side, sq, piece_type, Color::Black, black_bucket,black_is_mirrored);
-    let n = delta.n_added as usize;
-    delta.white_added[n] = white_idx;
-    delta.black_added[n] = black_idx;
-    delta.n_added += 1;
-}
-
-fn get_bb(board: &Board) -> [[Bitboard; 6]; 2] {
-    let mut bb = [[Bitboard::EMPTY; 6]; 2];
-    let white = board.white();
-    let black = board.black();
-    for role in [Role::Pawn, Role::Knight, Role::Bishop, Role::Rook, Role::Queen, Role::King] {
-        let role_bb = board.by_role(role);
-        bb[0][role_index(role)] = role_bb & white;
-        bb[1][role_index(role)] = role_bb & black;
+#[inline(always)]
+fn apply_delta(net: &Network, state: &mut NNUEState, j: usize, p: usize) {
+    let d = state.deltas[j];
+    let (bucket, mirrored) = state.buckets[j][p];
+    let c = persp(p);
+    let idx = |f: &PieceSq| calculate_index(f.side as usize, f.sq as usize, f.role as usize, c, bucket, mirrored);
+    let mut adds = [0usize; 2];
+    let mut rems = [0usize; 2];
+    for k in 0..d.n_added as usize {
+        adds[k] = idx(&d.added[k]);
     }
-    bb
+    for k in 0..d.n_removed as usize {
+        rems[k] = idx(&d.removed[k]);
+    }
+    let (lo, hi) = state.accs.split_at_mut(j);
+    update_into(&mut hi[0][p], &lo[j - 1][p], &adds[..d.n_added as usize], &rems[..d.n_removed as usize], net);
+    state.computed[j][p] = true;
 }
+
+

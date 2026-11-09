@@ -58,23 +58,6 @@ pub fn calculate_index(mut side: usize, mut sq_idx: usize, piece_type: usize, pe
 }
 
 #[inline(always)]
-pub fn accumulator_for_perspective<P: Position>(pos: &P, net: &Network, perspective: Color) -> (Accumulator, usize, bool) {
-    let mut acc = Accumulator::new(net);
-    let board = pos.board();
-    let (bucket, is_mirrored) = get_bucket(board, perspective);
-
-    for square in shakmaty::Square::ALL {
-        if let Some(piece) = board.piece_at(square) {
-            let sq_idx = shakmaty::Square::to_usize(square);
-            let piece_type = role_index(piece.role);
-            let side = if piece.color == Color::White { 0 } else { 1 };
-            acc.add_feature(calculate_index(side, sq_idx, piece_type, perspective, bucket, is_mirrored), net);
-        }
-    }
-    (acc, bucket, is_mirrored)
-}
-
-#[inline(always)]
 pub fn role_index(role: Role) -> usize {
     match role {
         Role::Pawn => 0,
@@ -283,26 +266,52 @@ impl Accumulator {
     pub fn new(net: &Network) -> Self {
         net.feature_bias
     }
+}
 
-    /// Add a feature to an accumulator.
-    pub fn add_feature(&mut self, feature_idx: usize, net: &Network) {
-        for (i, d) in self.vals.iter_mut().zip(&net.feature_weights[feature_idx].vals) {
-            *i += *d
+#[inline(always)]
+pub fn update_into(dst: *mut Accumulator, src: *const Accumulator, adds: &[usize], removes: &[usize], net: &Network) {
+    #[cfg(target_feature = "avx2")]
+    unsafe {
+        use std::arch::x86_64::*;
+        const REGS: usize = 16;
+        const TILE: usize = REGS * 16;
+        const _: () = assert!(HIDDEN_SIZE % TILE == 0);
+        let s = (*src).vals.as_ptr();
+        let d = (*dst).vals.as_mut_ptr();
+        let mut t = 0;
+        while t < HIDDEN_SIZE {
+            let mut r = [_mm256_setzero_si256(); REGS];
+            for k in 0..REGS {
+                r[k] = _mm256_load_si256(s.add(t + 16 * k).cast());
+            }
+            for &a in adds {
+                let w = net.feature_weights[a].vals.as_ptr().add(t);
+                for k in 0..REGS {
+                    r[k] = _mm256_add_epi16(r[k], _mm256_load_si256(w.add(16 * k).cast()));
+                }
+            }
+            for &rm in removes {
+                let w = net.feature_weights[rm].vals.as_ptr().add(t);
+                for k in 0..REGS {
+                    r[k] = _mm256_sub_epi16(r[k], _mm256_load_si256(w.add(16 * k).cast()));
+                }
+            }
+            for k in 0..REGS {
+                _mm256_store_si256(d.add(t + 16 * k).cast(), r[k]);
+            }
+            t += TILE;
         }
     }
-
-    /// Combine remove and add features per move into a list and do them in one go instead as one per one.
-    pub fn apply_feature_updates(&mut self, adds: &[usize], removes: &[usize], net: &Network) {
-
-        for &idx in adds {
-            for (i, d) in self.vals.iter_mut().zip(&net.feature_weights[idx].vals) {
-                *i += *d
-            }
+    #[cfg(not(target_feature = "avx2"))]
+    unsafe {
+        let s = (*src).vals;
+        let d = &mut (*dst).vals;
+        *d = s;
+        for &a in adds {
+            for (x, w) in d.iter_mut().zip(&net.feature_weights[a].vals) { *x = x.wrapping_add(*w); }
         }
-        for &idx in removes {
-            for (i, d) in self.vals.iter_mut().zip(&net.feature_weights[idx].vals) {
-                *i -= *d
-            }
+        for &rm in removes {
+            for (x, w) in d.iter_mut().zip(&net.feature_weights[rm].vals) { *x = x.wrapping_sub(*w); }
         }
     }
 }
