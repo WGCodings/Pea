@@ -335,7 +335,7 @@ pub fn negamax(
     // TODO add cutnode condition
     // TODO There is also an idea of reducing depth by more if the node has been searched before at a depth greater than or equal to current depth, but yet no hash move is found.
     if tt_move.is_none() && depth >= ctx.params.iir_min_depth as usize && cut_node{
-        depth -= 1+usize::from(depth > 6);
+        depth -= 1;
     }
 
     // =====================================================================================================================//
