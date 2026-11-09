@@ -29,7 +29,7 @@ from better engines like [Akimbo][Akimbo] and [Viridithas][Viridithas].
 
 I started training two NNUEs from scratch. One with  (768 -> 1536)x2 -> 1x8 (Net 0) and one 
 (768 -> 64)x2 -> 1 (Net 1). For more information about this progression see the CHANGELOG.md. 
-However as of todat I'm working with a main (768x4hm -> 1536)x2 -> (32 -> 16 -> 1)x8 multilayer net.
+However as of today I'm working with a main (768x4hm -> 1536)x2 -> (32 -> 16 -> 1)x8 multilayer net.
 You can play the latest generations of my networks on lichess : [Net 0][lichess-link0], [Net 1][lichess-link1].
 
 ---
