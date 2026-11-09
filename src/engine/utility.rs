@@ -11,7 +11,7 @@ use crate::engine::search::ordering::MoveOrdering;
 use crate::engine::search::pv::PvTable;
 use crate::engine::search::search::SearchStats;
 use crate::engine::tt::TranspositionTable;
-use crate::engine::types::{MATE_SCORE, MOM, P_A, P_B};
+use crate::engine::types::{MATE_SCORE, MOM, MAX_PLY, P_A, P_B};
 use crate::nnue::network::Network;
 use crate::uci::parser::move_to_uci;
 use crate::uci::state::UciState;
@@ -210,17 +210,17 @@ pub fn build_search_context<'a>(
         tt,
         nnue:                 nnue_state,
         network,
-        killers:              [[None; 3]; 128],
+        killers:              [[None; 3]; MAX_PLY],
         history:              history_tables,
         corrhist_pawn,
         corrhist_material,
         corrhist_minor,
         corrhist_major,
         stack:                Stack {
-            moves:       [None; 128],
-            evals:       [0; 128],
-            double_exts: [0; 128],
+            moves:       [None; MAX_PLY],
+            evals:       [0; MAX_PLY],
+            double_exts: [0; MAX_PLY],
         },
-        excluded_move:        [None; 128],
+        excluded_move:        [None; MAX_PLY],
     }
 }

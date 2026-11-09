@@ -91,7 +91,7 @@ impl Threads {
                         CorrectionHistoryTable::new(256,0),  // Major piece correction
                         HistoryTables::new(),
                         &params, &ordering, network,
-                        rep_stack, nnue_state, stop, nodes,
+                        rep_stack, *nnue_state, stop, nodes,
                         false, Some(effective_limit),
                     );
                     search(pos, &mut ctx, uci, offset_depth, Some(effective_limit), u64::MAX);
@@ -101,7 +101,7 @@ impl Threads {
             let nnue_state = NNUEState::new(pos, network);
             let mut main_ctx = build_search_context(
                 &engine.tt, corrhist_pawn, corrhist_material, corrhist_minor, corrhist_major, history_tables, params, ordering, network,
-                rep_stack.clone(), nnue_state,
+                rep_stack.clone(), *nnue_state,
                 stop.clone(), node_count,
                 verbose, time_limit,
             );
