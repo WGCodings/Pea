@@ -147,7 +147,18 @@ impl TranspositionTable {
             age:   AtomicU8::new(0),
         }
     }
+    pub fn prefetch(&self, key: u64) {
 
+        let entry = &self.table[self.index(key)];
+
+        // prefetch the entry:
+        #[cfg(target_arch = "x86_64")]
+        unsafe {
+            use std::arch::x86_64::_MM_HINT_T0;
+            use std::arch::x86_64::_mm_prefetch;
+            _mm_prefetch((entry as *const PackedEntry).cast::<i8>(), _MM_HINT_T0);
+        }
+    }
 
     #[inline(always)]
     fn index(&self, key: u64) -> usize {
