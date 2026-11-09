@@ -28,7 +28,7 @@ pub fn evaluate(pos: &Chess, net: &Network, state: &mut NNUEState) -> i32 {
     }
 
      */
-
+    // get the latest accumulator (last ply)
     let (w, b) = state.current();
     let (us, them) = if pos.turn() == Color::White { (w, b) } else { (b, w) };
 

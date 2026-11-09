@@ -3,7 +3,7 @@ pub const DRAW_SCORE: i32 = 0;
 
 pub const MIN_INF : i32 = -300_000_000;
 pub const MAX_INF : i32 = 300_000_000;
-pub const NNUE_STACK: usize = 256;
+pub const MAX_PLY: usize = 256;
 
 pub const MAX_HISTORY: i32 = 16384;
 pub const MAX_PLY_CONTINUATION_HISTORY: usize = 4;

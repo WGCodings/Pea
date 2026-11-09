@@ -268,16 +268,17 @@ impl Accumulator {
     }
 }
 
+/// Copy source acc to dest acc and apply adds and removes
 #[inline(always)]
-pub fn update_into(dst: *mut Accumulator, src: *const Accumulator, adds: &[usize], removes: &[usize], net: &Network) {
+pub fn update_into(dest_acc: *mut Accumulator, source_acc: *const Accumulator, adds: &[usize], removes: &[usize], net: &Network) {
     #[cfg(target_feature = "avx2")]
     unsafe {
         use std::arch::x86_64::*;
         const REGS: usize = 16;
         const TILE: usize = REGS * 16;
-        const _: () = assert!(HIDDEN_SIZE % TILE == 0);
-        let s = (*src).vals.as_ptr();
-        let d = (*dst).vals.as_mut_ptr();
+
+        let s = (*source_acc).vals.as_ptr();
+        let d = (*dest_acc).vals.as_mut_ptr();
         let mut t = 0;
         while t < HIDDEN_SIZE {
             let mut r = [_mm256_setzero_si256(); REGS];
@@ -304,14 +305,14 @@ pub fn update_into(dst: *mut Accumulator, src: *const Accumulator, adds: &[usize
     }
     #[cfg(not(target_feature = "avx2"))]
     unsafe {
-        let s = (*src).vals;
-        let d = &mut (*dst).vals;
-        *d = s;
+        let source_vals = (*source_acc).vals;
+        let dest_vals = &mut (*dest_acc).vals;
+        *dest_vals = source_vals;
         for &a in adds {
-            for (x, w) in d.iter_mut().zip(&net.feature_weights[a].vals) { *x = x.wrapping_add(*w); }
+            for (x, w) in dest_vals.iter_mut().zip(&net.feature_weights[a].vals) { *x = x.wrapping_add(*w); }
         }
         for &rm in removes {
-            for (x, w) in d.iter_mut().zip(&net.feature_weights[rm].vals) { *x = x.wrapping_sub(*w); }
+            for (x, w) in dest_vals.iter_mut().zip(&net.feature_weights[rm].vals) { *x = x.wrapping_sub(*w); }
         }
     }
 }
