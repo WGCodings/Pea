@@ -28,7 +28,7 @@ impl UciHandler {
     pub fn new() -> Self {
         Self {
             uci:    UciState::new(true),
-            engine: Engine::new(256),
+            engine: Engine::new(16),
         }
     }
 
@@ -130,7 +130,7 @@ impl UciHandler {
     fn on_uci(&self) {
         println!("id name Pea {}", env!("CARGO_PKG_VERSION"));
         println!("id author {}", env!("CARGO_PKG_AUTHORS"));
-        println!("option name Hash type spin default 256 min 1 max 1024");
+        println!("option name Hash type spin default 16 min 1 max 1024");
         println!("option name Threads type spin default 1 min 1 max 128");
         println!("option name Move Overhead type spin default 10 min 0 max 1000");
         println!("option name UCI_ShowWDL type check default true");
