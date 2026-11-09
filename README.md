@@ -115,7 +115,7 @@ Below is a table of Elo estimates from having the engine play against other engi
 | v8.0 (Net 0) | 2993              | /                       | /                                                            | /                                                        |
 | v9.0 (Net 0) | 3193              | /                       | 3264                                                         | 3223                                                     |
 | v9.1 (Net 0) | 3388              | /                       | 3383                                                         | 3344                                                     |
-| v10.0.0      | 3563              |                         | 3541                                                         | /                                                        |
+| v10.0.0      | 3563              | 3541                    | /                                                            | /                                                        |
 ---
 
 
@@ -183,8 +183,9 @@ You can contact me by sending an email to warregevers@hotmail.com.
 - [x] Store evals in TT before recursive search
 - [x] Mate Distance Pruning
 - [ ] Threat moves and extensions in NMP
-- [x] Probcut
+- [ ] Probcut
 - [x] Try improving heuristic in LMR
+- [ ] NMP Verification
 - [ ] Contempt
 - [x] WDL normalization (#3)
 - [ ] Variable window choice in Asp Window
