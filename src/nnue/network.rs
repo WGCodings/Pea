@@ -101,6 +101,7 @@ impl Network {
 
     pub fn evaluate_bucket(&self, us: &Accumulator, them: &Accumulator, bucket: usize) -> f32 {
 
+        // TODO is initialised everytime and then overwritten, can be more efficient
         let mut ft = FtOut([0; HIDDEN_SIZE]);
         activate_ft(&us.vals, &mut ft.0[..HALF]);
         activate_ft(&them.vals, &mut ft.0[HALF..]);

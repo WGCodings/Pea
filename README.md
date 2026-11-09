@@ -18,29 +18,30 @@
 
 ## About
 
-This project started as a way to get familiar with Rust around two years go and then, as these things tend to go, it got a little bit out of hand. 
-What began as tinkering with search algorithms has grown into a reasonably capable chess engine with NNUE evaluation, multithreading,etc.
+This project started as a way to get familiar with Rust around two years go and then, as these things tend to go, the hobby got a little bit out of hand.
 This is currently my third attempt to make a chess engine and again I should've done a lot of things differently, but I think it is at a stage where it is release worthy.
 
 Move generation and board representation are handled by the [shakmaty][shakmaty] library. 
 As a Rust beginner, I wanted to focus on search and evaluation first rather than getting bogged down in the details of legal move generation. 
 Writing my own move generator is on the roadmap and maybe the start of my fourth attempt to make an engine?
+Also I'm totally not familiar with SIMD logics so the fast(er) inference code you will see is copied and rewritten
+from better engines like [Akimbo][Akimbo] and [Viridithas][Viridithas].
 
-I'm currently training two NNUEs from scratch. One with  (768 -> 1536)x2 -> 1x8 (Net 0) and one 
+I started training two NNUEs from scratch. One with  (768 -> 1536)x2 -> 1x8 (Net 0) and one 
 (768 -> 64)x2 -> 1 (Net 1). For more information about this progression see the CHANGELOG.md. 
-Net 0 will be my main network that will be used in all the future releases and Net 1 will be my experimental network.
+However as of todat I'm working with a main (768x4hm -> 1536)x2 -> (32 -> 16 -> 1)x8 multilayer net.
 You can play the latest generations of my networks on lichess : [Net 0][lichess-link0], [Net 1][lichess-link1].
 
 ---
 
-## Features
+## Features (not very up-to-date)
 
 ### Search
 - Negamax with Principal Variation Search
 - Aspiration windows
-- Transposition table (lockless)
+- Transposition table
 - Lazy SMP multithreading
-- Pondering *(~90% complete)*
+- Pondering *(deleted)*
 
 #### Pruning & Reductions
 - Reverse futility pruning / Static null move pruning
@@ -72,8 +73,8 @@ You can play the latest generations of my networks on lichess : [Net 0][lichess-
 - SIMD code for faster evaluation
 
 ### Evaluation
-- NNUE with architecture `(768 → 1536) × 2 → 1 × 8` trained with the excellent [Bullet] crate
-- SPSA trainer *(work in progress)*
+- NNUE trained with the excellent [Bullet] crate
+- SPSA trainer *(deleted)*
 - correction histories
 
 
@@ -103,18 +104,18 @@ Below is a table of Elo estimates from having the engine play against other engi
 [Stash][Stash] (and all its versions) have been used to estimate the rating of this engine.
 
 
-| Version      | Estimate (8/0.08) | [CCI STC](https://computer-chess-index.github.io/cci/Pea.html) (8/0.08) | [CCI LTC](https://computer-chess-index.github.io/cci/Pea.html) (60/0.6) | [CCI VLTC](https://computer-chess-index.github.io/cci/Pea.html) (2m24s/1.12) | [CCRL Blitz](https://computerchess.org.uk/ccrl/404/) (120/1) | [CCRL 40/15](https://computerchess.org.uk/4040/) (40/15) |
-|--------------|-------------------|-------------------------------------------------------------------------|-------------------------------------------------------------------------|------------------------------------------------------------------------------|--------------------------------------------------------------|----------------------------------------------------------|
-| v1.0 (Net 1) | 500-800           | 747                                                                     | 822                                                                     | 923                                                                          | /                                                            | /                                                        |
-| v2.0 (Net 1) | 1257              | 1122                                                                    | 1346                                                                    | 1581                                                                         | 1331                                                         | /                                                        |
-| v3.0 (Net 1) | 1981              | 1746                                                                    | 2103                                                                    | 2256                                                                         | /                                                            | /                                                        |
-| v4.0 (Net 1) | 2271              | 1974                                                                    | 2275                                                                    | 2437                                                                         | /                                                            | /                                                        |
-| v5.0 (Net 0) | 2501              | 2024                                                                    | 2456                                                                    | 2603                                                                         | /                                                            | /                                                        |
-| v6.0 (Net 1) | 2811              | 2342                                                                    | 2662                                                                    | 2811                                                                         | /                                                            | /                                                        |
-| v7.0 (Net 1) | 2850              | 2392                                                                    | 2739                                                                    | 2858                                                                         | /                                                            | /                                                        |
-| v8.0 (Net 0) | 2993              | 2507                                                                    | 2869                                                                    | 2996                                                                         | /                                                            | /                                                        |
-| v9.0 (Net 0) | 3193              | 2691                                                                    | 3027                                                                    | 3062                                                                         | 3264                                                         | 3223                                                     |
-| v9.1 (Net 0) | 3388              | /                                                                       | /                                                                       | /                                                                            | /                                                            | /                                                        |
+| Version      | Estimate (8/0.08) | Estimate blitz (60/0.6) | [CCRL Blitz](https://computerchess.org.uk/ccrl/404/) (120/1) | [CCRL 40/15](https://computerchess.org.uk/4040/) (40/15) |
+|--------------|-------------------|-------------------------|--------------------------------------------------------------|----------------------------------------------------------|
+| v1.0 (Net 1) | 500-800           | /                       | /                                                            | /                                                        |
+| v2.0 (Net 1) | 1257              | /                       | 1331                                                         | /                                                        |
+| v3.0 (Net 1) | 1981              | /                       | /                                                            | /                                                        |
+| v4.0 (Net 1) | 2271              | /                       | /                                                            | /                                                        |
+| v6.0 (Net 1) | 2811              | /                       | /                                                            | /                                                        |
+| v7.0 (Net 1) | 2850              | /                       | /                                                            | /                                                        |
+| v8.0 (Net 0) | 2993              | /                       | /                                                            | /                                                        |
+| v9.0 (Net 0) | 3193              | /                       | 3264                                                         | 3223                                                     |
+| v9.1 (Net 0) | 3388              | /                       | 3383                                                         | 3344                                                     |
+| v10.0.0      | 3563              |                         | 3541                                                         | /                                                        |
 ---
 
 
@@ -137,7 +138,7 @@ cargo build --release
 $env:RUSTFLAGS="-C target-cpu=native -C target-feature=+avx2,+bmi2"; cargo build --release
 ```
 
-The native build enables AVX2 and BMI2 instructions and runs noticeably faster. 
+The native build enables AVX2 and BMI2 instructions and runs noticeably faster, probably more than 2x. 
 
 **Simplest with Makefile:**
 
@@ -150,20 +151,17 @@ make release
 
 ## Usage
 
-Running the binary directly drops you into a UCI prompt. In practice, you'll want to use a UCI-compatible frontend:
-
-- [Arena][arena]
-- [Cutechess][cutechess]
-- [Shredder][shredder]
+Running the binary directly drops you into a UCI prompt.
+You can use a GUI of your own liking to play against or test it.
 
 
 ---
 
 ## Contributing
 
-You can support the Pea by donating compute on my Openbench instance https://peaob.pythonanywhere.com/ 
-or if you have an interest in collaboration, you can always leave me a message.(Or fork the repo and do some pull requests.)
-For an Openbench account or other requests you can contact me by sending an email to warregevers@hotmail.com.
+You can support the Pea by donating compute on my Openbench instance https://openbench.wgcodings.com/ 
+or if you have an interest in collaboration, you can always leave me a message.
+You can contact me by sending an email to warregevers@hotmail.com.
 
 
 ## Roadmap
@@ -171,12 +169,12 @@ For an Openbench account or other requests you can contact me by sending an emai
 - [X] Solve NNUE bias towards White
 - [ ] Investigate better NNUE architectures
 - [X] Data generator for NNUE training
-- [ ] King buckets in NNUE
+- [x] King buckets in NNUE
 - [ ] Experiment with features for output buckets NNUE
 - [X] Make a make file
 - [ ] Self-made move generation and board representation
 - [x] Correction history (pawn, material done, minor/major/threats/... TODO)
-- [ ] Successful run of SPSA
+- [x] Successful run of SPSA
 - [ ] Clean up code, especially datatypes (too many `as` casts)
 - [ ] Better time manager
 - [X] Integration with OpenBench
@@ -194,7 +192,7 @@ For an Openbench account or other requests you can contact me by sending an emai
 ## Acknowledgements
 
 [Simbelmyne][simbelmyne] by Sam Roelants was a major source of inspiration and learning throughout this project. A lot of ideas and how to implement them in Rust came from there.
-For some more advanced ideas I also grateful to the authors of [viridithas][viridithas] and [akimbo][akimbo]. 
+For some more advanced ideas (like SIMD, accumulator stacks, finny etc) I also grateful to the authors of [viridithas][viridithas] and [akimbo][akimbo]. 
 Thanks to [Stockfish' WDL Model][StockFishWDLModel] I was able to normalize the eval score and provide WDL information for every position.
 Many thanks to Andy Grant for the [Openbench][Openbench] testing framework, with which testing is a real pleasure.
 

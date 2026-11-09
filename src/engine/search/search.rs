@@ -241,7 +241,7 @@ pub fn negamax(
     // NULL MOVE PRUNING                                                                                                    //
     // =====================================================================================================================//
     let nmp_margin : i32 = -ctx.params.nmp_margin + ctx.params.nmp_scaling * depth as i32 + ctx.params.nmp_improving_scaling * improving as i32 ;
-
+    // TODO remove !is_pv
     if  do_pruning && !in_check && !is_pv &&
         static_eval + nmp_margin >= beta &&
         do_null && !is_root && cut_node &&
