@@ -358,12 +358,10 @@ pub fn negamax(
         && depth >= ctx.params.pc_min_depth as usize
         && !is_mate_score(beta)
         && do_probcut
-        && cut_node
-        && false
     {
-        let probcut_depth = (depth - 3 - ((static_eval-beta)/ctx.params.pc_depth_divisor) as usize)
-            .clamp(0,ctx.params.pc_min_depth as usize)
-            .clamp(0,depth-1);
+        let probcut_depth = depth.saturating_sub(4);
+
+        let see_threshold = probcut_beta - static_eval;
 
         let mut captures = pos.capture_moves();
         ctx.ordering.order_captures(pos, &mut captures);
@@ -372,7 +370,7 @@ pub fn negamax(
 
             // TODO only do probcut for captures with high histroy?
 
-            if see(pos,mv) as i32 <= ctx.params.pc_see_thr {
+            if (see(pos,mv) as i32) < see_threshold {
                 continue;
             }
 
@@ -380,25 +378,15 @@ pub fn negamax(
 
             child_pos.play_unchecked(mv);
 
-            // TODO try skip if child pos is in check
-
-            if child_pos.is_check(){
-                continue;
-            }
-
             make_move_nnue(pos, &child_pos, &mv ,&mut ctx.nnue);
 
             ctx.stack.moves[ply] = Some(mv);
 
-            let hash_child = child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
-
-            ctx.increase_history(hash_child);
+            ctx.increase_history(child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0);
 
             let mut probcut_score = -quiescence(&child_pos, ctx, -probcut_beta, -probcut_beta + 1, ply + 1);
 
-
-
-            if probcut_score >= probcut_beta {
+            if probcut_score >= probcut_beta && probcut_depth > 0{
                 probcut_score = -negamax(&child_pos, ctx, probcut_depth, ply + 1, -probcut_beta, -probcut_beta + 1, false, false, &mut PvTable::new());
             }
 
@@ -408,7 +396,7 @@ pub fn negamax(
 
             ctx.stack.moves[ply] = None;
 
-            if probcut_score >= probcut_beta {
+            if probcut_score >= probcut_beta && !is_mate_score(probcut_score){
                 tt_store(hash, ctx, probcut_depth + 1, probcut_score, raw_eval, Bound::Lower, Some(mv), ply);
                 return probcut_score;
             }
