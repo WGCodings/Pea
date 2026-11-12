@@ -242,7 +242,7 @@ pub fn negamax(
     // =====================================================================================================================//
     let nmp_margin : i32 = -ctx.params.nmp_margin + ctx.params.nmp_scaling * depth as i32 + ctx.params.nmp_improving_scaling * improving as i32 ;
     // TODO remove !is_pv
-    if  do_pruning && !in_check && !is_pv &&
+    if  do_pruning && !in_check &&
         static_eval + nmp_margin >= beta &&
         do_null && !is_root && cut_node &&
         depth >=ctx.params.nmp_min_depth as usize {
@@ -357,7 +357,7 @@ pub fn negamax(
         && !in_check
         && depth >= ctx.params.pc_min_depth as usize
         && !is_mate_score(beta)
-        && do_probcut
+        && do_probcut && false
     {
         let probcut_depth = depth.saturating_sub(4);
 
