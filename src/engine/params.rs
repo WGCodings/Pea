@@ -56,6 +56,7 @@ pub struct Params {
     pub hpp_tactical_scaling: i32,
 
     pub iir_min_depth: i32,
+    pub iir_double_depth: i32,
     pub se_dext_margin: i32,
     pub se_scaling: i32,
     pub se_depth_ok: i32,
@@ -127,6 +128,7 @@ impl Params {
             hpp_tactical_scaling: 86,
             // internal iterative deepening
             iir_min_depth: 2,
+            iir_double_depth: 2,
             se_dext_margin: 16,
             se_scaling: 3,
             se_depth_ok: 4,
@@ -142,6 +144,7 @@ impl Params {
             pc_min_depth: 5,
             pc_improving_margin: 0,
             pc_see_thr: 0,
+
 
         }
     }

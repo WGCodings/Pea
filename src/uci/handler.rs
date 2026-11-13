@@ -135,7 +135,7 @@ impl UciHandler {
         println!("option name Move Overhead type spin default 10 min 0 max 1000");
         println!("option name UCI_ShowWDL type check default true");
         println!("option name NormalizeScore type check default true");
-        //print_spsa_options(&self.engine.params);
+        _print_spsa_options(&self.engine.params);
         println!("uciok");
     }
 
@@ -326,6 +326,7 @@ impl UciHandler {
             "hpp_quiet_scaling"      => { if let Ok(x) = value.parse::<i32>() { params.hpp_quiet_scaling = x; } }
             "hpp_tactical_scaling"   => { if let Ok(x) = value.parse::<i32>() { params.hpp_tactical_scaling = x; } }
             "iir_min_depth"          => { if let Ok(x) = value.parse::<i32>() { params.iir_min_depth = x; } }
+            "iir_double_depth"       => { if let Ok(x) = value.parse::<i32>() { params.iir_double_depth = x; } }
             "se_dext_margin"         => { if let Ok(x) = value.parse::<i32>() { params.se_dext_margin = x; } }
             "se_scaling"             => { if let Ok(x) = value.parse::<i32>() { params.se_scaling = x; } }
             "se_depth_ok"            => { if let Ok(x) = value.parse::<i32>() { params.se_depth_ok = x; } }
@@ -394,6 +395,7 @@ fn _print_spsa_options(params: &Params) {
     println!("option name hpp_tactictal_scaling type spin default {} min 20 max 160", params.hpp_tactical_scaling);
     println!("option name hpp_quiet_scaling type spin default {} min 0 max 100", params.hpp_quiet_scaling);
     println!("option name iir_min_depth type spin default {} min 0 max 10", params.iir_min_depth);
+    println!("option name iir_double_depth type spin default {} min 0 max 10", params.iir_double_depth);
     println!("option name se_dext_margin type spin default {} min 0 max 100", params.se_dext_margin);
     println!("option name se_scaling type spin default {} min 0 max 10", params.se_scaling);
     println!("option name se_depth_ok type spin default {} min 1 max 10", params.se_depth_ok);
