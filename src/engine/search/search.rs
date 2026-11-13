@@ -398,7 +398,7 @@ pub fn negamax(
 
             if probcut_score >= probcut_beta && !is_mate_score(probcut_score){
                 tt_store(hash, ctx, probcut_depth + 1, probcut_score, raw_eval, Bound::Lower, Some(mv), ply);
-                return probcut_score;
+                return probcut_score - (probcut_beta - beta);
             }
         }
     }
