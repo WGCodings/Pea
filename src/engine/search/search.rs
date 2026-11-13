@@ -387,7 +387,7 @@ pub fn negamax(
             let mut probcut_score = -quiescence(&child_pos, ctx, -probcut_beta, -probcut_beta + 1, ply + 1);
 
             if probcut_score >= probcut_beta && probcut_depth > 0{
-                probcut_score = -negamax(&child_pos, ctx, probcut_depth, ply + 1, -probcut_beta, -probcut_beta + 1, false, false, &mut PvTable::new());
+                probcut_score = -negamax(&child_pos, ctx, probcut_depth, ply + 1, -probcut_beta, -probcut_beta + 1, true, false, &mut PvTable::new());
             }
 
             ctx.decrease_history();

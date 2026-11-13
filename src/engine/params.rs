@@ -137,7 +137,7 @@ impl Params {
             hist_prune_margin: 990,
             hist_prune_depth: 4,
             // probcut
-            pc_beta_margin: 200,
+            pc_beta_margin: 250,
             pc_depth_divisor: 124,
             pc_min_depth: 5,
             pc_improving_margin: 0,
