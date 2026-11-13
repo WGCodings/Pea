@@ -394,7 +394,7 @@ fn _print_spsa_options(params: &Params) {
     println!("option name cont_hist_malus_base type spin default {} min 100 max 300", params.cont_hist_malus_base);
     println!("option name hpp_tactictal_scaling type spin default {} min 20 max 160", params.hpp_tactical_scaling);
     println!("option name hpp_quiet_scaling type spin default {} min 0 max 100", params.hpp_quiet_scaling);
-    println!("option name iir_min_depth type spin default {} min 0 max 10", params.iir_min_depth);
+    println!("option name iir_min_depth type spin default {} min 2 max 10", params.iir_min_depth);
     println!("option name iir_double_depth type spin default {} min 0 max 10", params.iir_double_depth);
     println!("option name se_dext_margin type spin default {} min 0 max 100", params.se_dext_margin);
     println!("option name se_scaling type spin default {} min 0 max 10", params.se_scaling);

@@ -82,20 +82,20 @@ impl Params {
             raz_thr: 268,
             raz_improving_margin: -2,
             // NULL MOVE PRUNING
-            nmp_margin : 121,
-            nmp_scaling : 20,
+            nmp_margin : 107,
+            nmp_scaling : 7,
             nmp_improving_scaling: -5,
             nmp_min_depth: 3,
             nmp_base_reduction: 4,
             nmp_reduction_scaling: 4,
             nmp_verif_depth: 12,
             // STATIC NULL MOVE PRUNING
-            snmp_scaling: 86,
+            snmp_scaling: 83,
             // LATE MOVE REDUCTION
             lmr_min_searches: 4,
             lmr_min_depth: 2,
-            lmr_red_constant: 0.7504,
-            lmr_red_scaling: 2.4690,
+            lmr_red_constant: 0.8974,
+            lmr_red_scaling: 2.8213,
             lmr_history_divisor: 8749,
             lmr_see_thr: 3,
             lmr_corr_scaling: 31,
@@ -110,7 +110,7 @@ impl Params {
             fp_improving_margin: 3,
             fp_min_moves_searched: 2,
             // REVERSE FUTILITY PRUNING
-            rfp_scaling: 48,
+            rfp_scaling: 64,
             rfp_improving_scaling: 106,
             rfp_max_depth: 10,
             // LATE MOVE PRUNING
@@ -127,8 +127,8 @@ impl Params {
             hpp_quiet_scaling: 22,
             hpp_tactical_scaling: 86,
             // internal iterative deepening
-            iir_min_depth: 2,
-            iir_double_depth: 2,
+            iir_min_depth: 5,
+            iir_double_depth: 5,
             se_dext_margin: 16,
             se_scaling: 3,
             se_depth_ok: 4,
@@ -139,10 +139,10 @@ impl Params {
             hist_prune_margin: 990,
             hist_prune_depth: 4,
             // probcut
-            pc_beta_margin: 150,
+            pc_beta_margin: 125,
             pc_depth_divisor: 124,
             pc_min_depth: 5,
-            pc_improving_margin: 0,
+            pc_improving_margin: 18,
             pc_see_thr: 0,
 
 
