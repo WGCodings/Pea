@@ -459,7 +459,7 @@ pub fn negamax(
         let is_quiet = !is_capture && !mv.is_promotion() ;
 
 
-        moves_searched +=1;
+
 
         // TODO TEST IF PROMOTIONS ARE BEST ADDED TO QUIETS OR TACTICALS
         // Punish bad quiets and tacticals
@@ -493,7 +493,7 @@ pub fn negamax(
         if !in_check
             && !is_pv
             && depth <= ctx.params.hist_prune_depth as usize
-            && moves_searched > 1  // never prune first move?
+            && moves_searched > 0  // never prune first move?
         {
             if is_quiet{
                 let hist = ctx.history.quiet.get(pos, &mv) + ctx.history.continuation.get(&mv, ply, &ctx.stack.moves);
@@ -604,7 +604,7 @@ pub fn negamax(
         // =====================================================================================================================//
 
         let extended_depth = (depth as i32 + extension).max(0) as usize;
-        if moves_searched == 1{
+        if moves_searched == 0{
             score = -negamax(&child_pos, ctx, extended_depth - 1, ply + 1, -beta, -alpha, true, !is_pv && !cut_node, &mut local_pv);
         }
         else {
@@ -667,6 +667,8 @@ pub fn negamax(
         ctx.decrease_history();
         unmake_move_nnue(pos, ctx.network, &mut ctx.nnue);
 
+        moves_searched +=1;
+
         if score > best_score {
             best_score = score;
             best_move = Some(mv);
@@ -702,6 +704,7 @@ pub fn negamax(
     }
 
     if moves_searched == 0{
+        if is_excluded { return alpha; }
         return i32::from(in_check) * (-MATE_SCORE + ply as i32);
     }
 
