@@ -704,6 +704,7 @@ pub fn negamax(
     }
 
     if moves_searched == 0{
+        if is_excluded { return alpha; }
         return i32::from(in_check) * (-MATE_SCORE + ply as i32);
     }
 
