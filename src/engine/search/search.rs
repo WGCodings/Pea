@@ -190,7 +190,7 @@ pub fn negamax(
         e.eval
     } else {
         let eval = evaluate(pos, ctx.network, &mut ctx.nnue);
-        tt_store(hash, ctx, depth, MIN_INF, eval, Bound::Upper, None ,ply);
+        tt_store(hash, ctx, depth, MIN_INF, eval, Bound::None, None ,ply);
         eval
 
     };
