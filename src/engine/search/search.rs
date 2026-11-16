@@ -480,7 +480,7 @@ pub fn negamax(
         if depth <= ctx.params.lmp_max_depth as usize
             && !is_pv
             && !in_check
-            && moves_searched > lmp_moves
+            && moves_searched >= lmp_moves
             && is_quiet {
             if see <= 0 {
                 continue;
@@ -507,7 +507,7 @@ pub fn negamax(
         // =====================================================================================================================//
         // FUTILITY PRUNING PART 2                                                                                              //
         // =====================================================================================================================//
-        if can_futility_prune && moves_searched >ctx.params.fp_min_moves_searched && is_quiet{
+        if can_futility_prune && moves_searched >= ctx.params.fp_min_moves_searched && is_quiet{
             continue;
         }
 
@@ -519,12 +519,12 @@ pub fn negamax(
         // =====================================================================================================================//
         // From WIKI : This is usually done with a linear depth margin for captures, and a quadratic depth margin for quiets, though such details may vary.
 
-        if !is_pv && !is_root && !in_check && !is_quiet{
+        if !is_pv && !is_root && !in_check && !is_quiet && moves_searched > 0{
             if (see as i32) <  - ctx.params.hpp_tactical_scaling * depth as i32  {
                 continue;
             }
         }
-        if !is_pv && !is_root && !in_check && is_quiet{
+        if !is_pv && !is_root && !in_check && is_quiet && moves_searched > 0{
             if (see as i32) <  - ctx.params.hpp_quiet_scaling * depth as i32 * depth as i32  {
                 continue;
             }
@@ -611,10 +611,10 @@ pub fn negamax(
             let mut reduction : i32;
             let mut red_clamped : usize = 0;
 
-            if moves_searched >=ctx.params.lmr_min_searches && depth >= ctx.params.lmr_min_depth as usize && !in_check && is_quiet{
+            if moves_searched + 1 >= ctx.params.lmr_min_searches && depth >= ctx.params.lmr_min_depth as usize && !in_check && is_quiet{
 
-                // Base reductionQ
-                reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32).ln()/ctx.params.lmr_red_scaling) as i32;
+                // Base reduction
+                reduction = (ctx.params.lmr_red_constant+(depth as f32).ln() * (moves_searched as f32 + 1.0).ln()/ctx.params.lmr_red_scaling) as i32;
 
                 // TODO increase reduction if not improving/cut node/expected cut node
                 // TODO decrease if passed pawn push
@@ -704,6 +704,7 @@ pub fn negamax(
     }
 
     if moves_searched == 0{
+        if is_excluded { return alpha; }
         return i32::from(in_check) * (-MATE_SCORE + ply as i32);
     }
 
