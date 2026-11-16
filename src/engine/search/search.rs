@@ -10,7 +10,7 @@ use crate::engine::search::pv::PvTable;
 use crate::engine::search::see::see;
 use crate::engine::time_manager::TimeManager;
 use crate::engine::tt::{ encode_move, score_from_tt, tt_store, validate_move, Bound};
-use crate::engine::types::{DRAW_SCORE, MATE_SCORE, MAX_INF, MIN_INF};
+use crate::engine::types::{DRAW_SCORE, MATE_SCORE, MAX_INF, MIN_INF, NO_EVAL};
 use crate::engine::utility::{print_search_info};
 use crate::uci::state::UciState;
 
@@ -186,7 +186,7 @@ pub fn negamax(
 
     let raw_eval = if is_excluded {
         ctx.stack.evals[ply]
-    } else if let Some(e) = &tt_entry {
+    } else if let Some(e) = tt_entry.as_ref().filter(|e| e.eval != NO_EVAL) {
         e.eval
     } else {
         let eval = evaluate(pos, ctx.network, &mut ctx.nnue);
@@ -699,15 +699,12 @@ pub fn negamax(
             node_type = Bound::Exact;
 
         }
-
-
     }
 
     if moves_searched == 0{
         if is_excluded { return alpha; }
         return i32::from(in_check) * (-MATE_SCORE + ply as i32);
     }
-
 
     if !is_excluded && !in_check && !best_move.is_some_and(|mv| mv.is_capture() || mv.is_promotion())
         && !(node_type == Bound::Lower && best_score <= static_eval)
@@ -759,15 +756,14 @@ pub fn quiescence(
 
     // TODO if in check, generate all evasions, not only capture evasions
     let raw_eval = if in_check{
-        -MATE_SCORE + ply as i32
+        NO_EVAL
     }
-    else if let Some(entry) = &tt_entry {
+    else if let Some(entry) = tt_entry.as_ref().filter(|e| e.eval != NO_EVAL) {
         entry.eval
     } else {
         let eval = evaluate(pos, ctx.network, &mut ctx.nnue);
         //tt_store(hash, ctx, 0, MIN_INF, eval, Bound::Upper, None ,ply);
         eval
-
     };
 
     let static_eval = if in_check{
@@ -789,8 +785,13 @@ pub fn quiescence(
     let mut node_type = Bound::Upper;
     //let mut moves_searched = 0;
 
+    // Check evasions
+    let mut moves = if in_check { pos.legal_moves() } else { pos.capture_moves() };
 
-    let mut moves = pos.capture_moves();
+    // Check for checkmate
+    if in_check && moves.is_empty() {
+        return -MATE_SCORE + ply as i32;
+    }
 
     ctx.ordering.order_captures(pos, &mut moves);
 
@@ -800,7 +801,7 @@ pub fn quiescence(
 
         let see = see(pos, mv) as i32;
 
-        if see <0{
+        if !in_check && see <0{
             continue;
         }
         
