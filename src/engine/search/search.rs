@@ -191,7 +191,7 @@ pub fn negamax(
     } else {
         let eval = evaluate(pos, ctx.network, &mut ctx.nnue);
         if tt_entry.is_none() {
-            tt_store(hash, ctx, 0, 0, eval, Bound::None, None, ply); 
+            tt_store(hash, ctx, 0, 0, eval, Bound::None, None, ply);
         }
         eval
 
@@ -758,7 +758,7 @@ pub fn quiescence(
 
     // TODO if in check, generate all evasions, not only capture evasions
     let raw_eval = if in_check{
-        NO_EVAL
+        -MATE_SCORE + ply as i32
     }
     else if let Some(entry) = tt_entry.as_ref().filter(|e| e.eval != NO_EVAL) {
         entry.eval
@@ -788,7 +788,7 @@ pub fn quiescence(
     //let mut moves_searched = 0;
 
     // Check evasions
-    let mut moves = if in_check { pos.legal_moves() } else { pos.capture_moves() };
+    let mut moves = if !in_check {pos.capture_moves()} else {pos.legal_moves()};
 
     // Check for checkmate
     if in_check && moves.is_empty() {
