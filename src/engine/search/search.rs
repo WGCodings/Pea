@@ -784,7 +784,7 @@ pub fn quiescence(
     //let mut moves_searched = 0;
 
     // Check evasions
-    let mut moves = if in_check { pos.legal_moves() } else { pos.capture_moves() };
+    let mut moves = pos.capture_moves();
 
     ctx.ordering.order_captures(pos, &mut moves);
 
@@ -794,7 +794,7 @@ pub fn quiescence(
 
         let see = see(pos, mv) as i32;
 
-        if !in_check && see <0{
+        if see <0{
             continue;
         }
         
