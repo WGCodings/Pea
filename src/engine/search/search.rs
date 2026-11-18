@@ -190,11 +190,8 @@ pub fn negamax(
         e.eval
     } else {
         let eval = evaluate(pos, ctx.network, &mut ctx.nnue);
-        if tt_entry.is_none() {
-            tt_store(hash, ctx, depth, MIN_INF, eval, Bound::None, None, ply);
-        }
+        tt_store(hash, ctx, depth, MIN_INF, eval, Bound::Upper, None ,ply);
         eval
-
     };
 
     let static_eval = if is_excluded {
@@ -203,7 +200,6 @@ pub fn negamax(
         corr = ctx.corrhist_pawn.correct_evaluation(pos) + ctx.corrhist_material.correct_evaluation(pos);
         raw_eval + corr
     };
-
 
     ctx.stack.evals[ply] = static_eval;
 
@@ -789,11 +785,6 @@ pub fn quiescence(
 
     // Check evasions
     let mut moves = if in_check { pos.legal_moves() } else { pos.capture_moves() };
-
-    // Check for checkmate
-    if in_check && moves.is_empty() {
-        return -MATE_SCORE + ply as i32;
-    }
 
     ctx.ordering.order_captures(pos, &mut moves);
 
