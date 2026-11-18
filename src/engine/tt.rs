@@ -15,6 +15,7 @@ pub enum Bound {
     Exact = 0,
     Lower = 1,
     Upper = 2,
+    None  = 3,
 }
 
 impl Bound {
@@ -22,7 +23,8 @@ impl Bound {
         match v & 0b11 {
             0 => Bound::Exact,
             1 => Bound::Lower,
-            _ => Bound::Upper,
+            2 => Bound::Upper,
+            _ => Bound::None,
         }
     }
 }
