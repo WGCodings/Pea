@@ -128,6 +128,14 @@ impl PackedEntry {
             best_move: decode_move_partial(layout.mv),
         })
     }
+
+    fn peek(&self) -> (u64, u8, u8) {
+        let data = self.data.load(Ordering::Relaxed);
+        let stored_key  = self.key.load(Ordering::Relaxed) ^ data;
+        let layout: Layout = unsafe { transmute::<u64, Layout>(data) };
+
+        (stored_key, layout.depth, layout.info >> 3)
+    }
 }
 
 // =====================================================================================================================//
@@ -179,13 +187,20 @@ impl TranspositionTable {
 
         let mut best_move = best_move;
 
-        if let Some(existing) = self.table[idx].load(key) {
-            if existing.key == key
-                && existing.depth > depth as u8 + 2
-                && existing.age == current_age {
+        let (old_key, old_depth, old_age) = self.table[idx].peek(); // old entry on given idx
+        let same_search = old_age == current_age;
+        if old_key == key {
+            if old_depth > depth as u8 + 2
+                && same_search {
                 return;
             }
+        } else if old_key != 0
+            && same_search
+            && bound != Bound::Exact
+            && old_depth as usize > depth + 4 {
+            return; // keep the deep entry, drop the shallow new
         }
+
         if bound == Bound::Upper{
             if let Some(existing) = self.table[idx].load(key) {
                 if existing.key == key
