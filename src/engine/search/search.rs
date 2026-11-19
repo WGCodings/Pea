@@ -165,7 +165,7 @@ pub fn negamax(
         return quiescence(pos, ctx, alpha, beta,ply);
     }
 
-    let hash = pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
+    let hash = *ctx.repetition_stack.last().unwrap();
     let mut score;
 
     // =====================================================================================================================//
@@ -741,7 +741,8 @@ pub fn quiescence(
     }
 
     let in_check = pos.is_check();
-    let hash = pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
+
+    let hash = *ctx.repetition_stack.last().unwrap();
 
     // TT probe for qsearch
     let tt_entry = ctx.tt.probe(hash);
