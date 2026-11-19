@@ -93,7 +93,9 @@ impl MoveOrdering {
             else {
                 return 5000 + see as i32;
             }
-
+        }
+        if let Some(promo) = mv.promotion() {
+            return if promo == Role::Queen { 790_000 } else { -100_000 };
         }
         // ============================================================
         // 3. Killer moves

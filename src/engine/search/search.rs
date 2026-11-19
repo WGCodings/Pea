@@ -3,6 +3,9 @@ use std::sync::atomic::Ordering;
 
 use std::time::{Duration, Instant};
 use shakmaty::{Bitboard, Chess, EnPassantMode, Move, Position};
+use shakmaty::Color::White;
+use shakmaty::Rank::{Second, Seventh};
+use shakmaty::Role::Queen;
 use shakmaty::zobrist::{Zobrist64};
 use crate::engine::eval::evaluate;
 use crate::engine::search::context::{make_move_nnue, unmake_move_nnue, SearchContext};
@@ -781,9 +784,7 @@ pub fn quiescence(
     }
 
     let mut node_type = Bound::Upper;
-    //let mut moves_searched = 0;
 
-    // Check evasions
     let mut moves = pos.capture_moves();
 
     ctx.ordering.order_captures(pos, &mut moves);
