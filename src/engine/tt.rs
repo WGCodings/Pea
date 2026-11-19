@@ -201,13 +201,6 @@ impl TranspositionTable {
             return; // keep the deep entry, drop the shallow new
         }
 
-        if let Some(existing) = self.table[idx].load(key) {
-            if existing.key == key
-                && existing.depth > depth as u8 + 2
-                && existing.age == current_age {
-                return;
-            }
-        }
         if bound == Bound::Upper{
             if let Some(existing) = self.table[idx].load(key) {
                 if existing.key == key
