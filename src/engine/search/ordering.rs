@@ -150,12 +150,12 @@ impl MoveOrdering {
     #[inline(always)]
     fn score_tactical(&self, pos: &Chess, mv: &Move, ctx: &SearchContext) -> i32 {
 
-        let mut score = self.mvv_lva_score(pos, mv) * 0;
+        let mut score = self.mvv_lva_score(pos, mv) * 64;
 
         score += ctx.history.noisy._get(pos, mv);
 
         if let Some(promo) = mv.promotion() {
-            score += (PIECE_VALUES[promo as usize - 1] - PIECE_VALUES[0]) * 0;
+            score += (PIECE_VALUES[promo as usize - 1] - PIECE_VALUES[0]) * 64;
         }
 
         score
