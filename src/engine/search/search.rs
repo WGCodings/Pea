@@ -361,7 +361,7 @@ pub fn negamax(
             .clamp(0,depth-1);
 
         let mut captures = pos.capture_moves();
-        ctx.ordering.order_captures(pos, &mut captures);
+        ctx.ordering.order_tacticals(pos, &mut captures, ctx);
 
         for mv in captures {
 
@@ -685,9 +685,10 @@ pub fn negamax(
 
                 ctx.history.continuation.update(ply, &mv, bonus, malus, &quiets_searched, &ctx.stack.moves); // Update continuation history, bonus for move, malus for quiets searched
 
-            }else {
-                ctx.history.noisy.update(pos,&mv,bonus,malus,&tacticals_searched);
             }
+            // If there is a quiet beta cutoff, also malus the tacticals searched before, only update bonus if it is a capture
+            ctx.history.noisy.update(pos,&mv,bonus.min(1200), malus.min(1200),&tacticals_searched);
+
 
             break;
         }
@@ -784,10 +785,10 @@ pub fn quiescence(
     let mut node_type = Bound::Upper;
     //let mut moves_searched = 0;
 
-    // Check evasions
+    // Check captures
     let mut moves = pos.capture_moves();
 
-    ctx.ordering.order_captures(pos, &mut moves);
+    ctx.ordering.order_tacticals(pos, &mut moves, ctx);
 
     for mv in moves {
 

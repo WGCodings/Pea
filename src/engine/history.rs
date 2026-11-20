@@ -172,6 +172,7 @@ impl NoisyHistoryTable {
         malus : i32,
         noisies_searched: &[Move]
     ) {
+
         let board = pos.board();
 
         let to_sq   = mv.to();
@@ -179,12 +180,13 @@ impl NoisyHistoryTable {
         let captured_piece = board.role_at(to_sq).unwrap_or(Role::Pawn) as usize - 1; // If none it is en passant so captured piece is pawn
         let moved_piece = board.role_at(from_sq).unwrap() as usize - 1;
 
-        update_history_value(&mut self.table[captured_piece][to_sq.to_usize()][moved_piece], bonus);
+        if mv.is_capture() {
+            update_history_value(&mut self.table[captured_piece][to_sq.to_usize()][moved_piece], bonus);
+        }
 
         // Malus for other quiets
         for &m in noisies_searched {
-            if m != *mv {
-
+            if m != *mv && m.is_capture() {
                 let to_sq   = m.to();
                 let from_sq = m.from().unwrap();
                 let captured_piece = board.role_at(to_sq).unwrap_or(Role::Pawn) as usize - 1;
