@@ -518,8 +518,7 @@ pub fn negamax(
         // From WIKI : This is usually done with a linear depth margin for captures, and a quadratic depth margin for quiets, though such details may vary.
         // TODO try to add cap hist to adjuts margin
         if !is_pv && !is_root && !in_check && !is_quiet{
-            let hist = ctx.history.noisy._get(pos, &mv);
-            if (see as i32) <  - ctx.params.hpp_tactical_scaling * depth as i32 - hist / 64 {
+            if (see as i32) <  - ctx.params.hpp_tactical_scaling * depth as i32  {
                 continue;
             }
         }
