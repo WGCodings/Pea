@@ -761,7 +761,7 @@ pub fn quiescence(
         entry.eval
     } else {
         let eval = evaluate(pos, ctx.network, &mut ctx.nnue);
-        tt_store(hash, ctx, 0, MIN_INF, eval, Bound::Upper, None ,ply);
+        //tt_store(hash, ctx, 0, MIN_INF, eval, Bound::Upper, None ,ply);
         eval
     };
 
