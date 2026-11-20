@@ -144,18 +144,18 @@ impl MoveOrdering {
     #[inline(always)]
     pub fn order_tacticals(&self, pos : &Chess, moves: &mut [Move], ctx: &SearchContext) {
 
-        moves.sort_by_cached_key(|mv| -self.score_tactical(pos, mv, ctx));
+        moves.sort_by_key(|mv| -self.score_tactical(pos, mv, ctx));
     }
 
     #[inline(always)]
     fn score_tactical(&self, pos: &Chess, mv: &Move, ctx: &SearchContext) -> i32 {
 
-        let mut score = self.mvv_lva_score(pos, mv) * 8;
+        let mut score = self.mvv_lva_score(pos, mv) * 0;
 
         score += ctx.history.noisy._get(pos, mv);
 
         if let Some(promo) = mv.promotion() {
-            score += (PIECE_VALUES[promo as usize - 1] - PIECE_VALUES[0]) * 8;
+            score += (PIECE_VALUES[promo as usize - 1] - PIECE_VALUES[0]) * 0;
         }
 
         score

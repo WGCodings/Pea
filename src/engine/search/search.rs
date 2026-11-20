@@ -516,12 +516,13 @@ pub fn negamax(
         // To be tuned later.                                                                                                   //
         // =====================================================================================================================//
         // From WIKI : This is usually done with a linear depth margin for captures, and a quadratic depth margin for quiets, though such details may vary.
-
+        // TODO try to add cap hist to adjuts margin
         if !is_pv && !is_root && !in_check && !is_quiet{
             if (see as i32) <  - ctx.params.hpp_tactical_scaling * depth as i32  {
                 continue;
             }
         }
+        // TODO try to add quiet hist to adjust margin
         if !is_pv && !is_root && !in_check && is_quiet{
             if (see as i32) <  - ctx.params.hpp_quiet_scaling * depth as i32 * depth as i32  {
                 continue;
