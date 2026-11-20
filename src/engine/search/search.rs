@@ -519,7 +519,7 @@ pub fn negamax(
         // TODO try to add cap hist to adjuts margin
         if !is_pv && !is_root && !in_check && !is_quiet{
             let hist = ctx.history.noisy._get(pos, &mv);
-            if (see as i32) <  - ctx.params.hpp_tactical_scaling * depth as i32 -hist/64 {
+            if (see as i32) <  - ctx.params.hpp_tactical_scaling * depth as i32 - hist / 64 {
                 continue;
             }
         }
