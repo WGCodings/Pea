@@ -1,7 +1,7 @@
 use shakmaty::{Chess, Move, MoveList, Position, Role};
 use crate::engine::search::context::SearchContext;
 use crate::engine::search::see::see;
-use crate::engine::types::{MAX_PLY_CONTINUATION_HISTORY, PIECE_VALUES};
+use crate::engine::types::{MAX_PLY_CONTINUATION_HISTORY};
 
 #[derive(Clone)]
 pub struct MoveOrdering {
@@ -148,9 +148,11 @@ impl MoveOrdering {
     }
 
     #[inline(always)]
-    fn score_tactical(&self, pos: &Chess, mv: &Move, ctx: &SearchContext) -> i32 {
+    fn score_tactical(&self, pos: &Chess, mv: &Move, _ctx: &SearchContext) -> i32 {
 
-        let mut score = self.mvv_lva_score(pos, mv) * 64;
+        let score = self.mvv_lva_score(pos, mv);
+
+        /*
 
         score += ctx.history.noisy._get(pos, mv);
 
@@ -158,6 +160,7 @@ impl MoveOrdering {
             score += (PIECE_VALUES[promo as usize - 1] - PIECE_VALUES[0]) * 64;
         }
 
+         */
         score
     }
     #[inline(always)]
