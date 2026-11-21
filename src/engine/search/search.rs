@@ -761,7 +761,7 @@ pub fn quiescence(
         entry.eval
     } else {
         let eval = evaluate(pos, ctx.network, &mut ctx.nnue);
-        tt_store(hash, ctx, 0, 0, eval, Bound::None, None ,ply);
+        //tt_store(hash, ctx, 0, 0, eval, Bound::None, None ,ply);
         eval
     };
 
@@ -774,6 +774,7 @@ pub fn quiescence(
     };
 
    if static_eval >= beta {
+        tt_store(hash, ctx, 0, static_eval, raw_eval, Bound::Lower, None, ply);
         return static_eval;
     }
 
