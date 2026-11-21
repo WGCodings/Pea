@@ -200,6 +200,12 @@ impl TranspositionTable {
             && old_depth as usize > depth + 4 {
             return; // keep the deep entry, drop the shallow new
         }
+        if bound == Bound::None
+            && old_key != 0
+            && old_key != key
+            && same_search {
+            return;
+        }
 
         if bound == Bound::Upper{
             if let Some(existing) = self.table[idx].load(key) {
