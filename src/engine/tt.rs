@@ -89,9 +89,6 @@ impl PackedEntry {
             data: AtomicU64::new(0),
         }
     }
-}
-
-impl PackedEntry {
     fn store(&self, entry: &TTEntry) {
         let info = (entry.age << 3) | (entry.bound as u8);
         let layout = Layout {
@@ -138,42 +135,51 @@ impl PackedEntry {
     }
 }
 
+#[repr(C, align(64))]
+struct Bucket {
+    entries: [PackedEntry; 4],
+}
+impl Bucket {
+    fn default() -> Self {
+        Self { entries: std::array::from_fn(|_| PackedEntry::default()) }
+    }
+}
+
 // =====================================================================================================================//
 // TRANSPOSITION TABLE                                                                                                  //
 // =====================================================================================================================//
 pub struct TranspositionTable {
-    table: Vec<PackedEntry>,
-    mask:  usize,
+    table: Vec<Bucket>,
     age:   AtomicU8,
 }
 
 impl TranspositionTable {
     pub fn new(size_mb: usize) -> Self {
         let bytes    = size_mb * 1024 * 1024;
-        let capacity = (bytes / size_of::<PackedEntry>()).next_power_of_two();
+        let buckets = (bytes / size_of::<Bucket>()).max(1);
         Self {
-            table: (0..capacity).map(|_| PackedEntry::default()).collect(),
-            mask:  capacity - 1,
+            table: (0..buckets).map(|_| Bucket::default()).collect(),
             age:   AtomicU8::new(0),
         }
     }
 
-
     #[inline(always)]
     fn index(&self, key: u64) -> usize {
-        key as usize & self.mask
+        ((key as u128 * self.table.len() as u128) >> 64) as usize
     }
+
 
     // Probe without move validation
     #[inline(always)]
     pub fn probe(&self, key: u64) -> Option<TTEntry> {
-        self.table[self.index(key)].load(key)
+        let bucket = &self.table[self.index(key)];
+        bucket.entries.iter().find_map(|e| e.load(key))
     }
 
     // Probe with move validation
     #[inline(always)]
     pub fn probe_move(&self, key: u64, legal_moves: &[Move]) -> Option<Move> {
-        let entry = self.table[self.index(key)].load(key)?;
+        let entry = self.probe(key)?;
         let encoded = encode_move(entry.best_move);
         if encoded == 0 { return None; }
         validate_move(encoded, legal_moves)
@@ -182,27 +188,44 @@ impl TranspositionTable {
     #[inline(always)]
     pub fn store(&self, key: u64, depth: usize, score: i32, eval: i32,
                  bound: Bound, best_move: Option<Move>) {
-        let idx         = self.index(key);
+        let bucket      = &self.table[self.index(key)];
         let current_age = self.age.load(Ordering::Relaxed);
 
-        let mut best_move = best_move;
+        let mut worst_slot = 0;
+        let mut slot_fitness = i32::MAX;
 
-        let (old_key, old_depth, old_age) = self.table[idx].peek(); // old entry on given idx
-        let same_search = old_age == current_age;
-        if old_key == key {
-            if old_depth > depth as u8 + 2
-                && same_search {
-                return;
+        for (slot,entry) in bucket.entries.iter().enumerate() {
+            let (slot_key, slot_depth, slot_age) = entry.peek();
+            // if same pos or empty, pick is as worst slot immediately
+            if slot_key == key || slot_key ==0 {
+                worst_slot = slot;
+                break;
             }
-        } else if old_key != 0
-            && same_search
-            && bound != Bound::Exact
-            && old_depth as usize > depth + 4 {
-            return; // keep the deep entry, drop the shallow new
+            // Pick the slot with the worst fitness as the one to overwrite
+            let age_diff = (current_age.wrapping_sub(slot_age) & 31) as i32;
+            let fitness = slot_depth as i32- 8 * age_diff;
+            if fitness < slot_fitness {
+                worst_slot = slot;
+                slot_fitness = fitness;
+            }
         }
 
+        let target_slot = &bucket.entries[worst_slot];
+
+        let (old_key, old_depth, old_age) = target_slot.peek();
+
+        let same_search = old_age == current_age;
+
+        if old_key == key && same_search && old_depth > depth as u8 + 2 {
+            return;
+        }
+
+        //if you are replacing an entry from another position, store a nullmove,
+        //if you are replacing an entry from the same position (the stored key matches), preserve the existing move
+        // when you fail low and don't have a best move
+        let mut best_move = best_move;
         if bound == Bound::Upper{
-            if let Some(existing) = self.table[idx].load(key) {
+            if let Some(existing) = target_slot.load(key) {
                 if existing.key == key
                 {
                     best_move = existing.best_move;
@@ -212,14 +235,7 @@ impl TranspositionTable {
                 }
             }
         }
-
-
-
-        //if you are replacing an entry from another position, store a nullmove,
-        //if you are replacing an entry from the same position (the stored key matches), preserve the existing move
-        // when you fail low and don't have a best move
-
-        self.table[idx].store(&TTEntry {
+        target_slot.store(&TTEntry {
             key,
             depth: depth as u8,
             age:   current_age,
@@ -231,18 +247,29 @@ impl TranspositionTable {
     }
 
     pub fn clear(&mut self) {
-        for entry in &self.table {
-            entry.key.store(0,  Ordering::Relaxed);
-            entry.data.store(0, Ordering::Relaxed);
+        for bucket in &self.table {
+            for (_,entry) in bucket.entries.iter().enumerate() {
+                entry.key.store(0,  Ordering::Relaxed);
+                entry.data.store(0, Ordering::Relaxed);
+            }
         }
         self.age.store(0, Ordering::Relaxed);
     }
 
     pub fn tt_occupancy(&self) -> u32 {
-        self.table[..1000]
+        let current_age = self.age.load(Ordering::Relaxed);
+        let n_buckets   = self.table.len().min(250);
+
+        let used = self.table[..n_buckets]
             .iter()
-            .filter(|e| e.key.load(Ordering::Relaxed) != 0)
-            .count() as u32
+            .flat_map(|b| b.entries.iter())
+            .filter(|e| {
+                let (key, _, age) = e.peek();
+                key != 0 && age == current_age
+            })
+            .count();
+
+        (used * 1000 / (n_buckets * 4)) as u32
     }
 
     pub fn increment_age(&self) {
@@ -393,16 +420,6 @@ pub fn score_from_tt(score: i32, ply: usize) -> i32 {
 }
 
 #[inline(always)]
-pub(crate) fn tt_store(
-    key: u64,
-    ctx: &SearchContext,
-    depth: usize,
-    best_score: i32,
-    eval: i32,
-    bound: Bound,
-    best_move: Option<Move>,
-    ply: usize,
-) {
-
+pub(crate) fn tt_store(key: u64, ctx: &SearchContext, depth: usize, best_score: i32, eval: i32, bound: Bound, best_move: Option<Move>, ply: usize){
     ctx.tt.store(key, depth, score_to_tt(best_score, ply), eval, bound, best_move);
 }
