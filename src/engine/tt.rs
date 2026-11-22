@@ -130,18 +130,18 @@ impl TranspositionTable {
         let bucket = &self.table[self.index(key)];
         let key_lower16 = key as u16;
 
-        // find tt entry that corresponds to the u16 key and is not occupied.
+        // find tt entry that corresponds to the u16 key and is occupied.
         for i in 0..3 {
             let layout = unpack(bucket.entries[i].load(Ordering::Relaxed));
 
-            if layout.key != key_lower16 || (layout.info & OCCUPIED_MASK) == 0 { return None; }
+            if layout.key != key_lower16 || (layout.info & OCCUPIED_MASK) == 0 { continue }
 
             let bound = Bound::from_u8(layout.info);
 
             return Some(TTEntry {
                 depth: layout.depth,
                 score: layout.score as i32,
-                eval: bucket.evals[i].load(Ordering::Relaxed) as i32,
+                eval: bucket.evals[i].load(Ordering::Relaxed) as i16 as i32,
                 bound,
                 best_move: decode_move_partial(layout.mv)
             });
@@ -235,7 +235,7 @@ impl TranspositionTable {
             })
             .count();
 
-        (used * 1000 / (n_buckets * 4)) as u32
+        (used * 1000 / (n_buckets * 3)) as u32
     }
 
     pub fn increment_age(&self) {
