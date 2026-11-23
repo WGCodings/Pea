@@ -225,15 +225,7 @@ pub fn negamax(
         return (static_eval + beta)/2;
     }
 
-    // =====================================================================================================================//
-    // STATIC NULL MOVE PRUNING                                                                                             //
-    // =====================================================================================================================//
-    if  do_pruning && !in_check && !is_pv && !is_mate_score(beta) {
-        let score_margin = ctx.params.snmp_scaling * depth as i32;
-        if static_eval-score_margin >= beta {
-            return static_eval-score_margin
-        }
-    }
+
 
     // =====================================================================================================================//
     // NULL MOVE PRUNING                                                                                                    //
