@@ -149,15 +149,6 @@ impl TranspositionTable {
         None
     }
 
-    // Probe with move validation
-    #[inline(always)]
-    pub fn probe_move(&self, key: u64, legal_moves: &[Move]) -> Option<Move> {
-        let entry = self.probe(key)?;
-        let encoded = encode_move(entry.best_move);
-        if encoded == 0 { return None; }
-        validate_move(encoded, legal_moves)
-    }
-
     #[inline(always)]
     pub fn store(&self, key: u64, depth: usize, score: i32, eval: i32,
                  bound: Bound, best_move: Option<Move>) {

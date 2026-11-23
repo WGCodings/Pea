@@ -10,7 +10,7 @@ use crate::engine::search::pv::PvTable;
 use crate::engine::search::see::see;
 use crate::engine::time_manager::TimeManager;
 use crate::engine::tt::{ encode_move, score_from_tt, tt_store, validate_move, Bound};
-use crate::engine::types::{DRAW_SCORE, MATE_SCORE, MAX_INF, MIN_INF, NO_EVAL};
+use crate::engine::types::{DRAW_SCORE, MATE_SCORE, MAX_INF, MAX_PLY, MIN_INF, NO_EVAL};
 use crate::engine::utility::{print_search_info};
 use crate::uci::state::UciState;
 
@@ -178,7 +178,7 @@ pub fn negamax(
         None
     };
 
-    if !is_root && !is_excluded && tt_entry.is_some() {
+    if !is_pv && !is_root && !is_excluded && tt_entry.is_some() {
         if let Some(score) = tt_entry.as_ref().and_then(|e| e.try_score(depth, alpha, beta, ply)) {
             return score;
         }
@@ -673,6 +673,11 @@ pub fn negamax(
             best_move = Some(mv);
         }
 
+        // Add pv for mate scores where score = beta. Fixes possible missing pv for mating move
+        if is_pv && score > alpha {
+            pv.add_child_to_parent(mv, &local_pv);
+        }
+
         if score >= beta {
             let bonus = ctx.params.cont_hist_scaling * depth as i32 - ctx.params.cont_hist_base;
             let malus = ctx.params.cont_hist_malus_scaling * depth as i32 - ctx.params.cont_hist_malus_base;
@@ -689,14 +694,11 @@ pub fn negamax(
             }else {
                 ctx.history.noisy.update(pos,&mv,bonus,malus,&tacticals_searched);
             }
-
             break;
         }
         if score > alpha {
             alpha = score;
-            pv.add_child_to_parent(mv,&local_pv);
             node_type = Bound::Exact;
-
         }
     }
 
@@ -862,7 +864,11 @@ fn aspiration_search(pos: &Chess, ctx: &mut SearchContext, max_depth: usize, pre
             depth = max_depth;
         } else if score >= beta {
             beta = cmp::min(beta + window, MAX_INF);
-            depth -= 1;
+            if depth > 1 && depth + 3 > max_depth {
+                if !is_mate_score(score){
+                    depth = (depth-1).max(max_depth.saturating_sub(3)).max(1);
+                }
+            }
         } else {
             return score;
         }
@@ -886,6 +892,6 @@ fn minors_or_majors(pos : &Chess) -> Bitboard {
 }
 #[inline(always)]
 fn is_mate_score(score : i32) -> bool {
-    score.abs() >= MATE_SCORE-128
+    score.abs() >= MATE_SCORE-MAX_PLY as i32
 }
 

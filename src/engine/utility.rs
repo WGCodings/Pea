@@ -1,8 +1,7 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
-use shakmaty::{Chess, fen::Fen, CastlingMode, Move, Position, EnPassantMode, Role};
-use shakmaty::zobrist::Zobrist64;
+use shakmaty::{Chess, fen::Fen, CastlingMode, Move, Position, Role};
 use crate::engine::corrhist::{CorrectionHistoryTable, MajorsAndKingsKey, MaterialKey, MinorsAndKingsKey, PawnKey};
 use crate::engine::history::HistoryTables;
 use crate::engine::params::Params;
@@ -66,14 +65,9 @@ pub fn print_search_info(
     let nps            = if elapsed_secs > 0.0 { (nodes as f64 / elapsed_secs) as u64 } else { 0 };
     let tt_occupancy   = ctx.tt.tt_occupancy();
 
-    let tt_line  = extract_pv_from_tt(pos, ctx.tt, ctx.stats.completed_depth + 20, &ctx.repetition_stack);
     let pv_line  = pv_table.line().to_vec();
 
-    let pv_string = if pv_line.len() >= tt_line.len() {
-        pv_to_string(&pv_line)
-    } else {
-        pv_to_string(&tt_line)
-    };
+    let pv_string = pv_to_string(&pv_line);
 
     let mom = material_count(pos) as f32;
 
@@ -93,8 +87,6 @@ pub fn print_search_info(
         }
         format!("cp {}", score)
     };
-
-
 
     println!(
         "info depth {} seldepth {} score {} {}nodes {} nps {} hashfull {} time {} pv {}",
@@ -141,39 +133,6 @@ pub fn pv_to_string(line: &[Option<Move>]) -> String {
         .collect::<Vec<_>>()
         .join(" ")
 }
-
-pub fn extract_pv_from_tt(
-    pos:              &Chess,
-    tt:               &TranspositionTable,
-    max_depth:        usize,
-    repetition_stack: &[u64],
-) -> Vec<Option<Move>> {
-    let mut pv          = Vec::new();
-    let mut current_pos = pos.clone();
-    let mut visited: Vec<u64> = repetition_stack.to_vec();
-
-    for _ in 0..max_depth {
-        if current_pos.is_stalemate()
-            || current_pos.is_insufficient_material()
-            || current_pos.halfmoves() >= 100
-        { break; }
-
-        let hash        = current_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
-        let repetitions = visited.iter().filter(|&&h| h == hash).count();
-        if repetitions >= 2 { break; }
-
-        let legal = current_pos.legal_moves();
-        if let Some(mv) = tt.probe_move(hash, &legal) {
-            pv.push(Some(mv));
-            visited.push(hash);
-            current_pos.play_unchecked(mv);
-        } else {
-            break;
-        }
-    }
-    pv
-}
-
 
 // ---------------------------------------------------------------------------
 // SearchContext constructor
