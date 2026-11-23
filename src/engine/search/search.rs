@@ -216,35 +216,27 @@ pub fn negamax(
 
     let mut can_futility_prune = false;
 
+    let best_move_unvalidated = tt_entry.as_ref().and_then(|e| e.best_move);
+    let tt_move_noisy_or_none = best_move_unvalidated.is_none_or(|mv| match mv {
+        Move::EnPassant { .. } => true,
+        Move::Castle { .. }    => false,
+        _ => pos.board().piece_at(mv.to()).is_some()});
 
     // =====================================================================================================================//
     // REVERSE FUTILITY PRUNING                                                                                             //
     // =====================================================================================================================//
     let futility = (ctx.params.rfp_scaling as usize* depth) as i32 + ctx.params.rfp_improving_scaling * !improving as i32;
-    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && !is_root && static_eval - futility   >=beta {
+    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && tt_move_noisy_or_none && static_eval - futility   >=beta {
         return (static_eval + beta)/2;
     }
 
     // =====================================================================================================================//
     // STATIC NULL MOVE PRUNING                                                                                             //
     // =====================================================================================================================//
-    if  do_pruning && !in_check && !is_pv && !is_mate_score(beta) {
+    if  do_pruning && !in_check && !is_pv && !is_mate_score(beta) && tt_move_noisy_or_none {
         let score_margin = ctx.params.snmp_scaling * depth as i32;
         if static_eval-score_margin >= beta {
             return static_eval-score_margin
-        }
-    }
-
-    // =====================================================================================================================//
-    // RAZORING                                                                                                             //
-    // =====================================================================================================================//
-    if  do_pruning && !in_check && !is_pv
-        && depth <= ctx.params.raz_max_depth as usize
-        && static_eval + ctx.params.raz_thr *(depth as i32)  + improving as i32 * ctx.params.raz_improving_margin < alpha
-    {
-        let razor_score = quiescence(pos,ctx,alpha,beta,ply);
-        if razor_score <= alpha{
-            return razor_score;
         }
     }
 
@@ -304,7 +296,20 @@ pub fn negamax(
 
         }
     }
-    
+
+    // =====================================================================================================================//
+    // RAZORING                                                                                                             //
+    // =====================================================================================================================//
+    if  do_pruning && !in_check && !is_pv
+        && depth <= ctx.params.raz_max_depth as usize
+        && static_eval + ctx.params.raz_thr *(depth as i32)  + improving as i32 * ctx.params.raz_improving_margin < alpha
+    {
+        let razor_score = quiescence(pos,ctx,alpha,beta,ply);
+        if razor_score <= alpha{
+            return razor_score;
+        }
+    }
+
     // =====================================================================================================================//
     // FUTILITY PRUNING PART 1                                                                                              //
     // =====================================================================================================================//
