@@ -55,7 +55,7 @@ impl CorrHistTables {
         Self {
             material: CorrectionHistoryTable::new(256,32),
             pawn: CorrectionHistoryTable::new(256,32),
-            minors_kings: CorrectionHistoryTable::new(256,0),
+            minors_kings: CorrectionHistoryTable::new(256,32),
             majors_kings: CorrectionHistoryTable::new(256,0),
         }
     }
