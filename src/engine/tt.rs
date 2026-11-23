@@ -245,6 +245,15 @@ impl TranspositionTable {
             |age| Some((age + 1) % 32),
         );
     }
+
+    #[inline(always)]
+    pub fn prefetch(&self, key: u64) {
+        #[cfg(target_arch = "x86_64")]
+        unsafe {
+            use std::arch::x86_64::{_mm_prefetch, _MM_HINT_T0};
+            _mm_prefetch((&self.table[self.index(key)] as *const Bucket).cast::<i8>(), _MM_HINT_T0);
+        }
+    }
 }
 
 // =====================================================================================================================//
