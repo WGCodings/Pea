@@ -178,7 +178,7 @@ pub fn negamax(
         None
     };
 
-    if !is_root && !is_excluded && tt_entry.is_some() {
+    if !is_pv && !is_root && !is_excluded && tt_entry.is_some() {
         if let Some(score) = tt_entry.as_ref().and_then(|e| e.try_score(depth, alpha, beta, ply)) {
             return score;
         }
