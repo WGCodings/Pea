@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 use shakmaty::{Chess, Move};
-use crate::engine::corrhist::CorrectionHistoryTable;
+use crate::engine::corrhist::{CorrHistTables};
 use crate::engine::history::HistoryTables;
 use crate::engine::search::context::NNUEState;
 use crate::engine::search::ordering::MoveOrdering;
@@ -48,10 +48,7 @@ impl Threads {
         let node_count      = Arc::new(AtomicU64::new(0));
         let effective_limit = time_limit.unwrap_or(Duration::from_millis(100));
         let shared_tt       = SharedTt::from(&engine.tt);
-        let corrhist_pawn = engine.corrhist_pawn.clone();
-        let corrhist_material = engine.corrhist_material.clone();
-        let corrhist_minor = engine.corrhist_minor.clone();
-        let corrhist_major = engine.corrhist_major.clone();
+        let corrhist_tables = engine.corrhist_tables.clone();
         let history_tables = engine.history_tables.clone();
 
         /*
@@ -85,10 +82,7 @@ impl Threads {
                     let nnue_state = NNUEState::new(pos, network);
                     let mut ctx    = build_search_context(
                         tt,
-                        CorrectionHistoryTable::new(256,32), // Pawn correction
-                        CorrectionHistoryTable::new(256,32), // Material correction
-                        CorrectionHistoryTable::new(256,0),  // Minor piece correction
-                        CorrectionHistoryTable::new(256,0),  // Major piece correction
+                        CorrHistTables::new(),
                         HistoryTables::new(),
                         &params, &ordering, network,
                         rep_stack, *nnue_state, stop, nodes,
@@ -100,7 +94,7 @@ impl Threads {
 
             let nnue_state = NNUEState::new(pos, network);
             let mut main_ctx = build_search_context(
-                &engine.tt, corrhist_pawn, corrhist_material, corrhist_minor, corrhist_major, history_tables, params, ordering, network,
+                &engine.tt, corrhist_tables, history_tables, params, ordering, network,
                 rep_stack.clone(), *nnue_state,
                 stop.clone(), node_count,
                 verbose, time_limit,
@@ -109,8 +103,7 @@ impl Threads {
 
             // Store history tables inside engine for next search call
             engine.history_tables = main_ctx.history;
-            engine.corrhist_pawn = main_ctx.corrhist_pawn;
-            engine.corrhist_material = main_ctx.corrhist_material;
+            engine.corrhist_tables = main_ctx.corrhist;
 
             result
         });

@@ -1,11 +1,65 @@
 use std::marker::PhantomData;
 use shakmaty::{Chess, Position};
 use crate::engine::hash::Hash;
-
 // Special thanks to Jamie Whiting, author of Akimbo for inspiration and code examples. Only slight modifications were made.
 
 const SIZE: usize = 16384;
 const GRAIN: i32 = 256;
+
+#[derive(Clone)]
+pub struct CorrHistTables {
+    pub material: CorrectionHistoryTable<MaterialKey>,
+    pub pawn: CorrectionHistoryTable<PawnKey>,
+    pub minors_kings: CorrectionHistoryTable<MinorsAndKingsKey>,
+    pub majors_kings : CorrectionHistoryTable<MajorsAndKingsKey>,
+}
+
+impl CorrHistTables {
+    pub(crate) fn clear(&mut self) {
+        self.material.clear();
+        self.pawn.clear();
+        self.minors_kings.clear();
+        self.majors_kings.clear();
+    }
+}
+
+impl CorrHistTables {
+    pub(crate) fn update_correction_history(&mut self, pos: &Chess, depth: i32, diff: i32) {
+        self.material.update_correction_history(pos, depth, diff);
+        self.pawn.update_correction_history(pos, depth, diff);
+        self.minors_kings.update_correction_history(pos, depth, diff);
+        self.majors_kings.update_correction_history(pos, depth, diff);
+    }
+}
+
+impl CorrHistTables {
+    pub(crate) fn age_entries(&mut self) {
+        self.material.age_entries();
+        self.pawn.age_entries();
+        self.minors_kings.age_entries();
+        self.majors_kings.age_entries();
+    }
+}
+
+impl CorrHistTables {
+    pub(crate) fn correct_evaluation(&self, pos: &Chess) -> i32 {
+        self.pawn.correct_evaluation(pos)
+            + self.minors_kings.correct_evaluation(pos)
+            + self.majors_kings.correct_evaluation(pos)
+            + self.material.correct_evaluation(pos)
+    }
+}
+
+impl CorrHistTables {
+    pub fn new()->Self {
+        Self {
+            material: CorrectionHistoryTable::new(256,32),
+            pawn: CorrectionHistoryTable::new(256,32),
+            minors_kings: CorrectionHistoryTable::new(256,0),
+            majors_kings: CorrectionHistoryTable::new(256,0),
+        }
+    }
+}
 
 // Key can be different for other kinds of corrhist tables
 pub trait CorrHistKey {

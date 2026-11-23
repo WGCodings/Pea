@@ -9,7 +9,7 @@ use crate::datagen::datagen_config::DatagenConfig;
 use crate::datagen::datagen_format::RawPosition;
 use crate::datagen::adjudication::{check_adjudication, filter_position, terminal_wdl, FilterResult};
 use crate::datagen::book::EpdBook;
-use crate::engine::corrhist::CorrectionHistoryTable;
+use crate::engine::corrhist::{CorrHistTables};
 use crate::engine::params::Params;
 use crate::engine::search::context::{NNUEState};
 use crate::engine::search::ordering::MoveOrdering;
@@ -86,10 +86,7 @@ pub fn run_game(
 
         let mut ctx = build_search_context(
             tt,
-            CorrectionHistoryTable::new(256,32),
-            CorrectionHistoryTable::new(256,32),
-            CorrectionHistoryTable::new(256,0),
-            CorrectionHistoryTable::new(256,0),
+            CorrHistTables::new(),
             HistoryTables::new(),
             params,
             ordering,

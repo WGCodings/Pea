@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::time::{Duration, Instant};
 use shakmaty::{ Board, Chess, Color, Move, Position, Role, Square};
-use crate::engine::corrhist::{CorrectionHistoryTable, MajorsAndKingsKey, MaterialKey, MinorsAndKingsKey, PawnKey};
+use crate::engine::corrhist::{CorrHistTables};
 use crate::engine::finny::{FinnyTable};
 use crate::engine::history::HistoryTables;
 use crate::engine::params::Params;
@@ -45,15 +45,11 @@ pub struct SearchContext<'a> {
 
 
     // All corrhist tables
-    pub corrhist_pawn : CorrectionHistoryTable<PawnKey>,
-    pub corrhist_material: CorrectionHistoryTable<MaterialKey>,
-    pub corrhist_minor: CorrectionHistoryTable<MinorsAndKingsKey>,
-    pub corrhist_major: CorrectionHistoryTable<MajorsAndKingsKey>,
+    pub corrhist : CorrHistTables,
     
     pub stack : Stack,
 
     pub excluded_move: [Option<Move>; MAX_PLY], // excluded moves for Singular extensions
-
 }
 
 impl<'a> SearchContext<'a> {

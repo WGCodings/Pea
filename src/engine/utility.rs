@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 use shakmaty::{Chess, fen::Fen, CastlingMode, Move, Position, Role};
-use crate::engine::corrhist::{CorrectionHistoryTable, MajorsAndKingsKey, MaterialKey, MinorsAndKingsKey, PawnKey};
+use crate::engine::corrhist::{CorrHistTables};
 use crate::engine::history::HistoryTables;
 use crate::engine::params::Params;
 use crate::engine::search::context::{NNUEState, SearchContext, Stack};
@@ -140,10 +140,7 @@ pub fn pv_to_string(line: &[Option<Move>]) -> String {
 
 pub fn build_search_context<'a>(
     tt:           &'a TranspositionTable,
-    corrhist_pawn: CorrectionHistoryTable<PawnKey>,
-    corrhist_material: CorrectionHistoryTable<MaterialKey>,
-    corrhist_minor: CorrectionHistoryTable<MinorsAndKingsKey>,
-    corrhist_major: CorrectionHistoryTable<MajorsAndKingsKey>,
+    corrhist_tables: CorrHistTables,
     history_tables: HistoryTables,
     params:       &'a Params,
     ordering:     &'a MoveOrdering,
@@ -171,10 +168,7 @@ pub fn build_search_context<'a>(
         network,
         killers:              [[None; 3]; MAX_PLY],
         history:              history_tables,
-        corrhist_pawn,
-        corrhist_material,
-        corrhist_minor,
-        corrhist_major,
+        corrhist :            corrhist_tables,
         stack:                Stack {
             moves:       [None; MAX_PLY],
             evals:       [0; MAX_PLY],

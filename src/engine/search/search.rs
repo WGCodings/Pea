@@ -94,10 +94,7 @@ pub fn search(pos: &Chess, ctx: &mut SearchContext, uci : &UciState, max_depth: 
     ctx.stats.duration = tm.elapsed();
 
     // Age history tables
-    ctx.corrhist_pawn.age_entries();
-    ctx.corrhist_material.age_entries();
-    ctx.corrhist_minor.age_entries();
-    ctx.corrhist_major.age_entries();
+    ctx.corrhist.age_entries();
     
     (best_score, best_move.unwrap(), tt_pv, ctx.stats)
 }
@@ -197,7 +194,7 @@ pub fn negamax(
     let static_eval = if is_excluded {
         raw_eval
     } else {
-        corr = ctx.corrhist_pawn.correct_evaluation(pos) + ctx.corrhist_material.correct_evaluation(pos);
+        corr = ctx.corrhist.correct_evaluation(pos);
         raw_eval + corr
     };
 
@@ -710,8 +707,7 @@ pub fn negamax(
     if !is_excluded && !in_check && !best_move.is_some_and(|mv| mv.is_capture() || mv.is_promotion())
         && !(node_type == Bound::Lower && best_score <= static_eval)
         && !(node_type == Bound::Upper && best_score >= static_eval) {
-        ctx.corrhist_pawn.update_correction_history(pos, depth as i32, best_score - static_eval);
-        ctx.corrhist_material.update_correction_history(pos, depth as i32, best_score - static_eval);
+        ctx.corrhist.update_correction_history(pos, depth as i32, best_score - static_eval);
     }
 
 
@@ -771,9 +767,7 @@ pub fn quiescence(
     let static_eval = if in_check{
         -MATE_SCORE + ply as i32
     } else{
-        raw_eval
-            + ctx.corrhist_pawn.correct_evaluation(pos)
-            + ctx.corrhist_material.correct_evaluation(pos)
+        raw_eval + ctx.corrhist.correct_evaluation(pos)
     };
 
    if static_eval >= beta {
