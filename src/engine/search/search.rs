@@ -584,13 +584,14 @@ pub fn negamax(
         }
 
         let mut child_pos = pos.clone();
+
         child_pos.play_unchecked(mv);
 
+        let hash_child = child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
 
+        ctx.tt.prefetch(hash_child);
 
         make_move_nnue(pos, &child_pos,&mv, &mut ctx.nnue);
-
-        let hash_child = child_pos.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
 
         ctx.increase_history(hash_child);
 
@@ -803,9 +804,11 @@ pub fn quiescence(
 
         child.play_unchecked(mv);
 
-        make_move_nnue(pos, &child, &mv, &mut ctx.nnue);
-
         let child_hash = child.zobrist_hash::<Zobrist64>(EnPassantMode::Legal).0;
+
+        ctx.tt.prefetch(child_hash);
+
+        make_move_nnue(pos, &child, &mv, &mut ctx.nnue);
 
         ctx.increase_history(child_hash);
 
