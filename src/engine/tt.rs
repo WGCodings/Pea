@@ -168,7 +168,9 @@ impl TranspositionTable {
             }
             // Pick the slot with the worst fitness as the one to overwrite
             let age_diff = (current_age.wrapping_sub(layout.info >> 3) & 31) as i32;
-            let fitness = layout.depth as i32 - 8 * age_diff;
+            let bound_bonus = Bound::from_u8(layout.info & 0b11) == Bound::Exact;
+            let fitness = layout.depth as i32 - 8 * age_diff + i32::from(bound_bonus) * 4;
+
             if fitness < slot_fitness {
                 worst_slot = slot;
                 slot_fitness = fitness;
