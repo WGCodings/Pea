@@ -218,16 +218,6 @@ pub fn negamax(
 
 
     // =====================================================================================================================//
-    // REVERSE FUTILITY PRUNING                                                                                             //
-    // =====================================================================================================================//
-    let futility = (ctx.params.rfp_scaling as usize* depth) as i32 + ctx.params.rfp_improving_scaling * !improving as i32;
-    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && !is_root && static_eval - futility   >=beta {
-        return (static_eval + beta)/2;
-    }
-
-
-
-    // =====================================================================================================================//
     // NULL MOVE PRUNING                                                                                                    //
     // =====================================================================================================================//
     let nmp_margin : i32 = -ctx.params.nmp_margin + ctx.params.nmp_scaling * depth as i32 + ctx.params.nmp_improving_scaling * improving as i32 ;
@@ -316,6 +306,24 @@ pub fn negamax(
         if encoded == 0 { return None; }
         validate_move(encoded,&moves)
     });
+
+    // =====================================================================================================================//
+    // REVERSE FUTILITY PRUNING                                                                                             //
+    // =====================================================================================================================//
+    let futility = (ctx.params.rfp_scaling as usize* depth) as i32 + ctx.params.rfp_improving_scaling * !improving as i32;
+    if do_pruning && !is_pv && !in_check && depth <= ctx.params.rfp_max_depth as usize && !is_root && static_eval - futility   >=beta {
+        return (static_eval + beta)/2;
+    }
+
+    // =====================================================================================================================//
+    // STATIC NULL MOVE PRUNING                                                                                             //
+    // =====================================================================================================================//
+    if  do_pruning && !in_check && !is_pv && !is_mate_score(beta) {
+        let score_margin = ctx.params.snmp_scaling * depth as i32;
+        if static_eval-score_margin >= beta {
+            return static_eval-score_margin
+        }
+    }
 
 
     // =====================================================================================================================//
