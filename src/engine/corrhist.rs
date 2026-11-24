@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 use shakmaty::{Chess, Position};
+use shakmaty::Color::{Black, White};
 use crate::engine::hash::Hash;
 // Special thanks to Jamie Whiting, author of Akimbo for inspiration and code examples. Only slight modifications were made.
 
@@ -12,6 +13,10 @@ pub struct CorrHistTables {
     pub pawn: CorrectionHistoryTable<PawnKey>,
     pub minors_kings: CorrectionHistoryTable<MinorsAndKingsKey>,
     pub majors_kings : CorrectionHistoryTable<MajorsAndKingsKey>,
+    pub nonpawn_black: CorrectionHistoryTable<NonPawnBlackKey>,
+    pub nonpawn_white: CorrectionHistoryTable<NonPawnWhiteKey>,
+
+
 }
 
 impl CorrHistTables {
@@ -20,6 +25,8 @@ impl CorrHistTables {
         self.pawn.clear();
         self.minors_kings.clear();
         self.majors_kings.clear();
+        self.nonpawn_black.clear();
+        self.nonpawn_white.clear();
     }
 }
 
@@ -29,6 +36,8 @@ impl CorrHistTables {
         self.pawn.update_correction_history(pos, depth, diff);
         self.minors_kings.update_correction_history(pos, depth, diff);
         self.majors_kings.update_correction_history(pos, depth, diff);
+        self.nonpawn_black.update_correction_history(pos, depth, diff);
+        self.nonpawn_white.update_correction_history(pos, depth, diff);
     }
 }
 
@@ -38,6 +47,8 @@ impl CorrHistTables {
         self.pawn.age_entries();
         self.minors_kings.age_entries();
         self.majors_kings.age_entries();
+        self.nonpawn_black.age_entries();
+        self.nonpawn_white.age_entries();
     }
 }
 
@@ -47,6 +58,8 @@ impl CorrHistTables {
             + self.minors_kings.correct_evaluation(pos)
             + self.majors_kings.correct_evaluation(pos)
             + self.material.correct_evaluation(pos)
+            + self.nonpawn_white.correct_evaluation(pos)
+            + self.nonpawn_black.correct_evaluation(pos)
     }
 }
 
@@ -57,6 +70,8 @@ impl CorrHistTables {
             pawn: CorrectionHistoryTable::new(256,32),
             minors_kings: CorrectionHistoryTable::new(256,0),
             majors_kings: CorrectionHistoryTable::new(256,0),
+            nonpawn_white : CorrectionHistoryTable::new(256,32),
+            nonpawn_black : CorrectionHistoryTable::new(256,32),
         }
     }
 }
@@ -152,6 +167,24 @@ pub struct MajorsAndKingsKey;
 impl CorrHistKey for MajorsAndKingsKey {
     fn key(pos: &Chess) -> usize {
         let hash = Hash::majors_and_kings_hash(pos);
+        hash.0 as usize % SIZE
+    }
+}
+
+#[derive(Clone)]
+pub struct NonPawnWhiteKey;
+impl CorrHistKey for NonPawnWhiteKey {
+    fn key(pos: &Chess) -> usize {
+        let hash = Hash::nonpawn_hash(pos, White);
+        hash.0 as usize % SIZE
+    }
+}
+#[derive(Clone)]
+pub struct NonPawnBlackKey;
+
+impl CorrHistKey for NonPawnBlackKey {
+    fn key(pos: &Chess) -> usize {
+        let hash = Hash::nonpawn_hash(pos, Black);
         hash.0 as usize % SIZE
     }
 }

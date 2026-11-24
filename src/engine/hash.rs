@@ -63,6 +63,17 @@ impl Hash {
         }
         hash
     }
+    #[inline]
+    pub fn nonpawn_hash(pos: &Chess, color: Color) -> Hash {
+        let mut hash = Hash(0);
+        let board = pos.board();
+        
+        for sq in  board.by_color(color) & !board.pawns()  {
+            let role = board.role_at(sq).unwrap();
+            hash.toggle_piece(role, sq, color);
+        }
+        hash
+    }
     
 }
 // Precomputed hashes for all squares/roles/color combos
