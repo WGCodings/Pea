@@ -185,9 +185,10 @@ impl CorrHistKey for NonPawnBlackKey {
 pub struct LastMoveKey;
 impl CorrHistKey for LastMoveKey {
     fn key(_: &Chess, moves: &[Option<Move>], ply: usize) -> Option<usize> {
-        if ply < 1 { return None; }
-        let last = moves[ply - 1]?;
+        if ply < 2 { return None; }
+        let (prev, last) = (moves[ply - 2]?, moves[ply - 1]?);
+        let a = (prev.role() as usize - 1) * 64 + prev.to() as usize;
         let b = (last.role() as usize - 1) * 64 + last.to() as usize;
-        Some(b % SIZE)
+        Some((a * 384 + b) % SIZE)
     }
 }
