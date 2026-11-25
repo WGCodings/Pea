@@ -28,9 +28,7 @@ impl CorrHistTables {
         self.nonpawn_black.clear();
         self.nonpawn_white.clear();
     }
-}
 
-impl CorrHistTables {
     pub(crate) fn update_correction_history(&mut self, pos: &Chess, depth: i32, diff: i32) {
         self.material.update_correction_history(pos, depth, diff);
         self.pawn.update_correction_history(pos, depth, diff);
@@ -39,9 +37,6 @@ impl CorrHistTables {
         self.nonpawn_black.update_correction_history(pos, depth, diff);
         self.nonpawn_white.update_correction_history(pos, depth, diff);
     }
-}
-
-impl CorrHistTables {
     pub(crate) fn age_entries(&mut self) {
         self.material.age_entries();
         self.pawn.age_entries();
@@ -50,9 +45,7 @@ impl CorrHistTables {
         self.nonpawn_black.age_entries();
         self.nonpawn_white.age_entries();
     }
-}
 
-impl CorrHistTables {
     pub(crate) fn correct_evaluation(&self, pos: &Chess) -> i32 {
         self.pawn.correct_evaluation(pos)
             + self.minors_kings.correct_evaluation(pos)
@@ -61,9 +54,6 @@ impl CorrHistTables {
             + self.nonpawn_white.correct_evaluation(pos)
             + self.nonpawn_black.correct_evaluation(pos)
     }
-}
-
-impl CorrHistTables {
     pub fn new()->Self {
         Self {
             material: CorrectionHistoryTable::new(256,32),
@@ -101,11 +91,6 @@ impl<K: CorrHistKey> CorrectionHistoryTable<K>{
             _marker: PhantomData
         }
     }
-}
-
-// Make Corrhisttable for different keys
-impl<K: CorrHistKey> CorrectionHistoryTable<K> {
-
     // Age entries, reduce importance
     pub fn age_entries(&mut self) {
         self.table.iter_mut().flatten().for_each(|x| *x /= 2);
