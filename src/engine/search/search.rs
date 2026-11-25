@@ -808,7 +808,11 @@ pub fn quiescence(
 
         ctx.increase_history(child_hash);
 
+        ctx.stack.moves[ply] = Some(mv);
+
         let score = -quiescence(&child, ctx, -beta, -alpha,ply+1);
+
+        ctx.stack.moves[ply] = None;
 
         ctx.decrease_history();
 
