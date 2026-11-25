@@ -194,7 +194,7 @@ pub fn negamax(
     let static_eval = if is_excluded {
         raw_eval
     } else {
-        corr = ctx.corrhist.correct_evaluation(pos);
+        corr = ctx.corrhist.correct_evaluation(pos, &ctx.stack.moves, ply);
         raw_eval + corr
     };
 
@@ -707,7 +707,7 @@ pub fn negamax(
     if !is_excluded && !in_check && !best_move.is_some_and(|mv| mv.is_capture() || mv.is_promotion())
         && !(node_type == Bound::Lower && best_score <= static_eval)
         && !(node_type == Bound::Upper && best_score >= static_eval) {
-        ctx.corrhist.update_correction_history(pos, depth as i32, best_score - static_eval);
+        ctx.corrhist.update_correction_history(pos, depth as i32, best_score - static_eval, &ctx.stack.moves, ply);
     }
 
 
@@ -767,7 +767,7 @@ pub fn quiescence(
     let static_eval = if in_check{
         -MATE_SCORE + ply as i32
     } else{
-        raw_eval + ctx.corrhist.correct_evaluation(pos)
+        raw_eval + ctx.corrhist.correct_evaluation(pos,&ctx.stack.moves,ply)
     };
 
    if static_eval >= beta {

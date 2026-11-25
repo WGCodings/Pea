@@ -1,5 +1,5 @@
 use std::marker::PhantomData;
-use shakmaty::{Chess, Position};
+use shakmaty::{Chess, Move, Position};
 use shakmaty::Color::{Black, White};
 use crate::engine::hash::Hash;
 // Special thanks to Jamie Whiting, author of Akimbo for inspiration and code examples. Only slight modifications were made.
@@ -15,6 +15,7 @@ pub struct CorrHistTables {
     pub majors_kings : CorrectionHistoryTable<MajorsAndKingsKey>,
     pub nonpawn_black: CorrectionHistoryTable<NonPawnBlackKey>,
     pub nonpawn_white: CorrectionHistoryTable<NonPawnWhiteKey>,
+    pub lastmove : CorrectionHistoryTable<LastMoveKey>
 
 
 }
@@ -27,15 +28,17 @@ impl CorrHistTables {
         self.majors_kings.clear();
         self.nonpawn_black.clear();
         self.nonpawn_white.clear();
+        self.lastmove.clear();
     }
 
-    pub(crate) fn update_correction_history(&mut self, pos: &Chess, depth: i32, diff: i32) {
-        self.material.update_correction_history(pos, depth, diff);
-        self.pawn.update_correction_history(pos, depth, diff);
-        self.minors_kings.update_correction_history(pos, depth, diff);
-        self.majors_kings.update_correction_history(pos, depth, diff);
-        self.nonpawn_black.update_correction_history(pos, depth, diff);
-        self.nonpawn_white.update_correction_history(pos, depth, diff);
+    pub(crate) fn update_correction_history(&mut self, pos: &Chess, depth: i32, diff: i32, move_stack :&[Option<Move>], ply : usize) {
+        self.material.update_correction_history(pos, depth, diff,move_stack,ply);
+        self.pawn.update_correction_history(pos, depth, diff,move_stack,ply);
+        self.minors_kings.update_correction_history(pos, depth, diff,move_stack,ply);
+        self.majors_kings.update_correction_history(pos, depth, diff,move_stack,ply);
+        self.nonpawn_black.update_correction_history(pos, depth, diff,move_stack,ply);
+        self.nonpawn_white.update_correction_history(pos, depth, diff,move_stack,ply);
+        self.lastmove.update_correction_history(pos, depth, diff,move_stack,ply);
     }
     pub(crate) fn age_entries(&mut self) {
         self.material.age_entries();
@@ -44,15 +47,17 @@ impl CorrHistTables {
         self.majors_kings.age_entries();
         self.nonpawn_black.age_entries();
         self.nonpawn_white.age_entries();
+        self.lastmove.age_entries();
     }
 
-    pub(crate) fn correct_evaluation(&self, pos: &Chess) -> i32 {
-        self.pawn.correct_evaluation(pos)
-            + self.minors_kings.correct_evaluation(pos)
-            + self.majors_kings.correct_evaluation(pos)
-            + self.material.correct_evaluation(pos)
-            + self.nonpawn_white.correct_evaluation(pos)
-            + self.nonpawn_black.correct_evaluation(pos)
+    pub(crate) fn correct_evaluation(&self, pos: &Chess, move_stack :&[Option<Move>], ply : usize) -> i32 {
+        self.pawn.correct_evaluation(pos,move_stack,ply)
+            + self.minors_kings.correct_evaluation(pos,move_stack,ply)
+            + self.majors_kings.correct_evaluation(pos,move_stack,ply)
+            + self.material.correct_evaluation(pos,move_stack,ply)
+            + self.nonpawn_white.correct_evaluation(pos,move_stack,ply)
+            + self.nonpawn_black.correct_evaluation(pos,move_stack,ply)
+            + self.lastmove.correct_evaluation(pos,move_stack,ply)
     }
     pub fn new()->Self {
         Self {
@@ -62,13 +67,14 @@ impl CorrHistTables {
             majors_kings: CorrectionHistoryTable::new(256,32),
             nonpawn_white : CorrectionHistoryTable::new(256,32),
             nonpawn_black : CorrectionHistoryTable::new(256,32),
+            lastmove: CorrectionHistoryTable::new(256,32),
         }
     }
 }
 
 // Key can be different for other kinds of corrhist tables
 pub trait CorrHistKey {
-    fn key(pos: &Chess) -> usize;
+    fn key(pos: &Chess, move_stack :&[Option<Move>], ply : usize) -> Option<usize>;
 }
 
 #[derive(Clone)]
@@ -101,9 +107,9 @@ impl<K: CorrHistKey> CorrectionHistoryTable<K>{
     }
 
     // Update the correction history based on the key and difference between static eval and score
-    pub fn update_correction_history(&mut self, pos: &Chess, depth: i32, eval_diff: i32) {
-
-        let entry = &mut self.table[usize::from(pos.turn())][K::key(pos)];
+    pub fn update_correction_history(&mut self, pos: &Chess, depth: i32, eval_diff: i32, move_stack :&[Option<Move>], ply : usize) {
+        let Some(key) = K::key(pos, move_stack, ply) else { return };
+        let entry = &mut self.table[usize::from(pos.turn())][key];
         let scaled_diff = eval_diff * GRAIN;
         let new_weight = 16.min(depth + 1);
         let update = *entry * (self.scale - new_weight) + scaled_diff * new_weight;
@@ -111,10 +117,11 @@ impl<K: CorrHistKey> CorrectionHistoryTable<K>{
     }
 
     // If key matches, correct raw eval with correction
-    pub fn correct_evaluation(&self, pos: &Chess) -> i32 {
-        let hash = K::key(&pos);
-        let entry = self.table[usize::from(pos.turn())][hash];
-        entry / GRAIN
+    pub fn correct_evaluation(&self, pos: &Chess, move_stack :&[Option<Move>], ply : usize) -> i32 {
+        match K::key(pos, move_stack, ply) {
+            Some(key) => self.table[usize::from(pos.turn())][key] / GRAIN,
+            None      => 0,
+        }
     }
 }
 
@@ -122,9 +129,9 @@ impl<K: CorrHistKey> CorrectionHistoryTable<K>{
 #[derive(Clone)]
 pub struct PawnKey;
 impl CorrHistKey for PawnKey {
-    fn key(pos: &Chess) -> usize {
+    fn key(pos: &Chess, _: &[Option<Move>], _: usize) -> Option<usize> {
         let hash = Hash::pawnhash(pos);
-        hash.0 as usize % SIZE
+        Some(hash.0 as usize % SIZE)
     }
 }
 
@@ -132,44 +139,55 @@ impl CorrHistKey for PawnKey {
 #[derive(Clone)]
 pub struct MaterialKey;
 impl CorrHistKey for MaterialKey {
-    fn key(pos: &Chess) -> usize {
+    fn key(pos: &Chess, _: &[Option<Move>], _: usize) -> Option<usize> {
         let hash = Hash::materialhash(pos);
-        hash.0 as usize % SIZE
+        Some(hash.0 as usize % SIZE)
     }
 }
 
 #[derive(Clone)]
 pub struct MinorsAndKingsKey;
 impl CorrHistKey for MinorsAndKingsKey {
-    fn key(pos: &Chess) -> usize {
+    fn key(pos: &Chess, _: &[Option<Move>], _: usize) -> Option<usize> {
         let hash = Hash::minors_and_kings_hash(pos);
-        hash.0 as usize % SIZE
+        Some(hash.0 as usize % SIZE)
     }
 }
 
 #[derive(Clone)]
 pub struct MajorsAndKingsKey;
 impl CorrHistKey for MajorsAndKingsKey {
-    fn key(pos: &Chess) -> usize {
+    fn key(pos: &Chess, _: &[Option<Move>], _: usize) -> Option<usize> {
         let hash = Hash::majors_and_kings_hash(pos);
-        hash.0 as usize % SIZE
+        Some(hash.0 as usize % SIZE)
     }
 }
 
 #[derive(Clone)]
 pub struct NonPawnWhiteKey;
 impl CorrHistKey for NonPawnWhiteKey {
-    fn key(pos: &Chess) -> usize {
+    fn key(pos: &Chess, _: &[Option<Move>], _: usize) -> Option<usize> {
         let hash = Hash::nonpawn_hash(pos, White);
-        hash.0 as usize % SIZE
+        Some(hash.0 as usize % SIZE)
     }
 }
 #[derive(Clone)]
 pub struct NonPawnBlackKey;
 
 impl CorrHistKey for NonPawnBlackKey {
-    fn key(pos: &Chess) -> usize {
+    fn key(pos: &Chess, _: &[Option<Move>], _: usize) -> Option<usize>{
         let hash = Hash::nonpawn_hash(pos, Black);
-        hash.0 as usize % SIZE
+        Some(hash.0 as usize % SIZE)
+    }
+}
+
+#[derive(Clone)]
+pub struct LastMoveKey;
+impl CorrHistKey for LastMoveKey {
+    fn key(_: &Chess, moves: &[Option<Move>], ply: usize) -> Option<usize> {
+        if ply < 1 { return None; }
+        let last = moves[ply - 1]?;
+        let b = (last.role() as usize - 1) * 64 + last.to() as usize;
+        Some(b % SIZE)
     }
 }
