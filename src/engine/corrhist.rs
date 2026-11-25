@@ -67,7 +67,7 @@ impl CorrHistTables {
             majors_kings: CorrectionHistoryTable::new(256,32),
             nonpawn_white : CorrectionHistoryTable::new(256,32),
             nonpawn_black : CorrectionHistoryTable::new(256,32),
-            lastmove: CorrectionHistoryTable::new(256,32),
+            lastmove: CorrectionHistoryTable::new(128,64),
         }
     }
 }
