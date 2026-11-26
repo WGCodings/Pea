@@ -15,7 +15,7 @@ pub struct CorrHistTables {
     pub majors_kings : CorrectionHistoryTable<MajorsAndKingsKey>,
     pub nonpawn_black: CorrectionHistoryTable<NonPawnBlackKey>,
     pub nonpawn_white: CorrectionHistoryTable<NonPawnWhiteKey>,
-    pub lastmove : CorrectionHistoryTable<LastMoveKey>
+    pub cont2: CorrectionHistoryTable<Cont2Key>
 
 
 }
@@ -28,7 +28,7 @@ impl CorrHistTables {
         self.majors_kings.clear();
         self.nonpawn_black.clear();
         self.nonpawn_white.clear();
-        self.lastmove.clear();
+        self.cont2.clear();
     }
 
     pub(crate) fn update_correction_history(&mut self, pos: &Chess, depth: i32, diff: i32, move_stack :&[Option<Move>], ply : usize) {
@@ -38,7 +38,7 @@ impl CorrHistTables {
         self.majors_kings.update_correction_history(pos, depth, diff,move_stack,ply);
         self.nonpawn_black.update_correction_history(pos, depth, diff,move_stack,ply);
         self.nonpawn_white.update_correction_history(pos, depth, diff,move_stack,ply);
-        self.lastmove.update_correction_history(pos, depth, diff,move_stack,ply);
+        self.cont2.update_correction_history(pos, depth, diff, move_stack, ply);
     }
     pub(crate) fn age_entries(&mut self) {
         self.material.age_entries();
@@ -47,7 +47,7 @@ impl CorrHistTables {
         self.majors_kings.age_entries();
         self.nonpawn_black.age_entries();
         self.nonpawn_white.age_entries();
-        //self.lastmove.age_entries();
+        //self.cont2.age_entries();
     }
 
     pub(crate) fn correct_evaluation(&self, pos: &Chess, move_stack :&[Option<Move>], ply : usize) -> i32 {
@@ -57,7 +57,7 @@ impl CorrHistTables {
             + self.material.correct_evaluation(pos,move_stack,ply)
             + self.nonpawn_white.correct_evaluation(pos,move_stack,ply)
             + self.nonpawn_black.correct_evaluation(pos,move_stack,ply)
-            + self.lastmove.correct_evaluation(pos,move_stack,ply)
+            + self.cont2.correct_evaluation(pos, move_stack, ply)
     }
     pub fn new()->Self {
         Self {
@@ -67,7 +67,7 @@ impl CorrHistTables {
             majors_kings: CorrectionHistoryTable::new(256,32),
             nonpawn_white : CorrectionHistoryTable::new(256,32),
             nonpawn_black : CorrectionHistoryTable::new(256,32),
-            lastmove: CorrectionHistoryTable::new(128,64),
+            cont2: CorrectionHistoryTable::new(128, 64),
         }
     }
 }
@@ -182,8 +182,8 @@ impl CorrHistKey for NonPawnBlackKey {
 }
 
 #[derive(Clone)]
-pub struct LastMoveKey;
-impl CorrHistKey for LastMoveKey {
+pub struct Cont2Key;
+impl CorrHistKey for Cont2Key {
     fn key(_: &Chess, moves: &[Option<Move>], ply: usize) -> Option<usize> {
         if ply < 2 { return None; }
         let (prev, last) = (moves[ply - 2]?, moves[ply - 1]?);
