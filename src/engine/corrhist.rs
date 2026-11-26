@@ -15,7 +15,9 @@ pub struct CorrHistTables {
     pub majors_kings : CorrectionHistoryTable<MajorsAndKingsKey>,
     pub nonpawn_black: CorrectionHistoryTable<NonPawnBlackKey>,
     pub nonpawn_white: CorrectionHistoryTable<NonPawnWhiteKey>,
-    pub cont2: CorrectionHistoryTable<Cont2Key>
+    pub cont2: CorrectionHistoryTable<Cont2Key>,
+    pub cont4: CorrectionHistoryTable<Cont4Key>
+
 
 
 }
@@ -29,6 +31,7 @@ impl CorrHistTables {
         self.nonpawn_black.clear();
         self.nonpawn_white.clear();
         self.cont2.clear();
+        self.cont4.clear();
     }
 
     pub(crate) fn update_correction_history(&mut self, pos: &Chess, depth: i32, diff: i32, move_stack :&[Option<Move>], ply : usize) {
@@ -39,6 +42,7 @@ impl CorrHistTables {
         self.nonpawn_black.update_correction_history(pos, depth, diff,move_stack,ply);
         self.nonpawn_white.update_correction_history(pos, depth, diff,move_stack,ply);
         self.cont2.update_correction_history(pos, depth, diff, move_stack, ply);
+        self.cont4.update_correction_history(pos, depth, diff, move_stack, ply);
     }
     pub(crate) fn age_entries(&mut self) {
         self.material.age_entries();
@@ -58,6 +62,7 @@ impl CorrHistTables {
             + self.nonpawn_white.correct_evaluation(pos,move_stack,ply)
             + self.nonpawn_black.correct_evaluation(pos,move_stack,ply)
             + self.cont2.correct_evaluation(pos, move_stack, ply)
+            + self.cont4.correct_evaluation(pos, move_stack, ply)
     }
     pub fn new()->Self {
         Self {
@@ -68,6 +73,7 @@ impl CorrHistTables {
             nonpawn_white : CorrectionHistoryTable::new(256,32),
             nonpawn_black : CorrectionHistoryTable::new(256,32),
             cont2: CorrectionHistoryTable::new(128, 64),
+            cont4: CorrectionHistoryTable::new(128, 64),
         }
     }
 }
@@ -187,6 +193,18 @@ impl CorrHistKey for Cont2Key {
     fn key(_: &Chess, moves: &[Option<Move>], ply: usize) -> Option<usize> {
         if ply < 2 { return None; }
         let (prev, last) = (moves[ply - 2]?, moves[ply - 1]?);
+        let a = (prev.role() as usize - 1) * 64 + prev.to() as usize;
+        let b = (last.role() as usize - 1) * 64 + last.to() as usize;
+        Some((a * 384 + b) % SIZE)
+    }
+}
+
+#[derive(Clone)]
+pub struct Cont4Key;
+impl CorrHistKey for Cont4Key {
+    fn key(_: &Chess, moves: &[Option<Move>], ply: usize) -> Option<usize> {
+        if ply < 4 { return None; }
+        let (prev, last) = (moves[ply - 4]?, moves[ply - 1]?);
         let a = (prev.role() as usize - 1) * 64 + prev.to() as usize;
         let b = (last.role() as usize - 1) * 64 + last.to() as usize;
         Some((a * 384 + b) % SIZE)
