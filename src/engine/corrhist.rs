@@ -47,7 +47,7 @@ impl CorrHistTables {
         self.majors_kings.age_entries();
         self.nonpawn_black.age_entries();
         self.nonpawn_white.age_entries();
-        self.lastmove.age_entries();
+        //self.lastmove.age_entries();
     }
 
     pub(crate) fn correct_evaluation(&self, pos: &Chess, move_stack :&[Option<Move>], ply : usize) -> i32 {
