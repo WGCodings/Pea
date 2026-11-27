@@ -70,7 +70,13 @@ pub struct Params {
     pub pc_improving_margin: i32,
     pub pc_see_thr: i32,
 
-
+    pub corrhist_material: i32,
+    pub corrhist_pawn: i32,
+    pub corrhist_minors: i32,
+    pub corrhist_majors: i32,
+    pub corrhist_npb: i32,
+    pub corrhist_npw: i32,
+    pub corrhist_cont2: i32
 }
 
 impl Params {
@@ -143,6 +149,13 @@ impl Params {
             pc_improving_margin: 10,
             pc_see_thr: 0,
 
+            corrhist_material: 32,
+            corrhist_pawn: 32,
+            corrhist_minors: 32,
+            corrhist_majors: 32,
+            corrhist_npb: 32,
+            corrhist_npw: 32,
+            corrhist_cont2: 64,
         }
     }
 }

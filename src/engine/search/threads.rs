@@ -82,7 +82,7 @@ impl Threads {
                     let nnue_state = NNUEState::new(pos, network);
                     let mut ctx    = build_search_context(
                         tt,
-                        CorrHistTables::new(),
+                        CorrHistTables::new(&params),
                         HistoryTables::new(),
                         &params, &ordering, network,
                         rep_stack, *nnue_state, stop, nodes,

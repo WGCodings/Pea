@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 use shakmaty::{Chess, Move, Position};
 use shakmaty::Color::{Black, White};
 use crate::engine::hash::Hash;
+use crate::engine::params::Params;
 // Special thanks to Jamie Whiting, author of Akimbo for inspiration and code examples. Only slight modifications were made.
 
 const SIZE: usize = 16384;
@@ -59,15 +60,15 @@ impl CorrHistTables {
             + self.nonpawn_black.correct_evaluation(pos,move_stack,ply)
             + self.cont2.correct_evaluation(pos, move_stack, ply)
     }
-    pub fn new()->Self {
+    pub fn new(params : &Params)->Self {
         Self {
-            material: CorrectionHistoryTable::new(256,32),
-            pawn: CorrectionHistoryTable::new(256,32),
-            minors_kings: CorrectionHistoryTable::new(256,32),
-            majors_kings: CorrectionHistoryTable::new(256,32),
-            nonpawn_white : CorrectionHistoryTable::new(256,32),
-            nonpawn_black : CorrectionHistoryTable::new(256,32),
-            cont2: CorrectionHistoryTable::new(128, 64),
+            material: CorrectionHistoryTable::new(256,params.corrhist_material),
+            pawn: CorrectionHistoryTable::new(256,params.corrhist_pawn),
+            minors_kings: CorrectionHistoryTable::new(256,params.corrhist_minors),
+            majors_kings: CorrectionHistoryTable::new(256,params.corrhist_majors),
+            nonpawn_white : CorrectionHistoryTable::new(256,params.corrhist_npb),
+            nonpawn_black : CorrectionHistoryTable::new(256,params.corrhist_npw),
+            cont2: CorrectionHistoryTable::new(128, params.corrhist_cont2),
         }
     }
 }

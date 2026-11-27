@@ -86,7 +86,7 @@ pub fn run_game(
 
         let mut ctx = build_search_context(
             tt,
-            CorrHistTables::new(),
+            CorrHistTables::new(params),
             HistoryTables::new(),
             params,
             ordering,

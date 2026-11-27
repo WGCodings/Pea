@@ -55,11 +55,11 @@ impl Engine {
             position,
             repetition_stack,
             tt:                  TranspositionTable::new(ttsize),
-            corrhist_tables: CorrHistTables::new(),
+            corrhist_tables:     CorrHistTables::new(&params),
             history_tables:      HistoryTables::new(),
             params,
             net,
-            options:       Options::default(),
+            options:             Options::default(),
 
 
         }
