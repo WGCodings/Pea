@@ -10,6 +10,7 @@ use crate::engine::types::PIECE_VALUES;
 use crate::engine::utility::{read_position_from_fen};
 use crate::engine::search::threads::Threads;
 use crate::datagen::datagen_main::run_datagen;
+use crate::engine::corrhist::CorrHistTables;
 use crate::uci::parser::{move_to_uci, uci_to_move, UciCommand};
 use crate::uci::state::UciState;
 const BENCH_FENS: &str = include_str!("../../assets/bench.txt");
@@ -232,6 +233,9 @@ impl UciHandler {
         } else {
             // Set tuning parameters
             self.set_param(n, v);
+            if n.to_ascii_lowercase().starts_with("corrhist_") {
+                self.engine.corrhist_tables = CorrHistTables::new(&self.engine.params);
+            }
         }
     }
 

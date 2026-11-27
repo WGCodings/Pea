@@ -66,8 +66,8 @@ impl CorrHistTables {
             pawn: CorrectionHistoryTable::new(256,params.corrhist_pawn),
             minors_kings: CorrectionHistoryTable::new(256,params.corrhist_minors),
             majors_kings: CorrectionHistoryTable::new(256,params.corrhist_majors),
-            nonpawn_white : CorrectionHistoryTable::new(256,params.corrhist_npb),
-            nonpawn_black : CorrectionHistoryTable::new(256,params.corrhist_npw),
+            nonpawn_white : CorrectionHistoryTable::new(256,params.corrhist_npw),
+            nonpawn_black : CorrectionHistoryTable::new(256,params.corrhist_npb),
             cont2: CorrectionHistoryTable::new(128, params.corrhist_cont2),
         }
     }
